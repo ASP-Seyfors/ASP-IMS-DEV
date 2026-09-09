@@ -1,0 +1,62 @@
+<!-- =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: screens/dbEditor.html
+ * Author: Thomas Seyfors
+ * Date Created: August 2026
+ * 
+ * Description: 
+ *   User interface component for the Database Editor. A data grid allowing 
+ *   secure, direct manipulation of the local item catalog.
+ *
+ * Affected Features:
+ *   - Item Description & Category Editing
+ *   - Admin-Restricted Price & Cost Editing
+ *   - Database Search & Filter Grid
+ *
+ * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
+ * All Rights Reserved.
+ * ======================================================================= -->
+<!-- DATABASE GRID EDITOR -->
+<!-- Top Header -->
+<div id="screenDbEditor" style="display: none;" class="card">
+  <div class="flex-between" style="border-bottom: 2px solid #00796b; padding-bottom: 6px; margin-bottom: 10px;">
+    <h2 style="border:none; margin:0; padding:0; color: #00796b;">Database Editor</h2>
+    <button class="btn-small btn-cancel btn-auto" onclick="UIManager.closeDbEditor()"><i data-lucide="arrow-left" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Return</button>
+  </div>
+  <p style="font-size: 0.8rem; color: #555;">Edit fields directly in the table. Click "Export Database Updates" below to save changes for control review.</p>
+  
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+    <input type="text" id="dbSearchInput" placeholder="Search REF or Desc..." style="flex: 2; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" oninput="DatabaseManager.renderDbGridEditor()">
+    <select id="dbMfrFilter" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" onchange="DatabaseManager.renderDbGridEditor()">
+      <option value="ALL">All Manufacturers</option>
+    </select>
+    <label style="font-weight:bold; cursor:pointer; margin-left: 15px; color: #d32f2f;">
+      <input type="checkbox" id="chkNeedsPrice" onchange="DatabaseManager.renderDbGridEditor()"> Items Needing Price
+    </label>
+  </div>
+  
+  <div style="overflow-x: auto; max-height: 60vh; border: 1px solid #ccc; margin-bottom: 15px; border-radius: 4px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; background: #fff;">
+      <thead style="position: sticky; top: 0; background: #00796b; color: #fff; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.4); z-index: 10;">
+        <tr>
+          <th style="padding: 10px; border-bottom: 1px solid #004d40; text-align: left;">MFR</th>
+          <th style="padding: 10px; border-bottom: 1px solid #004d40; text-align: left;">REF / SKU</th>
+          <th style="padding: 10px; border-bottom: 1px solid #004d40; text-align: left; width: 60%;">Description</th>
+          <th style="padding: 10px; border-bottom: 1px solid #004d40; text-align: center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="dbGridBody">
+        <!-- Injected via JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Bottom Footer -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
+    <div style="display: flex; gap: 8px;">
+      <button class="btn-small btn-auto" style="background-color: #0277bd; color: #fff; margin:0; padding: 10px;" onclick="DatabaseManager.downloadCloudDatabase(event)"><i data-lucide="cloud" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Sync Cloud DB</button>
+      <button class="btn-small btn-auto" style="background-color: #f57f17; color: #fff; margin:0; padding: 10px;" onclick="DatabaseManager.uploadPendingData(event)"><i data-lucide="upload-cloud" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Upload Pending</button>
+    </div>
+    <button class="btn-action btn-save btn-auto" style="margin:0; padding: 10px 20px;" onclick="DatabaseManager.exportGridChanges()"><i data-lucide="save" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Export Updates</button>
+  </div>
+</div>

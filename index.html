@@ -1,0 +1,93 @@
+<!-- =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: index.html
+ * Author: Thomas Seyfors
+ * Date Created: August 2026
+ * 
+ * Description: 
+ *   The primary HTML shell and Single Page Application (SPA) container. 
+ *   Loads required CDNs, meta tags for PWA installation, and mounts the 
+ *   dynamic UI components.
+ *
+ * Affected Features:
+ *   - Progressive Web App Manifest Linking
+ *   - External Library Loading (Html5-Qrcode, Tesseract.js, Showdown)
+ *   - Global Layout Structure & App Mounting
+ *
+ * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
+ * All Rights Reserved.
+ * ======================================================================= -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASP IMS</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="manifest" href="manifest.json">
+  
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    #refInput, #lotInput, .manifest-ref-input { text-transform: uppercase; }
+    .manifest-row { background: #ffffff; border: 1px solid #8b8589; border-radius: 4px; padding: 8px; margin-bottom: 8px; }
+    .progress-banner { background-color: #e8f5e9; border: 2px solid #2e7d32; color: #1b5e20; padding: 8px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+    .badge-info { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 0.8rem; font-weight: bold; }
+    .badge-alert { background-color: #ffcdd2; color: #c62828; }
+    .audit-card { background-color: #ffffff; border: 1px solid #0277bd; border-radius: 4px; padding: 10px; margin-bottom: 10px; }
+  </style>
+</head>
+<body class="theme-slate">
+
+  <!-- THE APP WILL INJECT ALL SCREENS INTO THIS EMPTY CONTAINER -->
+  <div id="app-root"></div>
+
+  <!-- Scripts -->
+  <script src="js/componentManager.js"></script>
+  <script src="js/databaseManager.js"></script>
+  <script src="js/uiManager.js"></script>
+  <script src="js/scannerManager.js"></script>
+  <script src="js/inventoryEngine.js"></script>
+  <script src="js/sessionManager.js"></script>
+  <script src="js/auditManager.js"></script>
+  <script src="js/reportsManager.js"></script>
+  <script src="js/authManager.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('Service Worker registered.');
+          
+          // Force the browser to aggressively check the server for a new sw.js
+          //reg.update();
+          
+        }).catch(err => console.warn('Service Worker registration skipped or delayed:', err));
+        
+        // Listen for the aggressive takeover from sw.js
+        /*
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            alert("✨ A new version of the ASP Scanner is available! The app will now reload to apply the update.");
+            window.location.reload(true);
+          }
+        });*/
+      });
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</body>
+</html>
