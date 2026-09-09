@@ -46,6 +46,7 @@ const AuthManager = {
   },
 
   showLoginScreen() {
+    document.body.style.borderTop = "none"; // ✨ Hide banner on login screen
     document.getElementById('screenSetup').style.display = 'none';
     document.getElementById('screenLogin').style.display = 'flex';
     this.renderGoogleButton();
@@ -172,6 +173,7 @@ const AuthManager = {
   unlockApp() {
     document.getElementById('screenLogin').style.display = 'none';
     document.getElementById('screenSetup').style.display = 'block';
+    document.body.style.borderTop = "12px solid #e65100"; // ✨ Add orange banner after login
     
     let advLabel = document.getElementById('chkAdvancedMode') ? document.getElementById('chkAdvancedMode').parentElement : null;
     let archiveBtn = document.getElementById('btnSessionArchive');

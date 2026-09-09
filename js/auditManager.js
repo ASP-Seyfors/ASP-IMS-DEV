@@ -2671,20 +2671,26 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
     if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
 
-    let syncData = db.map(item => {
+    // ✨ CHANGED: Sliced to 3 items for a safe update test
+    let syncData = db.slice(0, 3).map(item => {
       let total = parseInt(item.onHand || 0, 10);
       let res = parseInt(item.reservedQty || 0, 10);
+      let avail = total - res;
+      
+      let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+      let intendedStatus = cleanPrice > 0 ? "active" : "draft";
+
       return {
         ref: item.ref || item.sku,
-        availableQty: total - res,
-        price: item.price || "$0.00",
-        status: item.status
+        availableQty: avail,
+        price: cleanPrice.toFixed(2),
+        status: intendedStatus
       };
     });
 
-    if (!confirm(`Are you ready to run a Dry Run sync to the Shopify Sandbox?\n\nThis will package ${syncData.length} items and send them to your Test Apps Script.`)) return;
+    if (!confirm(`Are you ready to run a Live Sync to the Shopify Sandbox?\n\nThis will package exactly 3 TEST items and send them to your Apps Script to UPDATE quantities and status.`)) return;
 
-    this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Dry Run Sync");
+    this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Live Sync (Test)");
   },
 
   // ✨ NEW: Reusable Network Function with Loading Overlay
