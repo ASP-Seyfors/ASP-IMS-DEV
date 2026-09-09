@@ -1662,8 +1662,8 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         updateStep(1, "Ledger Math Applied", 33);
         await new Promise(r => requestAnimationFrame(() => setTimeout(r, 100))); 
 
-        // --- CONCURRENT UPLOAD FOR LIGHTNING SPEED ---
-        updateStep(2, "Transmitting to Google...", 66);
+       // --- CONCURRENT UPLOAD FOR LIGHTNING SPEED ---
+        updateStep(2, "Transmitting to Google & Shopify...", 66);
         let networkTasks = [];
         
         networkTasks.push(this.syncAllocationsToCloud());
@@ -1675,6 +1675,32 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         if (completedSessionObj) {
             networkTasks.push(this.pushToCloudArchive(completedSessionObj));
             networkTasks.push(this.pushQboWriteBack(completedSessionObj));
+        }
+
+        // ✨ NEW: Targeted Shopify Sync for only the items touched in this session
+        let shopifyItems = [];
+        this.scannedObjects.forEach(scan => {
+            let dbMatch = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === scan.ref.toUpperCase());
+            if (dbMatch) {
+                let total = parseInt(dbMatch.onHand || 0, 10);
+                let res = parseInt(dbMatch.reservedQty || 0, 10);
+                let cleanPrice = parseFloat(String(dbMatch.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+                shopifyItems.push({
+                    ref: dbMatch.sku || dbMatch.ref,
+                    availableQty: total - res,
+                    price: cleanPrice.toFixed(2),
+                    status: cleanPrice > 0 ? "active" : "draft"
+                });
+            }
+        });
+        
+        // Deduplicate the array in case an item was scanned multiple times
+        let uniqueShopifySync = Array.from(new Map(shopifyItems.map(i => [i.ref, i])).values());
+        if (uniqueShopifySync.length > 0 && archiveUrl) {
+            networkTasks.push(fetch(archiveUrl, { 
+                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: uniqueShopifySync }) 
+            }).catch(e => console.warn("Shopify background sync failed")));
         }
 
         await Promise.all(networkTasks);

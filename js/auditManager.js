@@ -2671,8 +2671,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
     if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
 
-    // ✨ CHANGED: Sliced to 3 items for a safe update test
-    let syncData = db.slice(0, 3).map(item => {
+    // ✨ NEW: Only package items that are NOT marked TRUE
+    let syncData = db.filter(i => i.syncedShopify !== 'TRUE').map(item => {
       let total = parseInt(item.onHand || 0, 10);
       let res = parseInt(item.reservedQty || 0, 10);
       let avail = total - res;
@@ -2688,9 +2688,14 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       };
     });
 
-    if (!confirm(`Are you ready to run a Live Sync to the Shopify Sandbox?\n\nThis will package exactly 3 TEST items and send them to your Apps Script to UPDATE quantities and status.`)) return;
+    if (syncData.length === 0) {
+      alert("All items in the database are already marked as Synced with Shopify!");
+      return;
+    }
 
-    this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Live Sync (Test)");
+    if (!confirm(`Are you ready to run a Full Live Sync to the Shopify Sandbox?\n\nThis will package ${syncData.length} pending items and send them to your Apps Script to UPDATE quantities and status.`)) return;
+
+    this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Full Sync");
   },
 
   // ✨ NEW: Reusable Network Function with Loading Overlay

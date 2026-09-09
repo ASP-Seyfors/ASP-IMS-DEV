@@ -508,6 +508,22 @@ const DatabaseManager = {
 
         localStorage.setItem('asp_wh_db', JSON.stringify(this.db));
         
+        // ✨ NEW: Push the specific item edit directly to Shopify instantly
+        let cleanPriceUpdate = parseFloat(String(dbItem.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+        let shopifyUpdatePayload = {
+            action: "SYNC_SHOPIFY_SANDBOX",
+            payload: [{
+                ref: dbItem.ref || dbItem.sku,
+                availableQty: (parseInt(dbItem.onHand, 10) || 0) - (parseInt(dbItem.reservedQty, 10) || 0),
+                price: cleanPriceUpdate.toFixed(2),
+                status: cleanPriceUpdate > 0 ? "active" : "draft"
+            }]
+        };
+        fetch(SessionManager.getActiveArchiveUrl(), {
+            method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(shopifyUpdatePayload)
+        }).catch(e => console.warn("Shopify Database Editor update failed."));
+
         // ✨ NEW: Generate Ghost Session for the Audit Log
         if (changeNotes.length > 0) {
             let editPayload = {
