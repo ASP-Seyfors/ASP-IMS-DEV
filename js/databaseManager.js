@@ -328,6 +328,7 @@ const DatabaseManager = {
     let searchQuery = (document.getElementById('dbSearchInput') ? document.getElementById('dbSearchInput').value.toLowerCase().trim() : '');
     let mfrFilter = (document.getElementById('dbMfrFilter') ? document.getElementById('dbMfrFilter').value : 'ALL');
     let needsPriceFilter = document.getElementById('chkNeedsPrice') ? document.getElementById('chkNeedsPrice').checked : false;
+    let needsPriceInStockFilter = document.getElementById('chkNeedsPriceInStock') ? document.getElementById('chkNeedsPriceInStock').checked : false;
 
     let mfrDropdown = document.getElementById('dbMfrFilter');
     if (mfrDropdown && mfrDropdown.options.length <= 1) {
@@ -340,9 +341,15 @@ const DatabaseManager = {
     let dbCopy = this.db.filter(i => {
         let matchesSearch = !searchQuery || (i.ref || i.sku || '').toLowerCase().includes(searchQuery) || (i.desc || '').toLowerCase().includes(searchQuery);
         let matchesMfr = mfrFilter === 'ALL' || i.mfr === mfrFilter;
-        // ✨ FIX: Only check if the Selling Price is missing, ignoring cost
-        let matchesPrice = needsPriceFilter ? (!i.price || i.price === '$0.00' || i.price === '0') : true;
-        return matchesSearch && matchesMfr && matchesPrice;
+        
+        let isMissingPrice = (!i.price || i.price === '$0.00' || i.price === '0');
+        let matchesPrice = needsPriceFilter ? isMissingPrice : true;
+        
+        // ✨ NEW: Missing Price AND physically available in the warehouse
+        let avail = (parseInt(i.onHand, 10) || 0) - (parseInt(i.reservedQty, 10) || 0);
+        let matchesPriceInStock = needsPriceInStockFilter ? (isMissingPrice && avail > 0) : true;
+
+        return matchesSearch && matchesMfr && matchesPrice && matchesPriceInStock;
       })
       .sort((a,b) => (a.mfr || '').localeCompare(b.mfr) || (a.ref || '').localeCompare(b.ref));
     

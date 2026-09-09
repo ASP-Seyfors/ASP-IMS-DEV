@@ -2641,5 +2641,89 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     });
 
     UIManager.triggerShareOrDownload(csvContent, `Shopify_Inventory_Export_${SessionManager.sessionDateStr}.csv`, 'text/csv');
+  },
+
+  async executeShopifySeedTest() {
+    let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
+    if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
+
+    // Grab exactly 3 distinct items to test
+    let testData = db.slice(0, 3).map(item => {
+      let total = parseInt(item.onHand || 0, 10);
+      let res = parseInt(item.reservedQty || 0, 10);
+      return {
+        ref: item.ref || item.sku,
+        desc: item.desc,
+        mfr: item.mfr,
+        gtin: item.gtin,
+        categories: item.categories || "",
+        availableQty: total - res,
+        price: item.price || "$0.00"
+      };
+    });
+
+    if (!confirm(`Ready to test the live API connection?\n\nThis will send exactly 3 items to your Shopify Sandbox and attempt to create them as new products.`)) return;
+
+    this.fireShopifyApiPayload("TEST_SHOPIFY_CONNECTION", testData, "🧪 Shopify Seed Test");
+  },
+
+  async executeShopifySandboxSync() {
+    let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
+    if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
+
+    let syncData = db.map(item => {
+      let total = parseInt(item.onHand || 0, 10);
+      let res = parseInt(item.reservedQty || 0, 10);
+      return {
+        ref: item.ref || item.sku,
+        availableQty: total - res,
+        price: item.price || "$0.00",
+        status: item.status
+      };
+    });
+
+    if (!confirm(`Are you ready to run a Dry Run sync to the Shopify Sandbox?\n\nThis will package ${syncData.length} items and send them to your Test Apps Script.`)) return;
+
+    this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Dry Run Sync");
+  },
+
+  // ✨ NEW: Reusable Network Function with Loading Overlay
+  async fireShopifyApiPayload(actionTarget, payloadData, overlayTitle) {
+    let overlay = document.createElement('div');
+    overlay.id = 'shopifySyncOverlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
+    overlay.innerHTML = `
+      <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
+        <h3 style="margin:0 0 15px 0; color:#f57f17;">${overlayTitle}</h3>
+        <div style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ Transmitting to Shopify API...</div>
+        <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
+          <div style="width:100%; height:100%; background:#f57f17; animation: pulse 1.5s infinite;"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    try {
+      let reqPayload = {
+        action: actionTarget,
+        payload: payloadData
+      };
+
+      let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(reqPayload)
+      });
+
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+        UIManager.showCustomAlert("Sync Dispatched", "✅ Payload transmitted! Check your Apps Script execution logs or email for the detailed API response.");
+      }, 2500);
+
+    } catch (err) {
+      if (document.getElementById('shopifySyncOverlay')) document.body.removeChild(overlay);
+      alert("Network Error: " + err.message);
+    }
   }
 };
