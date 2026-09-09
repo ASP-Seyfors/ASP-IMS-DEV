@@ -48,6 +48,7 @@ const SessionManager = {
   googleFeederUrl: "https://script.google.com/macros/s/AKfycbzm9u8lHnJEgDyG8rJk5YaXs8VY_jzyganveRP8UwkgLlMtZxhLjWIZ4iu545H07ogFRw/exec",
 
   // Sandbox URLs
+  /*
   testArchiveUrl: "https://script.google.com/macros/s/AKfycbwHNk0QL0Cu1bInJxjDqGxvQ-RdPD8xJaPVV3OpTdAOVJZBhppqieVj7AKS_j2B5QpuBQ/exec", 
   testFeederUrl: "https://script.google.com/macros/s/AKfycbyugIbNY6XYvume81EmEklb32uFxuesGE9et3XrImUjYtHjkbKR6Q6goIHABAZ0P0BQfg/exec", 
 
@@ -59,6 +60,15 @@ const SessionManager = {
   getActiveFeederUrl() {
     let chk = document.getElementById('chkSandboxMode');
     return (chk && chk.checked) ? (this.testFeederUrl || this.googleFeederUrl) : this.googleFeederUrl;
+  },
+  */
+
+  getActiveArchiveUrl() {
+    return this.cloudArchiveUrl;
+  },
+  
+  getActiveFeederUrl() {
+    return this.googleFeederUrl;
   },
 
   applyTestingModeVisuals(isTestActive) {

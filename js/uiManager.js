@@ -849,7 +849,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     };
 
     try {
-      let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.cloudArchiveUrl : "https://script.google.com/macros/s/AKfycbzJw6P78vbvpYVOAqBqkAJezLpk1SXxwF1ndSs3my6ZeF3pJh1tBHvyGwWcuYsB63uG/exec";
+      let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.cloudArchiveUrl : "https://script.google.com/macros/s/AKfycby-jGbxOlkmMDQwDN5x1FHae6OTNlVD4ZsBDWiLzotdp2ALs0JGYe_RYvSoXMDD7EqQeg/exec";
       
       await fetch(activeUrl, {
         method: 'POST',
