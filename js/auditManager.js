@@ -680,7 +680,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
 <div class="header-grid">
   <div>
-    <img src="ASP_Box_Web_RGB.png" style="max-height: 50px;" alt="ASP Logo" />
+    <img src="ASP_Box_Web_RGB_DEV.png" style="max-height: 50px;" alt="ASP Logo" />
   </div>
   <div class="company-info" style="margin-left: 15px;">
     <h1>Allied Surgical Products</h1>
@@ -1818,7 +1818,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 <body>
 <div class="header-grid">
 <div>
-  <img src="ASP_Box_Web_RGB.png" style="max-height: 65px;" alt="ASP Logo" />
+  <img src="ASP_Box_Web_RGB_DEV.png" style="max-height: 65px;" alt="ASP Logo" />
 </div>
 <div class="company-info" style="margin-left: 20px;">
   <h1>Allied Surgical Products</h1>

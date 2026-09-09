@@ -44,8 +44,8 @@ const SessionManager = {
   fetchedStagedData: {},
 
   // Cloud URLs
-  cloudArchiveUrl: "https://script.google.com/macros/s/AKfycbzJw6P78vbvpYVOAqBqkAJezLpk1SXxwF1ndSs3my6ZeF3pJh1tBHvyGwWcuYsB63uG/exec",
-  googleFeederUrl: "https://script.google.com/macros/s/AKfycbxccIizG_pkX6ARslZCv4ElewSCRz_HUtsn0R8CKpCAFgVKPj972RLrL5eUsTNArq6IeA/exec",
+  cloudArchiveUrl: "https://script.google.com/macros/s/AKfycby-jGbxOlkmMDQwDN5x1FHae6OTNlVD4ZsBDWiLzotdp2ALs0JGYe_RYvSoXMDD7EqQeg/exec",
+  googleFeederUrl: "https://script.google.com/macros/s/AKfycbzm9u8lHnJEgDyG8rJk5YaXs8VY_jzyganveRP8UwkgLlMtZxhLjWIZ4iu545H07ogFRw/exec",
 
   // Sandbox URLs
   testArchiveUrl: "https://script.google.com/macros/s/AKfycbwHNk0QL0Cu1bInJxjDqGxvQ-RdPD8xJaPVV3OpTdAOVJZBhppqieVj7AKS_j2B5QpuBQ/exec", 
