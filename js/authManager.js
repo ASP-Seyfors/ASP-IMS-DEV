@@ -241,7 +241,7 @@ const AuthManager = {
          if (userNameInput) userNameInput.style.display = 'none';
          if (userNameSelect) {
              userNameSelect.style.display = 'block';
-             let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users) ? DatabaseManager.users : ["Thomas", "Trey", "Jessica", "+ New User"];
+             let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users) ? DatabaseManager.users : ["Trey", "Thomas", "Jessica", "+ New User"];
              userNameSelect.innerHTML = userList.map(u => `<option value="${u}">${u}</option>`).join('');
              userNameSelect.value = localStorage.getItem('asp_user_name') || userList[0];
          }

@@ -2721,13 +2721,13 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
     if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
 
-    // ✨ FIX: Apply the Bundle division math to the Live Sync payload!
-    let syncData = db.filter(i => i.syncedShopify !== 'TRUE').map(item => {
+    // ✨ FIX: Safely cast booleans to strings, and limit to 20 items per click to prevent Google timeouts!
+    let syncData = db.filter(i => String(i.syncedShopify || 'FALSE').toUpperCase() !== 'TRUE').slice(0, 20).map(item => {
       let isBundle = (item.parentRef && parseInt(item.uomMult, 10) > 1);
       let avail = 0;
 
       if (isBundle) {
-          let parentItem = db.find(i => (i.sku || i.ref || '').toUpperCase() === String(item.parentRef).toUpperCase());
+          let parentItem = db.find(i => String(i.sku || i.ref || '').toUpperCase() === String(item.parentRef).toUpperCase());
           if (parentItem) {
               let parentAvail = (parseInt(parentItem.onHand || 0, 10)) - (parseInt(parentItem.reservedQty || 0, 10));
               avail = Math.floor(parentAvail / parseInt(item.uomMult, 10));
@@ -2738,12 +2738,22 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       
       let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
       let intendedStatus = cleanPrice > 0 ? "active" : "draft";
+      let handleRef = isBundle ? item.parentRef : (item.ref || item.sku || '');
+      let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
       return {
-        ref: item.ref || item.sku,
+        ref: String(item.ref || item.sku),
+        handle: handle,
+        title: String(handleRef),
+        desc: String(item.desc || ''),
+        mfr: String(item.mfr || 'Unknown'),
+        category: String(item.category || 'Surgical Supply'),
+        gtin: String(item.gtin || ''),
         availableQty: avail,
         price: cleanPrice.toFixed(2),
-        status: intendedStatus
+        status: intendedStatus,
+        isBundle: isBundle,
+        uomMult: item.uomMult || 1
       };
     });
 
@@ -2752,7 +2762,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       return;
     }
 
-    if (!confirm(`Are you ready to run a Full Live Sync to the Shopify Sandbox?\n\nThis will package ${syncData.length} pending items and send them to your Apps Script to UPDATE quantities and status.`)) return;
+    if (!confirm(`Are you ready to run a Live Sync to the Shopify Sandbox?\n\nThis will package up to ${syncData.length} pending items and send them to your Apps Script to UPSERT products and variants.`)) return;
 
     this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Full Sync");
   },

@@ -28,7 +28,7 @@ const defaultSuppliers = ["Medline", "GeoSurgical", "RevMed", "SPS", "All Dats M
 const defaultCustomers = ["AHS", "Animal Eye Care", "BL", "RFP", "CASCADE", "REDHEAD", "SUNCOAST", "MAP", "PMCY", "EMMANUEL", "EMMANUEL JR", "SurgiShop", "Synergy", "POSS", "+ Add Customer"];
 
 const DatabaseManager = {
-  users: JSON.parse(localStorage.getItem('asp_wh_users')) || ["Thomas", "Trey", "Jessica", "+ New User"],
+  users: JSON.parse(localStorage.getItem('asp_wh_users')) || ["Trey", "Thomas", "Jessica", "+ New User"],
   db: JSON.parse(localStorage.getItem('asp_wh_db')) || [],
   vendors: JSON.parse(localStorage.getItem('asp_wh_vendors')) || defaultVendors,
   suppliers: JSON.parse(localStorage.getItem('asp_wh_suppliers')) || defaultSuppliers,
@@ -513,25 +513,42 @@ const DatabaseManager = {
         let isBundle = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1);
         let parentItem = isBundle ? this.db.find(i => (i.sku || i.ref || '').toUpperCase() === dbItem.parentRef.toUpperCase()) : dbItem;
         let pAvail = parentItem ? (parseInt(parentItem.onHand, 10) || 0) - (parseInt(parentItem.reservedQty, 10) || 0) : 0;
+        
+        let pHandle = String(parentItem ? (parentItem.sku || parentItem.ref) : (dbItem.sku || dbItem.ref)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        let pTitle = parentItem ? (parentItem.sku || parentItem.ref) : (dbItem.sku || dbItem.ref);
 
         if (isBundle) {
-            // We edited a Bundle (likely a price change). Calculate its stock from the parent and push it.
             let bAvail = Math.floor(pAvail / parseInt(dbItem.uomMult, 10));
             let cleanPrice = parseFloat(String(dbItem.price || '').replace(/[^0-9.-]+/g, '')) || 0;
             shopifyUpdatePayload.push({
                 ref: dbItem.ref || dbItem.sku,
+                handle: pHandle,
+                title: pTitle,
+                desc: dbItem.desc || '',
+                mfr: dbItem.mfr || 'Unknown',
+                category: dbItem.category || 'Surgical Supply',
+                gtin: dbItem.gtin || '',
                 availableQty: bAvail,
                 price: cleanPrice.toFixed(2),
-                status: cleanPrice > 0 ? "active" : "draft"
+                status: cleanPrice > 0 ? "active" : "draft",
+                isBundle: true,
+                uomMult: dbItem.uomMult
             });
         } else {
-            // We edited a Parent. Push the Parent, then push updates for ALL its connected Bundles.
             let cleanPrice = parseFloat(String(dbItem.price || '').replace(/[^0-9.-]+/g, '')) || 0;
             shopifyUpdatePayload.push({
                 ref: dbItem.ref || dbItem.sku,
+                handle: pHandle,
+                title: pTitle,
+                desc: dbItem.desc || '',
+                mfr: dbItem.mfr || 'Unknown',
+                category: dbItem.category || 'Surgical Supply',
+                gtin: dbItem.gtin || '',
                 availableQty: pAvail,
                 price: cleanPrice.toFixed(2),
-                status: cleanPrice > 0 ? "active" : "draft"
+                status: cleanPrice > 0 ? "active" : "draft",
+                isBundle: false,
+                uomMult: 1
             });
             
             let childBundles = this.db.filter(i => (i.parentRef || '').toUpperCase() === (dbItem.ref || dbItem.sku || '').toUpperCase() && parseInt(i.uomMult, 10) > 1);
@@ -540,9 +557,17 @@ const DatabaseManager = {
                 let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
                 shopifyUpdatePayload.push({
                     ref: bundle.sku || bundle.ref,
+                    handle: pHandle,
+                    title: pTitle,
+                    desc: bundle.desc || dbItem.desc || '',
+                    mfr: bundle.mfr || dbItem.mfr || 'Unknown',
+                    category: bundle.category || dbItem.category || 'Surgical Supply',
+                    gtin: bundle.gtin || '',
                     availableQty: bAvail,
                     price: bCleanPrice.toFixed(2),
-                    status: bCleanPrice > 0 ? "active" : "draft"
+                    status: bCleanPrice > 0 ? "active" : "draft",
+                    isBundle: true,
+                    uomMult: bundle.uomMult
                 });
             });
         }

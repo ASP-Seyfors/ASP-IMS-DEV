@@ -1688,31 +1688,45 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                 let pRes = parseInt(parentDb.reservedQty || 0, 10);
                 let pAvail = pTotal - pRes;
                 let pCleanPrice = parseFloat(String(parentDb.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-                
-                // 1. Push the Parent Item update
+                let pHandle = String(parentDb.sku || parentDb.ref).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
                 shopifyItems.push({
                     ref: parentDb.sku || parentDb.ref,
+                    handle: pHandle,
+                    title: parentDb.sku || parentDb.ref,
+                    desc: parentDb.desc || '',
+                    mfr: parentDb.mfr || 'Unknown',
+                    category: parentDb.category || 'Surgical Supply',
+                    gtin: parentDb.gtin || '',
                     availableQty: pAvail,
                     price: pCleanPrice.toFixed(2),
-                    status: pCleanPrice > 0 ? "active" : "draft"
+                    status: pCleanPrice > 0 ? "active" : "draft",
+                    isBundle: false,
+                    uomMult: 1
                 });
 
-                // 2. Find ALL bundles that belong to this Parent and push their updated Box counts
                 let childBundles = DatabaseManager.db.filter(i => (i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
                 childBundles.forEach(bundle => {
                     let bAvail = Math.floor(pAvail / parseInt(bundle.uomMult, 10));
                     let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
                     shopifyItems.push({
                         ref: bundle.sku || bundle.ref,
+                        handle: pHandle,
+                        title: parentDb.sku || parentDb.ref,
+                        desc: bundle.desc || parentDb.desc || '',
+                        mfr: bundle.mfr || parentDb.mfr || 'Unknown',
+                        category: bundle.category || parentDb.category || 'Surgical Supply',
+                        gtin: bundle.gtin || '',
                         availableQty: bAvail,
                         price: bCleanPrice.toFixed(2),
-                        status: bCleanPrice > 0 ? "active" : "draft"
+                        status: bCleanPrice > 0 ? "active" : "draft",
+                        isBundle: true,
+                        uomMult: bundle.uomMult
                     });
                 });
             }
         });
         
-        // Deduplicate the array in case an item was scanned multiple times
         let uniqueShopifySync = Array.from(new Map(shopifyItems.map(i => [i.ref, i])).values());
         if (uniqueShopifySync.length > 0 && archiveUrl) {
             networkTasks.push(fetch(archiveUrl, { 
