@@ -2062,15 +2062,28 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         csvContent += `,"${ref}","","${cat}","","${desc}","","","","","","","","","","","","","","${activeStatus}","","ENABLED","","ENABLED",""\n`;
       });
       
+    // ========================================================
+    // SHOPIFY NEW ITEMS CREATION (EXACT SHOPIFY FORMAT)
+    // ========================================================
     } else if (platform === 'Shopify') {
       let headers = ['Handle', 'Title', 'Body (HTML)', 'Vendor', 'Type', 'Tags', 'Published', 'Option1 Name', 'Option1 Value', 'Variant SKU', 'Variant Inventory Tracker', 'Variant Inventory Policy', 'Variant Fulfillment Service', 'Variant Price', 'Variant Barcode', 'Image Src', 'Status'];
       csvContent += headers.join(',') + '\n';
+
+      // ✨ FIX: Sort by the Parent Handle so Variants are grouped sequentially in the CSV!
+      filtered.sort((a, b) => {
+        let handleA = (a.parentRef && parseInt(a.uomMult, 10) > 1) ? a.parentRef : (a.ref || a.sku || '');
+        let handleB = (b.parentRef && parseInt(b.uomMult, 10) > 1) ? b.parentRef : (b.ref || b.sku || '');
+        
+        // Secondary sort to ensure the "Each" (Parent) appears directly before the "Box" (Bundle)
+        let sortA = String(handleA).toLowerCase() + (a.parentRef ? 'B' : 'A');
+        let sortB = String(handleB).toLowerCase() + (b.parentRef ? 'B' : 'A');
+        return sortA.localeCompare(sortB);
+      });
 
       filtered.forEach(item => {
         let ref = String(item.ref || item.sku || '');
         let isBundle = (item.parentRef && parseInt(item.uomMult, 10) > 1);
         
-        // ✨ MAGIC: Group variants under the Parent's Handle
         let handleRef = isBundle ? item.parentRef : ref;
         let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
         
