@@ -2066,10 +2066,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     // SHOPIFY NEW ITEMS CREATION (EXACT SHOPIFY FORMAT)
     // ========================================================
     } else if (platform === 'Shopify') {
-      let headers = ['Handle', 'Title', 'Body (HTML)', 'Vendor', 'Type', 'Tags', 'Published', 'Option1 Name', 'Option1 Value', 'Variant SKU', 'Variant Inventory Tracker', 'Variant Inventory Policy', 'Variant Fulfillment Service', 'Variant Price', 'Variant Barcode', 'Image Src', 'Status'];
+      // ✨ FIX: Added 'Variant Inventory Qty' to the headers
+      let headers = ['Handle', 'Title', 'Body (HTML)', 'Vendor', 'Type', 'Tags', 'Published', 'Option1 Name', 'Option1 Value', 'Variant SKU', 'Variant Inventory Tracker', 'Variant Inventory Qty', 'Variant Inventory Policy', 'Variant Fulfillment Service', 'Variant Price', 'Variant Barcode', 'Image Src', 'Status'];
       csvContent += headers.join(',') + '\n';
 
-      // ✨ FIX: Sort by the Parent Handle so Variants are grouped sequentially in the CSV!
+      // Sort by the Parent Handle so Variants are grouped sequentially in the CSV!
       filtered.sort((a, b) => {
         let handleA = (a.parentRef && parseInt(a.uomMult, 10) > 1) ? a.parentRef : (a.ref || a.sku || '');
         let handleB = (b.parentRef && parseInt(b.uomMult, 10) > 1) ? b.parentRef : (b.ref || b.sku || '');
@@ -2099,10 +2100,22 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
         let optName = "Unit of Measure";
         let optValue = isBundle ? `Box of ${item.uomMult}` : "Each";
+        
+        // ✨ FIX: Dynamically calculate Bundle Availability based on Parent stock
+        let avail = 0;
+        if (isBundle) {
+            let parentItem = db.find(i => (i.sku || i.ref || '').toUpperCase() === String(item.parentRef).toUpperCase());
+            if (parentItem) {
+                let parentAvail = (parseInt(parentItem.onHand || 0, 10)) - (parseInt(parentItem.reservedQty || 0, 10));
+                avail = Math.floor(parentAvail / parseInt(item.uomMult, 10));
+            }
+        } else {
+            avail = (parseInt(item.onHand || 0, 10)) - (parseInt(item.reservedQty || 0, 10));
+        }
 
         let row = [
           `"${handle}"`, `"${title}"`, `"${desc}"`, `"${vendor}"`, `"${cat}"`, `"${cat}"`, `"${published}"`, 
-          `"${optName}"`, `"${optValue}"`, `"${ref}"`, `"shopify"`, `"deny"`, `"manual"`, 
+          `"${optName}"`, `"${optValue}"`, `"${ref}"`, `"shopify"`, `${avail}`, `"deny"`, `"manual"`, 
           `"${cleanPrice.toFixed(2)}"`, `"${gtin}"`, `"https://asp-seyfors.github.io/ASP-IMS-DEV/ASP_Box_Web_RGB_DEV.png"`, `"${status}"`
         ];
         csvContent += row.join(',') + '\n';
@@ -2708,11 +2721,20 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
     if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
 
-    // ✨ NEW: Only package items that are NOT marked TRUE
+    // ✨ FIX: Apply the Bundle division math to the Live Sync payload!
     let syncData = db.filter(i => i.syncedShopify !== 'TRUE').map(item => {
-      let total = parseInt(item.onHand || 0, 10);
-      let res = parseInt(item.reservedQty || 0, 10);
-      let avail = total - res;
+      let isBundle = (item.parentRef && parseInt(item.uomMult, 10) > 1);
+      let avail = 0;
+
+      if (isBundle) {
+          let parentItem = db.find(i => (i.sku || i.ref || '').toUpperCase() === String(item.parentRef).toUpperCase());
+          if (parentItem) {
+              let parentAvail = (parseInt(parentItem.onHand || 0, 10)) - (parseInt(parentItem.reservedQty || 0, 10));
+              avail = Math.floor(parentAvail / parseInt(item.uomMult, 10));
+          }
+      } else {
+          avail = (parseInt(item.onHand || 0, 10)) - (parseInt(item.reservedQty || 0, 10));
+      }
       
       let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
       let intendedStatus = cleanPrice > 0 ? "active" : "draft";

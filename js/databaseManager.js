@@ -508,20 +508,48 @@ const DatabaseManager = {
 
         localStorage.setItem('asp_wh_db', JSON.stringify(this.db));
         
-        // ✨ NEW: Push the specific item edit directly to Shopify instantly
-        let cleanPriceUpdate = parseFloat(String(dbItem.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-        let shopifyUpdatePayload = {
-            action: "SYNC_SHOPIFY_SANDBOX",
-            payload: [{
+        // ✨ NEW: Push item edits to Shopify AND handle Bundle logic
+        let shopifyUpdatePayload = [];
+        let isBundle = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1);
+        let parentItem = isBundle ? this.db.find(i => (i.sku || i.ref || '').toUpperCase() === dbItem.parentRef.toUpperCase()) : dbItem;
+        let pAvail = parentItem ? (parseInt(parentItem.onHand, 10) || 0) - (parseInt(parentItem.reservedQty, 10) || 0) : 0;
+
+        if (isBundle) {
+            // We edited a Bundle (likely a price change). Calculate its stock from the parent and push it.
+            let bAvail = Math.floor(pAvail / parseInt(dbItem.uomMult, 10));
+            let cleanPrice = parseFloat(String(dbItem.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+            shopifyUpdatePayload.push({
                 ref: dbItem.ref || dbItem.sku,
-                availableQty: (parseInt(dbItem.onHand, 10) || 0) - (parseInt(dbItem.reservedQty, 10) || 0),
-                price: cleanPriceUpdate.toFixed(2),
-                status: cleanPriceUpdate > 0 ? "active" : "draft"
-            }]
-        };
+                availableQty: bAvail,
+                price: cleanPrice.toFixed(2),
+                status: cleanPrice > 0 ? "active" : "draft"
+            });
+        } else {
+            // We edited a Parent. Push the Parent, then push updates for ALL its connected Bundles.
+            let cleanPrice = parseFloat(String(dbItem.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+            shopifyUpdatePayload.push({
+                ref: dbItem.ref || dbItem.sku,
+                availableQty: pAvail,
+                price: cleanPrice.toFixed(2),
+                status: cleanPrice > 0 ? "active" : "draft"
+            });
+            
+            let childBundles = this.db.filter(i => (i.parentRef || '').toUpperCase() === (dbItem.ref || dbItem.sku || '').toUpperCase() && parseInt(i.uomMult, 10) > 1);
+            childBundles.forEach(bundle => {
+                let bAvail = Math.floor(pAvail / parseInt(bundle.uomMult, 10));
+                let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+                shopifyUpdatePayload.push({
+                    ref: bundle.sku || bundle.ref,
+                    availableQty: bAvail,
+                    price: bCleanPrice.toFixed(2),
+                    status: bCleanPrice > 0 ? "active" : "draft"
+                });
+            });
+        }
+
         fetch(SessionManager.getActiveArchiveUrl(), {
             method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(shopifyUpdatePayload)
+            body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifyUpdatePayload })
         }).catch(e => console.warn("Shopify Database Editor update failed."));
 
         // ✨ NEW: Generate Ghost Session for the Audit Log

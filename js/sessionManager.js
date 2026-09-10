@@ -1677,19 +1677,37 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
             networkTasks.push(this.pushQboWriteBack(completedSessionObj));
         }
 
-        // ✨ NEW: Targeted Shopify Sync for only the items touched in this session
+        // ✨ NEW: Targeted Shopify Sync for Parents AND their attached Bundles
         let shopifyItems = [];
         this.scannedObjects.forEach(scan => {
-            let dbMatch = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === scan.ref.toUpperCase());
-            if (dbMatch) {
-                let total = parseInt(dbMatch.onHand || 0, 10);
-                let res = parseInt(dbMatch.reservedQty || 0, 10);
-                let cleanPrice = parseFloat(String(dbMatch.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+            let parentRef = scan.ref.toUpperCase();
+            let parentDb = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === parentRef);
+            
+            if (parentDb) {
+                let pTotal = parseInt(parentDb.onHand || 0, 10);
+                let pRes = parseInt(parentDb.reservedQty || 0, 10);
+                let pAvail = pTotal - pRes;
+                let pCleanPrice = parseFloat(String(parentDb.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+                
+                // 1. Push the Parent Item update
                 shopifyItems.push({
-                    ref: dbMatch.sku || dbMatch.ref,
-                    availableQty: total - res,
-                    price: cleanPrice.toFixed(2),
-                    status: cleanPrice > 0 ? "active" : "draft"
+                    ref: parentDb.sku || parentDb.ref,
+                    availableQty: pAvail,
+                    price: pCleanPrice.toFixed(2),
+                    status: pCleanPrice > 0 ? "active" : "draft"
+                });
+
+                // 2. Find ALL bundles that belong to this Parent and push their updated Box counts
+                let childBundles = DatabaseManager.db.filter(i => (i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
+                childBundles.forEach(bundle => {
+                    let bAvail = Math.floor(pAvail / parseInt(bundle.uomMult, 10));
+                    let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+                    shopifyItems.push({
+                        ref: bundle.sku || bundle.ref,
+                        availableQty: bAvail,
+                        price: bCleanPrice.toFixed(2),
+                        status: bCleanPrice > 0 ? "active" : "draft"
+                    });
                 });
             }
         });
