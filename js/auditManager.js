@@ -2040,30 +2040,17 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     
     let filtered = db.filter(item => {
       let flag = platform === 'Thrive' ? String(item.syncedThrive).toUpperCase() : String(item.syncedShopify).toUpperCase();
-      let matchesFlag = isNew ? flag !== 'TRUE' : flag === 'TRUE';
-      
-      // Exclude UOM Bundles from New Item Creations
-      // A UOM Bundle is identified by having a parentRef and a multiplier > 1
-      if (isNew && item.parentRef && parseInt(item.uomMult, 10) > 1) {
-          return false;
-      }
-      
-      return matchesFlag;
+      return isNew ? flag !== 'TRUE' : flag === 'TRUE';
     });
 
     if (filtered.length === 0) { alert(`No items found for ${platform} (${isNew ? 'New' : 'Updates'}).`); return; }
 
     let csvContent = '';
 
-    // ========================================================
-    // THRIVE BULK EDIT PRODUCTS (UPDATES TEMPLATE)
-    // ========================================================
     if (platform === 'Thrive' && !isNew) {
-      // 25-column exact match to Thrive Bulk Edit Export
       let headers = ['ID', 'Product Name', 'New Product Name', 'Product Categories', 'New Product Categories', 'Product Description', 'New Product Description', 'Shipping Width', 'New Shipping Width', 'Shipping Length', 'New Shipping Length', 'Shipping Height', 'New Shipping Height', 'Shipping Dimension Unit (in, cm)', 'New Shipping Dimension Unit (in, cm)', 'Shipping Weight', 'New Shipping Weight', 'Shipping Weight Unit (g, oz, lb, kg)', 'New Shipping Weight Unit (g, oz, lb, kg)', 'Active (ACTIVE, INACTIVE)', 'New Active (ACTIVE, INACTIVE)', 'PH Warehouse Enabled', 'New PH Warehouse Enabled', 'PH Warehouse - (Shopify) PH Warehouse Enabled', 'New PH Warehouse - (Shopify) PH Warehouse Enabled'];
       csvContent += headers.join(',') + '\n';
 
-      // Sort alphabetically by REF to match Thrive's default export sorting
       filtered.sort((a, b) => (a.ref || a.sku || '').localeCompare(b.ref || b.sku || ''));
 
       filtered.forEach(item => {
@@ -2072,14 +2059,42 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let cat = String(item.category || '').replace(/"/g, '""');
         let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
         let activeStatus = (item.status === 'INACTIVE' || cleanPrice === 0) ? 'INACTIVE' : 'ACTIVE';
-        
-        // Leaves ID blank. You can copy the 'New Product Categories', 'New Product Description', and 'New Active' columns directly into your downloaded Thrive file.
         csvContent += `,"${ref}","","${cat}","","${desc}","","","","","","","","","","","","","","${activeStatus}","","ENABLED","","ENABLED",""\n`;
       });
       
-    // ========================================================
-    // STANDARD NEW ITEMS CREATION (THRIVE & SHOPIFY)
-    // ========================================================
+    } else if (platform === 'Shopify') {
+      let headers = ['Handle', 'Title', 'Body (HTML)', 'Vendor', 'Type', 'Tags', 'Published', 'Option1 Name', 'Option1 Value', 'Variant SKU', 'Variant Inventory Tracker', 'Variant Inventory Policy', 'Variant Fulfillment Service', 'Variant Price', 'Variant Barcode', 'Image Src', 'Status'];
+      csvContent += headers.join(',') + '\n';
+
+      filtered.forEach(item => {
+        let ref = String(item.ref || item.sku || '');
+        let isBundle = (item.parentRef && parseInt(item.uomMult, 10) > 1);
+        
+        // ✨ MAGIC: Group variants under the Parent's Handle
+        let handleRef = isBundle ? item.parentRef : ref;
+        let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        
+        let title = String(handleRef).replace(/"/g, '""');
+        let desc = String(item.desc || '').replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
+        let vendor = String(item.mfr || '').replace(/"/g, '""');
+        let cat = String(item.category || item.categories || '').replace(/"/g, '""');
+        let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+        let status = cleanPrice > 0 ? "active" : "draft";
+        let published = cleanPrice > 0 ? "TRUE" : "FALSE";
+        let gtin = String(item.gtin || '').replace(/"/g, '""').trim();
+        if (gtin === 'N/A') gtin = '';
+
+        let optName = "Unit of Measure";
+        let optValue = isBundle ? `Box of ${item.uomMult}` : "Each";
+
+        let row = [
+          `"${handle}"`, `"${title}"`, `"${desc}"`, `"${vendor}"`, `"${cat}"`, `"${cat}"`, `"${published}"`, 
+          `"${optName}"`, `"${optValue}"`, `"${ref}"`, `"shopify"`, `"deny"`, `"manual"`, 
+          `"${cleanPrice.toFixed(2)}"`, `"${gtin}"`, `"https://asp-seyfors.github.io/ASP-IMS-DEV/ASP_Box_Web_RGB_DEV.png"`, `"${status}"`
+        ];
+        csvContent += row.join(',') + '\n';
+      });
+      
     } else {
       let headers = ['REF', 'Manufacturer', 'Description', 'GTIN', 'Price', 'Cost', 'Available Qty', 'Categories'];
       csvContent += headers.join(',') + '\n';
@@ -2092,7 +2107,6 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let price = String(item.price || '').replace(/"/g, '""');
         let cost = String(item.cost || '').replace(/"/g, '""');
         let cat = String(item.category || '').replace(/"/g, '""');
-        
         let avail = (parseInt(item.onHand || 0, 10)) - (parseInt(item.reservedQty || 0, 10));
         csvContent += `"${ref}","${mfr}","${desc}","${gtin}","${price}","${cost}",${avail},"${cat}"\n`;
       });
@@ -2107,7 +2121,17 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
             if (platform === 'Shopify') item.syncedShopify = 'TRUE';
         });
         localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
-        alert(`Database updated locally. Please remember to click "Upload Pending Data" in the DB Editor to push these new flags to the cloud!`);
+        
+        let cleanCustomers = DatabaseManager.customers.filter(c => !c.startsWith("+") && c !== "#ERROR!");
+        let cleanSuppliers = DatabaseManager.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
+        let cleanVendors = DatabaseManager.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
+
+        fetch(SessionManager.getActiveArchiveUrl(), {
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors }})
+        }).catch(e => console.warn("Failed to push DB flags."));
+
+        alert(`Database updated locally and instantly pushed to the cloud!`);
     }
   },
 
