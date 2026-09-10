@@ -103,7 +103,7 @@ const AuthManager = {
     modal.id = 'workstationUserModal';
     modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
     
-    let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users) ? DatabaseManager.users : ["Thomas", "Trey", "Jessica", "+ New User"];
+    let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users) ? DatabaseManager.users : ["Trey", "Thomas", "Jessica", "+ New User"];
     let optionsHtml = userList.map(u => `<option value="${u}">${u}</option>`).join('');
 
     modal.innerHTML = `
