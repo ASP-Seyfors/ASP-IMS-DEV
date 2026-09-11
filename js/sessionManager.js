@@ -1241,7 +1241,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     
     let exp = document.getElementById('expInput').value.trim();
     if (exp.toUpperCase() === "N/A" || exp.toUpperCase() === "NA" || exp === "NO_EXP") exp = "";
-
+    
     const vendor = document.getElementById('vendorSelect').value;
     let qty = parseInt(document.getElementById('qtyInput').value, 10) || 1;
     
@@ -1249,7 +1249,6 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     const itemOrder = document.getElementById('itemOrderNumInput') ? document.getElementById('itemOrderNumInput').value.trim() : '';
     const iNote = document.getElementById('itemNoteInput') ? document.getElementById('itemNoteInput').value.trim() : '';
 
-    // ✨ NEW: Intercept aliases typed during active Receiving/Reserving
     let cTag = itemCust.trim();
     if (cTag && typeof DatabaseManager !== 'undefined' && typeof DatabaseManager.resolveAlias === 'function') {
         cTag = DatabaseManager.resolveAlias(cTag, 'customer');
@@ -1259,24 +1258,15 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     
     if (!matchedDbItem) {
       let pendingMatch = this.pendingNewItems.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
-      if (pendingMatch) {
-        matchedDbItem = pendingMatch; 
-      }
+      if (pendingMatch) matchedDbItem = pendingMatch; 
     }
 
     let uomResult = InventoryEngine.calculateUOM(matchedDbItem, qty, ref);
-    
     if (matchedDbItem && uomResult.trueRef !== matchedDbItem.sku && uomResult.trueRef !== matchedDbItem.ref) {
-      if (typeof UIManager !== 'undefined') {
-          UIManager.showCustomAlert("UOM Conversion", `Box Barcode (${ref.toUpperCase()}) Detected. Converted to ${uomResult.trueQty} individual units of ${uomResult.trueRef}.`);
-      }
-      rawGtin = "N/A"; 
-      
-      // ✨ FIX: Check the master DB first, then check the pending memory!
+      if (typeof UIManager !== 'undefined') UIManager.showCustomAlert("UOM Conversion", `Box Barcode (${ref.toUpperCase()}) Detected. Converted to ${uomResult.trueQty} individual units of ${uomResult.trueRef}.`);
+      rawGtin = ""; 
       matchedDbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === uomResult.trueRef);
-      if (!matchedDbItem) {
-          matchedDbItem = this.pendingNewItems.find(i => (i.sku || i.ref || '').toUpperCase() === uomResult.trueRef);
-      }
+      if (!matchedDbItem) matchedDbItem = this.pendingNewItems.find(i => (i.sku || i.ref || '').toUpperCase() === uomResult.trueRef);
     }
 
     ref = uomResult.trueRef;
@@ -1289,28 +1279,24 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     if (isNewItem) {
        let bundleChk = document.getElementById('chkIsBundle');
        let isBundle = bundleChk && bundleChk.checked;
-       let bundleWarning = "";
-
+       
        if (isBundle) {
            pRef = document.getElementById('bundleParentRef').value.trim().toUpperCase();
            uMult = parseInt(document.getElementById('bundleMult').value, 10) || 1;
-           if (!pRef || uMult <= 1) {
-               UIManager.showCustomAlert("Bundle Error", "Please provide a valid Parent REF and a Units Per Box quantity greater than 1.");
+           if (!pRef || uMult <= 1 || pRef === ref) {
+               UIManager.showCustomAlert("Bundle Error", "Please provide a valid Parent REF. The Parent REF cannot be exactly the same as the Box Barcode.");
                return;
            }
-           // ✨ FIX: Modify the warning text to be explicit about creating two items
-           bundleWarning = `\n\n📦 BUNDLE DETECTED:\nThis will create the Box Barcode "${ref}" AND silently create the Individual Item "${pRef}" if it does not already exist.`;
        }
 
-       let confirmNew = confirm(`⚠️ UNRECOGNIZED REF DETECTED ⚠️\n\nThe REF/SKU "${ref}" does not exist in the master database.${bundleWarning}\n\nAre you sure you want to create a BRAND NEW item? If this is a typo, click Cancel and fix the REF.`);
+       let confirmNew = confirm(`⚠️ UNRECOGNIZED REF DETECTED ⚠️\n\nThe REF/SKU "${ref}" does not exist in the master database.\n\nAre you sure you want to create a BRAND NEW item?`);
        if (!confirmNew) return; 
 
        let alreadyPending = this.pendingNewItems.find(i => i.ref === ref);
        if (!alreadyPending) {
            this.pendingNewItems.push({
                ref: ref, gtin: rawGtin, mfr: vendor, price: "$0.00",
-               desc: "Navigate to vendor website for item description.",
-               category: "General", status: "INACTIVE", // ✨ NEW DEFAULTS
+               desc: "Navigate to vendor website for item description.", category: "General", status: "INACTIVE",
                parentRef: pRef, uomMult: uMult
            });
        }
@@ -1324,15 +1310,13 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                let parentAlreadyPending = this.pendingNewItems.find(i => i.ref === pRef);
                if (!parentAlreadyPending) {
                    this.pendingNewItems.push({
-                      ref: ref, gtin: rawGtin, mfr: vendor, price: "$0.00",
-                      desc: "Navigate to vendor website for item description.",
-                      category: "General", status: "INACTIVE", // ✨ NEW DEFAULTS
-                      parentRef: pRef, uomMult: uMult
-                  });
+                       ref: pRef, gtin: "", mfr: vendor, price: "$0.00",
+                       desc: "Navigate to vendor website for item description.", category: "General", status: "INACTIVE",
+                       parentRef: "", uomMult: 1
+                   });
                }
            }
        }
-       
        localStorage.setItem('asp_pending_new_items', JSON.stringify(this.pendingNewItems));
     }
 
@@ -1340,7 +1324,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     if (!this.currentWorkflowType.includes('Receiving & Reserving')) {
       if (this.currentWorkflowType.includes('Reserving')) effectiveTag = 'Reserved';
       else if (this.currentWorkflowType.includes('Packing')) effectiveTag = 'Pack & Ship';
-      else if (this.currentWorkflowType.includes('Un-Reserve')) effectiveTag = 'Un-Reserve'; // ✨ NEW
+      else if (this.currentWorkflowType.includes('Un-Reserve')) effectiveTag = 'Un-Reserve';
       else effectiveTag = 'Inventory';
     }
 
@@ -1678,7 +1662,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
             networkTasks.push(this.pushQboWriteBack(completedSessionObj));
         }
 
-        // ✨ NEW: Targeted Shopify Sync for Parents AND their attached Bundles
+        // ✨ NEW: Targeted Shopify Sync with strict string-casting
         let shopifyItems = [];
         this.scannedObjects.forEach(scan => {
             let parentRef = scan.ref.toUpperCase();
@@ -1687,19 +1671,18 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
             if (parentDb) {
                 let pTotal = parseInt(parentDb.onHand || 0, 10);
                 let pRes = parseInt(parentDb.reservedQty || 0, 10);
-                let pAvail = pTotal - pRes;
                 let pCleanPrice = parseFloat(String(parentDb.price || '').replace(/[^0-9.-]+/g, '')) || 0;
                 let pHandle = String(parentDb.sku || parentDb.ref).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
                 shopifyItems.push({
-                    ref: parentDb.sku || parentDb.ref,
+                    ref: String(parentDb.sku || parentDb.ref),
                     handle: pHandle,
-                    title: parentDb.sku || parentDb.ref,
-                    desc: parentDb.desc || '',
-                    mfr: parentDb.mfr || 'Unknown',
-                    category: parentDb.category || 'Surgical Supply',
-                    gtin: parentDb.gtin || '',
-                    availableQty: pAvail,
+                    title: String(parentDb.sku || parentDb.ref),
+                    desc: String(parentDb.desc || ''),
+                    mfr: String(parentDb.mfr || 'Unknown'),
+                    category: String(parentDb.category || 'General'),
+                    gtin: String(parentDb.gtin || ''),
+                    availableQty: String(pTotal - pRes),
                     price: pCleanPrice.toFixed(2),
                     status: pCleanPrice > 0 ? "active" : "draft",
                     isBundle: false,
@@ -1708,17 +1691,16 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
                 let childBundles = DatabaseManager.db.filter(i => (i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
                 childBundles.forEach(bundle => {
-                    let bAvail = Math.floor(pAvail / parseInt(bundle.uomMult, 10));
                     let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
                     shopifyItems.push({
-                        ref: bundle.sku || bundle.ref,
+                        ref: String(bundle.sku || bundle.ref),
                         handle: pHandle,
-                        title: parentDb.sku || parentDb.ref,
-                        desc: bundle.desc || parentDb.desc || '',
-                        mfr: bundle.mfr || parentDb.mfr || 'Unknown',
-                        category: bundle.category || parentDb.category || 'Surgical Supply',
-                        gtin: bundle.gtin || '',
-                        availableQty: bAvail,
+                        title: String(parentDb.sku || parentDb.ref),
+                        desc: String(bundle.desc || parentDb.desc || ''),
+                        mfr: String(bundle.mfr || parentDb.mfr || 'Unknown'),
+                        category: String(bundle.category || parentDb.category || 'General'),
+                        gtin: String(bundle.gtin || ''),
+                        availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
                         price: bCleanPrice.toFixed(2),
                         status: bCleanPrice > 0 ? "active" : "draft",
                         isBundle: true,
