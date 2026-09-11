@@ -1233,9 +1233,15 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
   saveItemLog(ignoreOverpack = false) {
     let rawGtin = document.getElementById('gtinInput').value.trim();
+    if (rawGtin.toUpperCase() === "N/A" || rawGtin.toUpperCase() === "NA") rawGtin = "";
+    
     let ref = document.getElementById('refInput').value.trim().toUpperCase();
-    const lot = document.getElementById('lotInput').value.trim().toUpperCase();
-    const exp = document.getElementById('expInput').value.trim();
+    let lot = document.getElementById('lotInput').value.trim().toUpperCase();
+    if (lot === "N/A" || lot === "NA" || lot === "NO_LOT") lot = "";
+    
+    let exp = document.getElementById('expInput').value.trim();
+    if (exp.toUpperCase() === "N/A" || exp.toUpperCase() === "NA" || exp === "NO_EXP") exp = "";
+
     const vendor = document.getElementById('vendorSelect').value;
     let qty = parseInt(document.getElementById('qtyInput').value, 10) || 1;
     
@@ -1302,13 +1308,10 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
        let alreadyPending = this.pendingNewItems.find(i => i.ref === ref);
        if (!alreadyPending) {
            this.pendingNewItems.push({
-               ref: ref,
-               gtin: rawGtin,
-               mfr: vendor,
-               price: "$0.00",
+               ref: ref, gtin: rawGtin, mfr: vendor, price: "$0.00",
                desc: "Navigate to vendor website for item description.",
-               parentRef: pRef,
-               uomMult: uMult
+               category: "General", status: "INACTIVE", // ✨ NEW DEFAULTS
+               parentRef: pRef, uomMult: uMult
            });
        }
 
@@ -1321,14 +1324,11 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                let parentAlreadyPending = this.pendingNewItems.find(i => i.ref === pRef);
                if (!parentAlreadyPending) {
                    this.pendingNewItems.push({
-                       ref: pRef,
-                       gtin: "", 
-                       mfr: vendor,
-                       price: "$0.00",
-                       desc: "Navigate to vendor website for item description.",
-                       parentRef: "", 
-                       uomMult: 1
-                   });
+                      ref: ref, gtin: rawGtin, mfr: vendor, price: "$0.00",
+                      desc: "Navigate to vendor website for item description.",
+                      category: "General", status: "INACTIVE", // ✨ NEW DEFAULTS
+                      parentRef: pRef, uomMult: uMult
+                  });
                }
            }
        }
@@ -1340,6 +1340,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     if (!this.currentWorkflowType.includes('Receiving & Reserving')) {
       if (this.currentWorkflowType.includes('Reserving')) effectiveTag = 'Reserved';
       else if (this.currentWorkflowType.includes('Packing')) effectiveTag = 'Pack & Ship';
+      else if (this.currentWorkflowType.includes('Un-Reserve')) effectiveTag = 'Un-Reserve'; // ✨ NEW
       else effectiveTag = 'Inventory';
     }
 
