@@ -1328,7 +1328,6 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       else effectiveTag = 'Inventory';
     }
 
-    // ✨ NEW: Use the cTag variable we mapped through the dictionary earlier
     let finalCustomerTag = cTag;
     let finalOrderNum = itemOrder;
 
@@ -1343,7 +1342,6 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     }
 
     let cTagCombined = finalCustomerTag + (finalOrderNum ? ` - ${finalOrderNum}` : '');
-
     let bypassOverpackWarning = ignoreOverpack || !this.isManifestEnabled;
 
     try {
@@ -1390,8 +1388,8 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       qty: qty,
       rawScanLines: rawBarcodesGathered,
       isNew: isNewItem, 
-      customerTag: (effectiveTag === 'Reserved' || effectiveTag === 'Pack & Ship' ? cTagCombined : ''),
-      orderNum: (effectiveTag === 'Reserved' || effectiveTag === 'Pack & Ship' ? finalOrderNum : ''),
+      customerTag: (effectiveTag === 'Reserved' || effectiveTag === 'Pack & Ship' || effectiveTag === 'Un-Reserve' ? cTagCombined : ''),
+      orderNum: (effectiveTag === 'Reserved' || effectiveTag === 'Pack & Ship' || effectiveTag === 'Un-Reserve' ? finalOrderNum : ''),
       sessionId: this.sessionId,
       itemNote: iNote
     });
@@ -1689,7 +1687,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                     uomMult: 1
                 });
 
-                let childBundles = DatabaseManager.db.filter(i => (i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
+                let childBundles = DatabaseManager.db.filter(i => String(i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
                 childBundles.forEach(bundle => {
                     let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
                     shopifyItems.push({
