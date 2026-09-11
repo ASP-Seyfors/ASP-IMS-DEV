@@ -1439,6 +1439,28 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     return `https://www.google.com/search?q=${encodeURIComponent(mfr + ' ' + ref)}`;
   },
 
+  // ✨ NEW: Ask Apps Script to scrape the Ethicon Website
+  async autoFetchEthicon(ref, index) {
+    let btn = document.getElementById(`btnEthiconFetch_${index}`);
+    if (btn) { btn.textContent = "⏳ Fetching..."; btn.disabled = true; }
+    
+    try {
+      let res = await fetch(`${this.getActiveArchiveUrl()}?action=FETCH_ETHICON&ref=${encodeURIComponent(ref)}`);
+      let data = await res.json();
+      
+      if (data.status === "success" && data.desc) {
+         let input = document.getElementById(`advDesc_${index}`);
+         if (input) input.value = data.desc;
+         if (btn) { btn.textContent = "✅ Success"; btn.style.backgroundColor = "#2e7d32"; }
+      } else {
+         throw new Error(data.message || "Parse failed.");
+      }
+    } catch(err) {
+       alert("Ethicon Auto-Fetch failed: " + err.message);
+       if (btn) { btn.textContent = "⚡ Auto-Fetch"; btn.disabled = false; }
+    }
+  },
+
   renderAdvancedReview() {
     const card = document.getElementById('advancedReviewCard');
     const list = document.getElementById('advancedItemsList');
@@ -1460,6 +1482,11 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
     unresolved.forEach((item, index) => {
       let searchUrl = this.getVendorSearchUrl(item.mfr, item.ref);
+      let isEthicon = (item.mfr || '').toUpperCase().includes('ETHICON');
+      
+      // ✨ NEW: Only render the Auto-Fetch button if it's an Ethicon product
+      let ethiconBtnHtml = isEthicon ? `<button id="btnEthiconFetch_${index}" class="btn-small" style="background-color:#f57f17; color:#ffffff; padding: 4px 10px;" onclick="SessionManager.autoFetchEthicon('${item.ref}', ${index})">⚡ Auto-Fetch</button>` : '';
+
       let div = document.createElement('div');
       div.style.marginBottom = '10px';
       div.style.padding = '10px';
@@ -1470,7 +1497,10 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <div><strong style="color: #0277bd;">${item.ref}</strong> <span style="font-size:0.8rem; color:#555; margin-left: 6px;">${item.mfr}</span></div>
-          <button class="btn-small" style="background-color:#1976d2; color:#ffffff; padding: 4px 10px;" onclick="window.open('${searchUrl}', '_blank')">🔍 Search</button>
+          <div style="display:flex; gap:6px;">
+            ${ethiconBtnHtml}
+            <button class="btn-small" style="background-color:#1976d2; color:#ffffff; padding: 4px 10px;" onclick="window.open('${searchUrl}', '_blank')">🔍 Manual Search</button>
+          </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; background:#f5f5f5; padding:6px; border-radius:4px; border:1px solid #ccc;">
           <span style="font-size:0.85rem; font-weight:bold; color:#555; white-space:nowrap;">${item.mfr}</span>
