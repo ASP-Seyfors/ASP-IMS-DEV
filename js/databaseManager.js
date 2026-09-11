@@ -522,7 +522,7 @@ const DatabaseManager = {
             shopifyUpdatePayload.push({
                 ref: String(dbItem.ref || dbItem.sku),
                 handle: pHandle, title: pTitle, desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
-                category: String(dbItem.category || 'General'), gtin: String(dbItem.gtin || ''),
+                category: String(dbItem.category || 'Business & Industrial > Medical > Medical Supplies'), gtin: String(dbItem.gtin || ''),
                 availableQty: String(Math.floor((pTotal - pRes) / parseInt(dbItem.uomMult, 10))),
                 price: cleanPrice.toFixed(2), status: cleanPrice > 0 ? "active" : "draft",
                 isBundle: true, uomMult: dbItem.uomMult
@@ -532,18 +532,18 @@ const DatabaseManager = {
             shopifyUpdatePayload.push({
                 ref: String(dbItem.ref || dbItem.sku),
                 handle: pHandle, title: pTitle, desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
-                category: String(dbItem.category || 'General'), gtin: String(dbItem.gtin || ''),
+                category: String(dbItem.category || 'Business & Industrial > Medical > Medical Supplies'), gtin: String(dbItem.gtin || ''),
                 availableQty: String(pTotal - pRes), price: cleanPrice.toFixed(2), status: cleanPrice > 0 ? "active" : "draft",
                 isBundle: false, uomMult: 1
             });
             
-            let childBundles = this.db.filter(i => (i.parentRef || '').toUpperCase() === (dbItem.ref || dbItem.sku || '').toUpperCase() && parseInt(i.uomMult, 10) > 1);
+            let childBundles = this.db.filter(i => String(i.parentRef || '').toUpperCase() === String(dbItem.ref || dbItem.sku || '').toUpperCase() && parseInt(i.uomMult, 10) > 1);
             childBundles.forEach(bundle => {
                 let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
                 shopifyUpdatePayload.push({
                     ref: String(bundle.sku || bundle.ref),
                     handle: pHandle, title: pTitle, desc: String(bundle.desc || dbItem.desc || ''), mfr: String(bundle.mfr || dbItem.mfr || 'Unknown'),
-                    category: String(bundle.category || dbItem.category || 'General'), gtin: String(bundle.gtin || ''),
+                    category: String(bundle.category || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'), gtin: String(bundle.gtin || ''),
                     availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
                     price: bCleanPrice.toFixed(2), status: bCleanPrice > 0 ? "active" : "draft",
                     isBundle: true, uomMult: bundle.uomMult

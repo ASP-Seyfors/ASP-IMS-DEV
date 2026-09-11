@@ -2087,11 +2087,14 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         
         let handleRef = isBundle ? item.parentRef : ref;
         let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-        
+
         let title = String(handleRef).replace(/"/g, '""');
         let desc = String(item.desc || '').replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
         let vendor = String(item.mfr || '').replace(/"/g, '""');
-        let cat = String(item.category || item.categories || '').replace(/"/g, '""');
+        
+        // ✨ FIX: Apply the standard taxonomy to manual CSV exports
+        let cat = String(item.category || item.categories || 'Business & Industrial > Medical > Medical Supplies').replace(/"/g, '""');
+        
         let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
         let status = cleanPrice > 0 ? "active" : "draft";
         let published = cleanPrice > 0 ? "TRUE" : "FALSE";
@@ -2747,9 +2750,12 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         title: String(handleRef),
         desc: String(item.desc || ''),
         mfr: String(item.mfr || 'Unknown'),
-        category: String(item.category || 'Surgical Supply'),
+        
+        // ✨ FIX: Standardized the taxonomy for Bulk Sandbox Syncs
+        category: String(item.category || 'Business & Industrial > Medical > Medical Supplies'),
+        
         gtin: String(item.gtin || ''),
-        availableQty: avail,
+        availableQty: avail, // Note: This function still uses raw integers because it routes to Apps Script safely
         price: cleanPrice.toFixed(2),
         status: intendedStatus,
         isBundle: isBundle,

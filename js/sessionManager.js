@@ -1296,7 +1296,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
        if (!alreadyPending) {
            this.pendingNewItems.push({
                ref: ref, gtin: rawGtin, mfr: vendor, price: "$0.00",
-               desc: "Navigate to vendor website for item description.", category: "General", status: "INACTIVE",
+               desc: "Navigate to vendor website for item description.", category: "Business & Industrial > Medical > Medical Supplies", status: "INACTIVE",
                parentRef: pRef, uomMult: uMult
            });
        }
@@ -1311,7 +1311,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                if (!parentAlreadyPending) {
                    this.pendingNewItems.push({
                        ref: pRef, gtin: "", mfr: vendor, price: "$0.00",
-                       desc: "Navigate to vendor website for item description.", category: "General", status: "INACTIVE",
+                       desc: "Navigate to vendor website for item description.", category: "Business & Industrial > Medical > Medical Supplies", status: "INACTIVE",
                        parentRef: "", uomMult: 1
                    });
                }
@@ -1708,7 +1708,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                     title: String(parentDb.sku || parentDb.ref),
                     desc: String(parentDb.desc || ''),
                     mfr: String(parentDb.mfr || 'Unknown'),
-                    category: String(parentDb.category || 'General'),
+                    category: String(parentDb.category || 'Business & Industrial > Medical > Medical Supplies'),
                     gtin: String(parentDb.gtin || ''),
                     availableQty: String(pTotal - pRes),
                     price: pCleanPrice.toFixed(2),
@@ -1726,7 +1726,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                         title: String(parentDb.sku || parentDb.ref),
                         desc: String(bundle.desc || parentDb.desc || ''),
                         mfr: String(bundle.mfr || parentDb.mfr || 'Unknown'),
-                        category: String(bundle.category || parentDb.category || 'General'),
+                        category: String(bundle.category || parentDb.category || 'Business & Industrial > Medical > Medical Supplies'),
                         gtin: String(bundle.gtin || ''),
                         availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
                         price: bCleanPrice.toFixed(2),
