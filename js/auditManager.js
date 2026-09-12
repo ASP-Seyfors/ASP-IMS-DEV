@@ -2751,11 +2751,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         desc: String(item.desc || ''),
         mfr: String(item.mfr || 'Unknown'),
         
-        // ✨ FIX: Standardized the taxonomy for Bulk Sandbox Syncs
-        category: String(item.category || 'Business & Industrial > Medical > Medical Supplies'),
+        // ✨ FIX: Mapped to the specific Shopify Category column value
+        category: String(item.shopifyCategory || item.category || 'Business & Industrial > Medical > Medical Supplies'),
         
         gtin: String(item.gtin || ''),
-        availableQty: avail, // Note: This function still uses raw integers because it routes to Apps Script safely
+        availableQty: avail, 
         price: cleanPrice.toFixed(2),
         status: intendedStatus,
         isBundle: isBundle,

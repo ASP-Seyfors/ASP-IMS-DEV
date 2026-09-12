@@ -551,6 +551,15 @@ const SessionManager = {
   },
 
   startSession() {
+    // ✨ FIX: Intercept the start button for the Un-Reserve workflow
+    let isUnreserve = document.getElementById('setupTypeUnreserve') ? document.getElementById('setupTypeUnreserve').checked : false;
+    let isOrder = document.getElementById('setupWorkflowOrder') ? document.getElementById('setupWorkflowOrder').checked : false;
+    
+    if (isOrder && isUnreserve) {
+        this.openUnreserveModal();
+        return; // Stops the normal blank session from starting
+    }
+    
     try {
       let uName = document.getElementById('userNameInput').value.trim();
       if (typeof AuthManager !== 'undefined' && AuthManager.isWorkstation) {
@@ -2501,5 +2510,132 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         }
       });
     }
+  },
+
+  // ✨ NEW: Un-Reserve Logic Engine
+  openUnreserveModal() {
+      let custSelect = document.getElementById('setupCustomerSelect');
+      let custName = custSelect ? custSelect.value : "";
+      
+      if (!custName) {
+          UIManager.showCustomAlert("Error", "Please select a Customer Account to view their reserved items.");
+          return;
+      }
+
+      let resolvedCust = DatabaseManager.resolveAlias(custName, 'customer');
+      let custAllocs = DatabaseManager.allocations[resolvedCust];
+
+      if (!custAllocs || Object.keys(custAllocs).length === 0) {
+          UIManager.showCustomAlert("Notice", `There are no items currently reserved for ${resolvedCust}.`);
+          return;
+      }
+
+      document.getElementById('unreserveCustomerName').innerText = resolvedCust;
+      let container = document.getElementById('unreserveChecklistContainer');
+      let html = '';
+
+      for (let ref in custAllocs) {
+          let itemData = custAllocs[ref];
+          let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase()) || { desc: "Unknown Item" };
+          
+          if (itemData && itemData.details && itemData.details.length > 0) {
+              itemData.details.forEach((det) => {
+                  if (det.qty > 0) {
+                      html += `<label style="display:block; padding:8px; border-bottom:1px solid #eee; cursor:pointer;"><input type="checkbox" class="unreserve-chk" data-ref="${ref}" data-lot="${det.lot || ''}" data-exp="${det.exp || ''}" data-qty="${det.qty}" data-session="${det.sessionId || ''}"> <strong>${ref}</strong> (Qty: ${det.qty})<br><span style="font-size:0.8rem; color:#666;">Lot: ${det.lot || 'N/A'} | Exp: ${det.exp || 'N/A'}</span><br><span style="font-size:0.8rem; color:#888;">${dbItem.desc}</span></label>`;
+                  }
+              });
+          } else if (itemData && itemData.qty > 0) {
+              html += `<label style="display:block; padding:8px; border-bottom:1px solid #eee; cursor:pointer;"><input type="checkbox" class="unreserve-chk" data-ref="${ref}" data-qty="${itemData.qty}"> <strong>${ref}</strong> (Qty: ${itemData.qty})<br><span style="font-size:0.8rem; color:#888;">${dbItem.desc}</span></label>`;
+          } else if (typeof itemData === 'number' && itemData > 0) {
+              html += `<label style="display:block; padding:8px; border-bottom:1px solid #eee; cursor:pointer;"><input type="checkbox" class="unreserve-chk" data-ref="${ref}" data-qty="${itemData}"> <strong>${ref}</strong> (Qty: ${itemData})<br><span style="font-size:0.8rem; color:#888;">${dbItem.desc}</span></label>`;
+          }
+      }
+      
+      container.innerHTML = html;
+      document.getElementById('modalUnreserve').style.display = 'flex';
+  },
+
+  async processUnreserve() {
+      let custName = document.getElementById('unreserveCustomerName').innerText;
+      let checkboxes = document.querySelectorAll('.unreserve-chk:checked');
+      
+      if (checkboxes.length === 0) {
+          UIManager.showCustomAlert("Notice", "No items selected to un-reserve.");
+          return;
+      }
+
+      let unreservedItems = [];
+      let shopifySyncPayload = [];
+      
+      checkboxes.forEach(chk => {
+          let ref = chk.getAttribute('data-ref');
+          let lot = chk.getAttribute('data-lot');
+          let exp = chk.getAttribute('data-exp');
+          let qty = parseInt(chk.getAttribute('data-qty'), 10) || 0;
+          let sessionId = chk.getAttribute('data-session');
+
+          // 1. Remove from local Allocations memory
+          if (DatabaseManager.allocations[custName] && DatabaseManager.allocations[custName][ref]) {
+              let itemData = DatabaseManager.allocations[custName][ref];
+              if (itemData.details) {
+                  let detIndex = itemData.details.findIndex(d => d.lot === lot && d.exp === exp && d.sessionId === sessionId);
+                  if (detIndex > -1) itemData.details.splice(detIndex, 1);
+                  itemData.qty -= qty;
+                  if (itemData.qty <= 0) delete DatabaseManager.allocations[custName][ref];
+              } else if (itemData.qty !== undefined) {
+                  itemData.qty -= qty;
+                  if (itemData.qty <= 0) delete DatabaseManager.allocations[custName][ref];
+              } else if (typeof itemData === 'number') {
+                  DatabaseManager.allocations[custName][ref] -= qty;
+                  if (DatabaseManager.allocations[custName][ref] <= 0) delete DatabaseManager.allocations[custName][ref];
+              }
+          }
+
+          // 2. Mathematically return Reserved Qty to Available Qty
+          let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
+          if (dbItem) {
+              dbItem.reservedQty = Math.max(0, (dbItem.reservedQty || 0) - qty);
+              dbItem.availableQty = (dbItem.onHand || 0) - dbItem.reservedQty;
+
+              // 3. Package the newly available item for Shopify
+              if (String(dbItem.syncedShopify).toUpperCase() === 'TRUE') {
+                  let handleRef = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1) ? dbItem.parentRef : ref;
+                  let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                  let intendedStatus = (parseFloat(String(dbItem.price).replace(/[^0-9.-]+/g, '')) > 0) ? "active" : "draft";
+
+                  shopifySyncPayload.push({
+                      ref: ref, handle: handle, title: String(handleRef), desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
+                      category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
+                      gtin: String(dbItem.gtin || ''), availableQty: dbItem.availableQty, price: parseFloat(String(dbItem.price).replace(/[^0-9.-]+/g, '')) || 0,
+                      status: intendedStatus, isBundle: (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1), uomMult: dbItem.uomMult || 1
+                  });
+              }
+          }
+
+          // 4. Log for Cloud Archive
+          unreservedItems.push({ ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: qty, actionTag: "Un-Reserved", isNew: false });
+      });
+
+      localStorage.setItem('asp_allocations', JSON.stringify(DatabaseManager.allocations));
+      DatabaseManager.saveDbToLocal();
+      document.getElementById('modalUnreserve').style.display = 'none';
+
+      // 5. Fire all updates to the cloud seamlessly!
+      this.syncAllocationsToCloud();
+      DatabaseManager.syncLocalDbToCloud();
+
+      if (shopifySyncPayload.length > 0) {
+          fetch(this.getActiveArchiveUrl(), {
+              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifySyncPayload })
+          });
+      }
+
+      fetch(this.getActiveArchiveUrl(), {
+          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: "ARCHIVE_SESSION", payload: { id: Date.now().toString(), status: "Completed", userName: document.getElementById('setupUserName').value || "Unknown", sessionName: `Un-Reserve: ${custName}`, workflowType: "Order", dateStr: new Date().toLocaleDateString(), startStr: new Date().toLocaleTimeString(), scannedObjects: unreservedItems } })
+      });
+
+      UIManager.showCustomAlert("Success", `Successfully un-reserved ${unreservedItems.length} item(s) and synced inventory!`);
   }
 };
