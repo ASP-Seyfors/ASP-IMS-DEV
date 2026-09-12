@@ -755,20 +755,37 @@ const ReportsManager = {
     }
   },
 
-  // ✨ NEW: Subscriber Management Logic
+  // ✨ FIX: Switched to a GET request so the browser can read the response!
   async loadSubscribers() {
       const container = document.getElementById('subListContainer');
       container.innerHTML = '<p style="text-align:center; color:#0277bd;">Loading...</p>';
       try {
-          let res = await fetch(SessionManager.getActiveArchiveUrl(), {
-              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: "GET_SUBSCRIBERS" })
-          });
-          // Note: no-cors means we can't await the JSON safely locally in dev, so we will stub the UI build.
-          // In actual deployment, this runs seamlessly. 
-          container.innerHTML = '<p style="text-align:center; color:#2e7d32;">Signal sent. Refreshes will appear automatically during cloud syncs.</p>';
+          // Use GET with URL parameters to bypass CORS restrictions
+          let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`);
+          let data = await res.json();
+          
+          if (data.status === "success" && data.subs && data.subs.length > 0) {
+              let html = '<table style="width:100%; border-collapse:collapse; text-align:left;">';
+              html += '<tr style="background:#f0f0f0; border-bottom:1px solid #ccc;"><th style="padding:4px;">Name</th><th style="padding:4px;">Email</th><th style="padding:4px;">Freq</th><th style="padding:4px;">Status</th><th style="padding:4px;"></th></tr>';
+              
+              data.subs.forEach(sub => {
+                  html += `<tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:4px;">${sub.name}</td>
+                    <td style="padding:4px; color:#0277bd;">${sub.email}</td>
+                    <td style="padding:4px;">${sub.freq}</td>
+                    <td style="padding:4px; color:${sub.status === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
+                    <td style="padding:4px; text-align:right;">
+                       <button class="btn-small" style="padding:2px 6px; font-size:0.7rem;" onclick="document.getElementById('subName').value='${sub.name}'; document.getElementById('subEmail').value='${sub.email}'; document.getElementById('subFreq').value='${sub.freq === 'Daily' ? 'Daily' : 'Weekly'}'; document.getElementById('subStatus').value='${sub.status === 'ACTIVE' ? 'Active' : 'Inactive'}';">Edit</button>
+                    </td>
+                  </tr>`;
+              });
+              html += '</table>';
+              container.innerHTML = html;
+          } else {
+              container.innerHTML = '<p style="text-align:center; color:#777; margin:0;">No active subscribers found.</p>';
+          }
       } catch (err) {
-          container.innerHTML = '<p style="text-align:center; color:red;">Failed to load.</p>';
+          container.innerHTML = '<p style="text-align:center; color:#c62828;">Failed to load subscribers.</p>';
       }
   },
 

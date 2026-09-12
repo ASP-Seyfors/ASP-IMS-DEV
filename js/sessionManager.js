@@ -196,7 +196,9 @@ const SessionManager = {
     
     let payload = {
       action: "SYNC_ALLOCATIONS",
-      allocations: allocationsObj
+      allocations: allocationsObj,
+      // ✨ FIX: Transmit the alias dictionary so Apps Script can restore proper casing
+      aliases: DatabaseManager.customerAliases || {} 
     };
 
     try {
