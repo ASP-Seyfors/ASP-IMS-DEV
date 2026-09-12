@@ -32,6 +32,32 @@
     </div>
   </div>
 
+  <!-- ✨ NEW: Automated Subscriber Panel -->
+  <div id="panelSubscribers" style="background: #e1f5fe; border: 1px solid #03a9f4; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: #01579b;">Automated Reports Mailing List</h4>
+    
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 10px; padding: 8px; background: #fff; border: 1px dashed #03a9f4; border-radius: 4px;">
+      <input type="text" id="subName" placeholder="Customer/Company Name" style="padding:4px; font-size:0.85rem;" />
+      <input type="email" id="subEmail" placeholder="Email Address" style="padding:4px; font-size:0.85rem;" />
+      <div style="display:flex; gap:6px;">
+        <select id="subFreq" style="flex:1; padding:4px; font-size:0.85rem;">
+          <option value="Weekly">Weekly</option>
+          <option value="Daily">Daily</option>
+        </select>
+        <select id="subStatus" style="flex:1; padding:4px; font-size:0.85rem;">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <button class="btn-small" style="background-color: #0277bd; color: #fff; width: 100%;" onclick="ReportsManager.saveSubscriber()">Save Subscriber</button>
+    </div>
+
+    <div id="subListContainer" style="background: #fff; border: 1px solid #ccc; padding: 6px; border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 0.8rem;">
+      <p style="text-align:center; color:#777; margin:0;">Click 'Refresh List' to view active subscribers.</p>
+    </div>
+    <button class="btn-small" style="background-color: #555; color: #fff; width: 100%; margin-top:6px;" onclick="ReportsManager.loadSubscribers()">Refresh List</button>
+  </div>
+
   <!-- RevMed / DotMed Reports -->
   <div id="panelRevMedReports" style="background: #e8f5e9; border: 1px solid #81c784; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #2e7d32;">RevMed / DotMed Reports</h4>
