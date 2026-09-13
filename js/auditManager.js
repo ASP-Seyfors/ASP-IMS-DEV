@@ -683,8 +683,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     <img src="ASP_Box_Web_RGB_DEV.png" style="max-height: 50px;" alt="ASP Logo" />
   </div>
   <div class="company-info" style="margin-left: 15px;">
-    <h1>Allied Surgical Products</h1>
-    <p>737 Barbara Street</p>
+    <h1>Allied Surgical Products</h1>    
     <p>Palm Harbor, FL 34684</p>
   </div>
   <div class="report-meta">
@@ -1208,7 +1207,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     <div class="header-grid">
       <div class="company-info">
         <h1>Allied Surgical Products</h1>
-        <p>737 Barbara Street | Palm Harbor, FL 34684</p>
+        <p>Palm Harbor, FL 34684</p>
       </div>
       <div style="text-align:right;">
         <div style="font-size:13px; font-weight:bold; color:#333;">ACCOUNT: ${cust}</div>
@@ -1822,7 +1821,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 </div>
 <div class="company-info" style="margin-left: 20px;">
   <h1>Allied Surgical Products</h1>
-  <p>737 Barbara Street | Palm Harbor, FL 34684</p>
+  <p>Palm Harbor, FL 34684</p>
 </div>
 <div class="report-meta">
   <h2>SHIPPING & RECEIVING WEEKLY SUMMARY</h2>
