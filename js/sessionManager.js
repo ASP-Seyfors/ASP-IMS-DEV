@@ -1724,7 +1724,8 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                     title: String(parentDb.sku || parentDb.ref),
                     desc: String(parentDb.desc || ''),
                     mfr: String(parentDb.mfr || 'Unknown'),
-                    category: String(parentDb.shopifyCategory || parentDb.category || 'Business & Industrial > Medical > Medical Supplies'),
+                    category: String(parentDb.category || 'Surgical Supply'),
+                    shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
                     gtin: String(parentDb.gtin || ''),
                     availableQty: String(pTotal - pRes),
                     price: pCleanPrice.toFixed(2),
@@ -1741,9 +1742,10 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                         handle: pHandle,
                         title: String(parentDb.sku || parentDb.ref),
                         desc: String(bundle.desc || parentDb.desc || ''),
-                        mfr: String(bundle.mfr || parentDb.mfr || 'Unknown'),
-                        category: String(bundle.shopifyCategory || bundle.category || parentDb.shopifyCategory || parentDb.category || 'Business & Industrial > Medical > Medical Supplies'),
-                        gtin: String(bundle.gtin || ''),
+                        mfr: String(parentDb.mfr || 'Unknown'),
+                        category: String(parentDb.category || 'Surgical Supply'),
+                        shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
+                        gtin: String(parentDb.gtin || ''),
                         availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
                         price: bCleanPrice.toFixed(2),
                         status: bCleanPrice > 0 ? "active" : "draft",
@@ -2593,7 +2595,8 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
                   shopifySyncPayload.push({
                       ref: ref, handle: handle, title: String(handleRef), desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
-                      category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
+                      category: String(dbItem.category || 'Surgical Supply'),
+                      shopifyCategory: String(dbItem.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
                       gtin: String(dbItem.gtin || ''), availableQty: String(availableQty), price: cleanPrice.toFixed(2),
                       status: intendedStatus, isBundle: (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1), uomMult: dbItem.uomMult || 1
                   });

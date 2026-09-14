@@ -2708,7 +2708,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         desc: item.desc,
         mfr: item.mfr,
         gtin: item.gtin,
-        categories: item.categories || "",
+        category: item.category || "Surgical Supply",
+        shopifyCategory: item.shopifyCategory || "Business & Industrial > Medical > Medical Supplies",
         availableQty: total - res,
         price: item.price || "$0.00"
       };
@@ -2749,10 +2750,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         title: String(handleRef),
         desc: String(item.desc || ''),
         mfr: String(item.mfr || 'Unknown'),
-        
-        // ✨ FIX: Mapped to the specific Shopify Category column value
-        category: String(item.shopifyCategory || item.category || 'Business & Industrial > Medical > Medical Supplies'),
-        
+        category: String(item.category || 'Surgical Supply'),
+        shopifyCategory: String(item.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
         gtin: String(item.gtin || ''),
         availableQty: avail, 
         price: cleanPrice.toFixed(2),
