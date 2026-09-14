@@ -2511,20 +2511,20 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
   openUnreserveModal(custName) {
       if (!custName) return;
       
-      // Destroy the Bin Viewer modal to prevent z-index overlap
       let binModal = document.getElementById('binViewerModal');
       if (binModal) binModal.remove();
 
-      let resolvedCust = DatabaseManager.resolveAlias(custName, 'customer');
+      // 🚨 THE FIX: Use the exact uppercase key, bypassing the alias resolver
+      let targetKey = custName.toUpperCase();
       let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
-      let custAllocs = allocations[resolvedCust];
+      let custAllocs = allocations[targetKey];
 
       if (!custAllocs || Object.keys(custAllocs).length === 0) {
-          UIManager.showCustomAlert("Notice", `There are no items currently reserved for ${resolvedCust}.`);
+          UIManager.showCustomAlert("Notice", `There are no items currently reserved for ${targetKey}.`);
           return;
       }
 
-      document.getElementById('unreserveCustomerName').innerText = resolvedCust;
+      document.getElementById('unreserveCustomerName').innerText = targetKey;
       let container = document.getElementById('unreserveChecklistContainer');
       let html = '';
 
@@ -2546,7 +2546,8 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
   },
 
   async processUnreserve() {
-      let custName = document.getElementById('unreserveCustomerName').innerText;
+      // 🚨 THE FIX: Force uppercase when pulling the customer name from the DOM
+      let custName = document.getElementById('unreserveCustomerName').innerText.toUpperCase();
       let checkboxes = document.querySelectorAll('.unreserve-chk:checked');
       
       if (checkboxes.length === 0) {
