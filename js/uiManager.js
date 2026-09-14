@@ -170,10 +170,13 @@ const UIManager = {// GLOBAL CONFIGURATIONS
             // Wrap the customer's data in a collapsible accordion details block
             contentHtml += `
                 <details style="background:#f9f9f9; border:1px solid #e0e0e0; border-radius:4px; margin-bottom:8px; padding:6px;">
-                    <summary style="cursor:pointer; font-weight:bold; display:flex; justify-content:space-between; outline:none;">
+                    <summary style="cursor:pointer; font-weight:bold; display:flex; justify-content:space-between; align-items:center; outline:none;">
                         <span style="color:#0277bd; display:flex; align-items:center; gap:6px;"><i data-lucide="folder" style="width:16px; height:16px;"></i> ${cust}</span>
-                        <span class="badge-info" style="background:#f57f17; color:#fff;">${totalItems} Total Units</span>
-                    </summary>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="badge-info" style="background:#f57f17; color:#fff;">${totalItems} Units</span>
+                            <button class="btn-small" style="background-color:#d32f2f; color:#fff; padding:2px 8px;" onclick="SessionManager.openUnreserveModal('${cust}')">Un-Reserve</button>
+                        </div>
+                      </summary>
                     <div style="padding-top:8px; margin-top:6px; border-top:2px solid #0277bd;">
                         ${rowsHtml}
                     </div>
