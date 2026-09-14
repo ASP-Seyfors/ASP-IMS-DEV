@@ -91,7 +91,7 @@ const ReportsManager = {
         let avail = total - res;
         let priceStr = String(i.price || '').replace(/[^0-9.-]+/g, '');
         let numPrice = parseFloat(priceStr) || 0;
-        return avail > 0 && numPrice > 0;
+        return avail > 0;
       });
     } else if (type === 'out_of_stock') {
       filtered = db.filter(i => !i.onHand || i.onHand === 0);
@@ -157,7 +157,7 @@ const ReportsManager = {
     filtered.forEach(item => {
       let priceRaw = String(item.price || '');
       let cleanNum = parseFloat(priceRaw.replace(/[^0-9.-]+/g, '')) || 0;
-      let formattedPrice = cleanNum > 0 ? '$' + cleanNum.toFixed(2) : '$0.00';
+      let formattedPrice = cleanNum > 0 ? '$' + cleanNum.toFixed(2) : 'CONTACT US';
       
       let total = parseInt(item.onHand, 10) || 0;
       let res = parseInt(item.reservedQty, 10) || 0;

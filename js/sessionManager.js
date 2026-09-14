@@ -220,29 +220,22 @@ const SessionManager = {
       if (data.status === "success" && data.allocations) {
         let allocMap = {};
         data.allocations.forEach(a => {
-          if (!allocMap[a.customerName]) allocMap[a.customerName] = {};
+          let cleanCustName = String(a.customerName).trim().toUpperCase(); // ✨ FIX: Force uppercase to match Engine math
           
-          // Rebuild the object structure
-          if (!allocMap[a.customerName][a.ref]) {
-              allocMap[a.customerName][a.ref] = { qty: 0, details: [] };
+          if (!allocMap[cleanCustName]) allocMap[cleanCustName] = {};
+          
+          if (!allocMap[cleanCustName][a.ref]) {
+              allocMap[cleanCustName][a.ref] = { qty: 0, details: [] };
           }
           
-          // Strip timezone/timestamp garbage injected by Google Sheets
           let cleanExp = a.exp || 'NO_EXP';
-          if (typeof cleanExp === 'string' && cleanExp.includes('T')) {
-              cleanExp = cleanExp.split('T')[0];
-          }
+          if (typeof cleanExp === 'string' && cleanExp.includes('T')) cleanExp = cleanExp.split('T')[0];
           
-          // Parse string quantities into integers before adding
           let safeQty = parseInt(a.qty, 10) || 0;
           
-          allocMap[a.customerName][a.ref].qty += safeQty;
-          allocMap[a.customerName][a.ref].details.push({
-             lot: a.lot, 
-             exp: cleanExp, 
-             qty: safeQty, 
-             orderNum: a.orderNum, 
-             sessionId: a.sessionId
+          allocMap[cleanCustName][a.ref].qty += safeQty;
+          allocMap[cleanCustName][a.ref].details.push({
+             lot: a.lot, exp: cleanExp, qty: safeQty, orderNum: a.orderNum, sessionId: a.sessionId
           });
         });
         localStorage.setItem('asp_allocations', JSON.stringify(allocMap));
@@ -551,11 +544,11 @@ const SessionManager = {
   },
 
   startSession() {
-    // ✨ FIX: Intercept the start button for the Un-Reserve workflow
-    let isUnreserve = document.getElementById('setupTypeUnreserve') ? document.getElementById('setupTypeUnreserve').checked : false;
-    let isOrder = document.getElementById('setupWorkflowOrder') ? document.getElementById('setupWorkflowOrder').checked : false;
+    // ✨ FIX: Intercept the start button using the correct dropdown values
+    const typeRadio = document.querySelector('input[name="sessionType"]:checked');
+    const wType = typeRadio && typeRadio.value === 'Shipment' ? 'Receiving & Reserving' : document.getElementById('workflowTypeSelect').value;
     
-    if (isOrder && isUnreserve) {
+    if (typeRadio && typeRadio.value === 'Order' && wType.includes('Un-Reserve')) {
         this.openUnreserveModal();
         return; // Stops the normal blank session from starting
     }
@@ -2514,7 +2507,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
   // ✨ NEW: Un-Reserve Logic Engine
   openUnreserveModal() {
-      let custSelect = document.getElementById('setupCustomerSelect');
+      let custSelect = document.getElementById('customerSelect'); // ✨ FIX: Correct dropdown ID
       let custName = custSelect ? custSelect.value : "";
       
       if (!custName) {
