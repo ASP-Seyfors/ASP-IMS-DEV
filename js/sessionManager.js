@@ -44,8 +44,8 @@ const SessionManager = {
   fetchedStagedData: {},
 
   // Cloud URLs
-  cloudArchiveUrl: "https://script.google.com/macros/s/AKfycby-jGbxOlkmMDQwDN5x1FHae6OTNlVD4ZsBDWiLzotdp2ALs0JGYe_RYvSoXMDD7EqQeg/exec",
-  googleFeederUrl: "https://script.google.com/macros/s/AKfycbzm9u8lHnJEgDyG8rJk5YaXs8VY_jzyganveRP8UwkgLlMtZxhLjWIZ4iu545H07ogFRw/exec",
+  cloudArchiveUrl: ENV_CONFIG.CLOUD_ARCHIVE_URL,
+  googleFeederUrl: ENV_CONFIG.GOOGLE_FEEDER_URL,
 
   // Sandbox URLs
   /*

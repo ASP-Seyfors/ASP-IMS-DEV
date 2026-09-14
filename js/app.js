@@ -104,6 +104,9 @@ window.forceAppUpdate = async function() {
 };
 
 window.onload = async () => { 
+  document.getElementById('loginLogo').src = ENV_CONFIG.SHORT_LOGO_URL;
+  document.getElementById('appVersionDisplay').textContent = "App Version: " + ENV_CONFIG.APP_VERSION;
+  
   if (typeof ComponentManager !== 'undefined') {
     await ComponentManager.loadAllScreens();
   }
