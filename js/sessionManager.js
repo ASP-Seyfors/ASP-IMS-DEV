@@ -2508,9 +2508,12 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
   // ✨ NEW: Un-Reserve Logic Engine
   openUnreserveModal(custName) {
       if (!custName) return;
-      let resolvedCust = DatabaseManager.resolveAlias(custName, 'customer');
       
-      // Fetch directly from local storage, not the DatabaseManager
+      // Destroy the Bin Viewer modal to prevent z-index overlap
+      let binModal = document.getElementById('binViewerModal');
+      if (binModal) binModal.remove();
+
+      let resolvedCust = DatabaseManager.resolveAlias(custName, 'customer');
       let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
       let custAllocs = allocations[resolvedCust];
 
@@ -2568,6 +2571,9 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                   if (detIndex > -1) itemData.details.splice(detIndex, 1);
                   itemData.qty -= qty;
                   if (itemData.qty <= 0) delete allocations[custName][ref];
+              } else if (itemData.qty !== undefined) {
+                  itemData.qty -= qty;
+                  if (itemData.qty <= 0) delete allocations[custName][ref];
               }
               if (Object.keys(allocations[custName]).length === 0) delete allocations[custName];
           }
@@ -2588,16 +2594,17 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                   shopifySyncPayload.push({
                       ref: ref, handle: handle, title: String(handleRef), desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
                       category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
-                      gtin: String(dbItem.gtin || ''), availableQty: availableQty, price: cleanPrice.toFixed(2),
+                      gtin: String(dbItem.gtin || ''), availableQty: String(availableQty), price: cleanPrice.toFixed(2),
                       status: intendedStatus, isBundle: (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1), uomMult: dbItem.uomMult || 1
                   });
               }
           }
 
           // 4. Log for Cloud Archive Traceability
-          unreservedItems.push({ 
-              ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: qty, 
-              actionTag: "Un-Reserved", customerTag: custName, isNew: false, sessionId: Date.now().toString()
+          unreservedItems.push({
+              ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: qty,
+              actionTag: "Un-Reserved", customerTag: custName, isNew: false, sessionId: Date.now().toString(),
+              itemNote: "Un-Reserved from Bin"
           });
       });
 
@@ -2608,43 +2615,55 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
       // 5. Fire all updates to the cloud seamlessly
       this.syncAllocationsToCloud();
-      
+
       let cleanCustomers = DatabaseManager.customers.filter(c => !c.startsWith("+") && c !== "#ERROR!");
       let cleanSuppliers = DatabaseManager.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
       let cleanVendors = DatabaseManager.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
-      
-      fetch(this.getActiveArchiveUrl(), {
-          method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors } })
-      });
 
-      if (shopifySyncPayload.length > 0) {
+      let networkTasks = [];
+
+      networkTasks.push(
           fetch(this.getActiveArchiveUrl(), {
               method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifySyncPayload })
-          });
+              body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors } })
+          })
+      );
+
+      if (shopifySyncPayload.length > 0) {
+          networkTasks.push(
+              fetch(this.getActiveArchiveUrl(), {
+                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                  body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifySyncPayload })
+              })
+          );
       }
 
       // Generate the Ghost Session for the Audit Log
       let uNameInput = document.getElementById('userNameInput');
       let userName = uNameInput && uNameInput.value ? uNameInput.value.trim() : "Operator";
-      
+
       let auditPayload = {
           id: Date.now().toString(), status: "Completed", userName: userName,
           sessionName: `Un-Reserve: ${custName}`, orderNum: "", workflowType: "Un-Reserve",
-          dateStr: new Date().toLocaleDateString().replace(/\\//g, '.'), startStr: new Date().toLocaleTimeString(),
+          dateStr: new Date().toLocaleDateString().replace(/\//g, '.'), startStr: new Date().toLocaleTimeString(),
           manifestEnabled: false, expectedManifest: [], scannedObjects: unreservedItems,
           pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
       };
-      
+
       let localArchive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
       localArchive.unshift(auditPayload);
       localStorage.setItem('asp_session_archive', JSON.stringify(localArchive));
-      this.pushToCloudArchive(auditPayload);
+
+      networkTasks.push(
+          fetch(this.getActiveArchiveUrl(), {
+              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: "ARCHIVE_SESSION", payload: auditPayload })
+          })
+      );
+
+      // Await all background requests so the browser doesn't kill the thread early
+      await Promise.all(networkTasks);
 
       UIManager.showCustomAlert("Success", `Successfully un-reserved ${unreservedItems.length} item(s) and synced inventory!`);
-      
-      // Refresh the viewer to show the new bin quantities
-      UIManager.openBinViewerModal();
   }
 };
