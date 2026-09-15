@@ -111,7 +111,7 @@ window.onload = async () => {
 
   // 2. Now it is safe to interact with the DOM elements
   let loginLogo = document.getElementById('loginLogo');
-  if (loginLogo) loginLogo.src = ENV_CONFIG.SHORT_LOGO_URL;
+  if (loginLogo) loginLogo.src = ENV_CONFIG.LOGO_URL;
 
   let versionDisplay = document.getElementById('appVersionDisplay');
   if (versionDisplay) versionDisplay.textContent = "App Version: " + ENV_CONFIG.APP_VERSION;

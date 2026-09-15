@@ -128,7 +128,7 @@ const ReportsManager = {
 
     <div class="header-container">
       <div class="brand-section">
-        <img src="${ENV_CONFIG.LOGO_BASE64}" class="logo-img" alt="ASP Logo">
+        <img src="${ENV_CONFIG.LOGO_URL}" class="logo-img" alt="ASP Logo">
         <div>
           <div class="company-name">Allied Surgical Products</div>
           <h2>${title}</h2>
