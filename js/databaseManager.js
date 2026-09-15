@@ -758,9 +758,11 @@ const DatabaseManager = {
           let mappedItems = matrix.map(row => ({
             ref: row[0], mfr: row[1], desc: row[2], gtin: row[3], price: row[4],
             cost: row[5], onHand: row[6], reservedQty: row[7], availableQty: row[8],
-            onRevMed: row[9], revMedPrice: row[10], syncedThrive: row[11], syncedShopify: row[12],
-            category: row[13], status: row[14], parentRef: row[15], uomMult: row[16], shelf: row[17],
-            shopifyCategory: row[18] || "Business & Industrial > Medical > Medical Supplies"
+            onRevMed: row[9], revMedPrice: row[10], 
+            onDotMed: row[11], dotMedPrice: row[12], 
+            syncedShopify: row[13], category: row[14], status: row[15], 
+            parentRef: row[16], uomMult: row[17], shelf: row[18],
+            shopifyCategory: row[19] || "Business & Industrial > Medical > Medical Supplies"
           }));
           
           fullDb.items = fullDb.items.concat(mappedItems);

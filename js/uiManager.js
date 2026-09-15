@@ -722,8 +722,8 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         let pendingNew = JSON.parse(localStorage.getItem('asp_pending_new_items')) || [];
         let pendingUpd = JSON.parse(localStorage.getItem('asp_pending_updates')) || [];
         
-        // SAFETY GATE: Only sync if the user is sitting idle on the home screen
-        let isSafeToSync = !SessionManager.isSessionActive && pendingNew.length === 0 && pendingUpd.length === 0;
+        // SAFETY GATE: Only sync if sitting idle, no pending data, AND user is logged in
+        let isSafeToSync = !SessionManager.isSessionActive && pendingNew.length === 0 && pendingUpd.length === 0 && (typeof AuthManager !== 'undefined' && AuthManager.currentUser !== null);
 
         if (isSafeToSync && typeof window.masterSystemSync === 'function') {
             // SAFE! Run the full master sync automatically.
