@@ -789,7 +789,12 @@ const ReportsManager = {
       }
   },
 
-  saveSubscriber() {
+  saveSubscriber(event) {
+      // Grab the button and save its original text
+      let btn = event ? event.target : document.activeElement;
+      let origText = btn.textContent;
+      btn.textContent = "⏳ Saving..."; btn.disabled = true;
+
       let name = document.getElementById('subName').value.trim();
       let email = document.getElementById('subEmail').value.trim();
       let freq = document.getElementById('subFreq').value;
@@ -797,6 +802,7 @@ const ReportsManager = {
 
       if (!name || !email) {
           UIManager.showCustomAlert("Error", "Please provide a name and email address.");
+          btn.textContent = origText; btn.disabled = false; // Reset button
           return;
       }
 
@@ -809,6 +815,12 @@ const ReportsManager = {
           UIManager.showCustomAlert("Success", `${name} has been updated in the cloud!`);
           document.getElementById('subName').value = "";
           document.getElementById('subEmail').value = "";
-      }).catch(err => UIManager.showCustomAlert("Error", "Failed to save subscriber."));
+      }).catch(err => {
+          UIManager.showCustomAlert("Error", "Failed to save subscriber.");
+      }).finally(() => {
+          // This always runs at the very end to restore the button!
+          btn.textContent = origText; 
+          btn.disabled = false;
+      });
   }
 };

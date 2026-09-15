@@ -725,12 +725,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         // SAFETY GATE: Only sync if the user is sitting idle on the home screen
         let isSafeToSync = !SessionManager.isSessionActive && pendingNew.length === 0 && pendingUpd.length === 0;
 
-        if (isSafeToSync && typeof DatabaseManager.downloadCloudDatabase === 'function') {
-            await DatabaseManager.downloadCloudDatabase(null, true);
-            localStorage.setItem('asp_last_cloud_sync', Date.now().toString());
+        if (isSafeToSync && typeof window.masterSystemSync === 'function') {
+            // SAFE! Run the full master sync automatically.
+            window.masterSystemSync(null);
             indicator.style.display = 'none'; // Hide badge once synced
         } else {
-            // Unsafe to sync automatically. Show the warning badge to the user.
+            // UNSAFE! The user is working. Show the banner so they can sync later.
             indicator.innerHTML = '<i data-lucide="circle-alert" style="width:14px; height:14px; vertical-align:text-bottom;"></i> Cloud Updates Available';
             indicator.style.display = 'inline-block';
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -847,7 +847,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         sessionName: (typeof SessionManager !== 'undefined') ? SessionManager.currentSessionName : "None",
         workflowType: (typeof SessionManager !== 'undefined') ? SessionManager.currentWorkflowType : "None",
         description: formattedDesc,
-        environment: isSandbox ? "Sandbox" : "Production"
+        environment: ENV_CONFIG.ENVIRONMENT_NAME || (isSandbox ? "Sandbox" : "Production")
       }
     };
 

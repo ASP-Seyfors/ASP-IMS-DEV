@@ -2545,15 +2545,20 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       document.getElementById('modalUnreserve').style.display = 'flex';
   },
 
-  async processUnreserve() {
-      // 🚨 THE FIX: Force uppercase when pulling the customer name from the DOM
-      let custName = document.getElementById('unreserveCustomerName').innerText.toUpperCase();
-      let checkboxes = document.querySelectorAll('.unreserve-chk:checked');
+  async processUnreserve(event) {
+      let btn = event ? event.target : document.activeElement;
+      let origText = btn.textContent;
+      btn.textContent = "⏳ Un-Reserving..."; btn.disabled = true;
       
-      if (checkboxes.length === 0) {
-          UIManager.showCustomAlert("Notice", "No items selected to un-reserve.");
-          return;
-      }
+      try {
+          // 🚨 THE FIX: Force uppercase when pulling the customer name from the DOM
+          let custName = document.getElementById('unreserveCustomerName').innerText.toUpperCase();
+          let checkboxes = document.querySelectorAll('.unreserve-chk:checked');
+          
+          if (checkboxes.length === 0) {
+              UIManager.showCustomAlert("Notice", "No items selected to un-reserve.");
+              return;
+          }
 
       let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
       let unreservedItems = [];
@@ -2666,8 +2671,14 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       );
 
       // Await all background requests so the browser doesn't kill the thread early
-      await Promise.all(networkTasks);
+          await Promise.all(networkTasks);
 
-      UIManager.showCustomAlert("Success", `Successfully un-reserved ${unreservedItems.length} item(s) and synced inventory!`);
+          UIManager.showCustomAlert("Success", `Successfully un-reserved ${unreservedItems.length} item(s) and synced inventory!`);
+      
+      } finally {
+          // This always runs at the very end to restore the button!
+          btn.textContent = origText; 
+          btn.disabled = false;
+      }
   }
 };
