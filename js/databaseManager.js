@@ -356,11 +356,14 @@ const DatabaseManager = {
     let html = '';
     dbCopy.forEach((item, idx) => {
       let safeRef = String(item.ref || item.sku || '').replace(/"/g, '&quot;');
+      let avail = (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0); // ✨ MATH
+      
       html += `
         <tr style="border-bottom: 1px solid #eee; background-color: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};">
           <td style="padding:10px; color:#555;">${item.mfr || '--'}</td>
           <td style="padding:10px; font-weight:bold; color:#00796b;">${item.ref || item.sku}</td>
           <td style="padding:10px; font-size:0.85rem; color:#333;">${item.desc || '--'}</td>
+          <td style="padding:10px; text-align:center; font-weight:bold; color:${avail > 0 ? '#2e7d32' : '#c62828'};">${avail}</td>
           <td style="padding:10px; text-align:center;">
             <button class="btn-small btn-auto" style="background-color: #00796b; color: #fff; margin:0; padding:6px 12px; display:flex; align-items:center; gap:6px;" onclick="DatabaseManager.openEditModal('${safeRef}')">
               <i data-lucide="pencil" style="width:14px; height:14px;"></i> Edit

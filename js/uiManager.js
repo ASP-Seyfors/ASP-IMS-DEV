@@ -133,7 +133,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   // ==========================================
   openBinViewerModal() {
     let modal = document.getElementById('binViewerModal');
-    if (modal) modal.remove(); // Force a fresh render
+    
+    // ✨ FIX: Removed the modal.remove() line so we don't destroy your HTML file!
+    if (!modal) {
+        console.error("binViewerModal HTML not found on page.");
+        return;
+    }
 
     // Fetch live allocations and filter out the internal damaged bin
     let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
@@ -152,7 +157,6 @@ const UIManager = {// GLOBAL CONFIGURATIONS
             
             // Build the item rows for this customer
             Object.keys(items).sort().forEach(ref => {
-                // FIX: Force Javascript to treat the value as an integer using parseInt
                 let rawQty = typeof items[ref] === 'object' ? (items[ref].qty || 0) : (items[ref] || 0);
                 let qty = parseInt(rawQty, 10) || 0; 
                 
@@ -185,7 +189,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         });
     }
 
-    // Render the Modal
+    // Render the Modal safely into the existing HTML structure
     document.getElementById('binViewerContent').innerHTML = contentHtml;
     document.getElementById('binViewerModal').style.display = 'flex';
     if (typeof lucide !== 'undefined') lucide.createIcons();

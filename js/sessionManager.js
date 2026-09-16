@@ -1533,8 +1533,13 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       let searchUrl = this.getVendorSearchUrl(item.mfr, item.ref);
       let isEthicon = (item.mfr || '').toUpperCase().includes('ETHICON');
       
-      // ✨ NEW: Only render the Auto-Fetch button if it's an Ethicon product
-      let ethiconBtnHtml = isEthicon ? `<button id="btnEthiconFetch_${index}" class="btn-small" style="background-color:#f57f17; color:#ffffff; padding: 4px 10px;" onclick="SessionManager.autoFetchEthicon('${item.ref}', ${index})">⚡ Auto-Fetch</button>` : '';
+      // ✨ FIX: Added the Suture Checkbox right next to the Auto-Fetch Button
+      let ethiconBtnHtml = isEthicon ? `
+        <label style="font-size:0.85rem; font-weight:bold; color:#c62828; display:flex; align-items:center; gap:4px; margin-right:8px;">
+          <input type="checkbox" id="chkSuture_${index}"> Suture?
+        </label>
+        <button id="btnEthiconFetch_${index}" class="btn-small" style="background-color:#f57f17; color:#ffffff; padding: 4px 10px;" onclick="SessionManager.autoFetchEthicon('${item.ref}', ${index})">⚡ Auto-Fetch</button>
+      ` : '';
 
       let div = document.createElement('div');
       div.style.marginBottom = '10px';
@@ -1565,23 +1570,54 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     const inputs = document.querySelectorAll('.adv-desc-input');
     let updatedCount = 0;
 
-    inputs.forEach(input => {
+    inputs.forEach((input, index) => {
       let rawDesc = input.value.trim();
       let ref = input.getAttribute('data-ref');
       let mfr = input.getAttribute('data-mfr');
       
       if (rawDesc && rawDesc !== "Navigate to vendor website for item description.") {
-        let newDesc = `${mfr} ${rawDesc} ${ref}`.replace(/\s+/g, ' ').trim();
         
+        let finalDesc = "";
+        let finalCategory = "General";
+        
+        // Grab the Suture checkbox state dynamically
+        let sutureChk = document.getElementById(`chkSuture_${index}`);
+        let isSuture = sutureChk && sutureChk.checked;
+        
+        if (isSuture) {
+            finalCategory = "Suture";
+            let lastChar = ref.slice(-1).toUpperCase();
+            let boxQtyStr = "";
+            let refBase = ref; 
+            
+            // Format Box Quantities based on the suffix character
+            if (lastChar === 'G') { boxQtyStr = "(BX/12)"; refBase = ref.slice(0, -1); }
+            else if (lastChar === 'T') { boxQtyStr = "(BX/24)"; refBase = ref.slice(0, -1); }
+            else if (lastChar === 'H') { boxQtyStr = "(BX/36)"; refBase = ref.slice(0, -1); }
+            
+            // Compile the Suture Description (MFR + Desc + Box Qty + Trimmed REF)
+            finalDesc = `${mfr} ${rawDesc} ${boxQtyStr} ${refBase}`.replace(/\s+/g, ' ').trim();
+        } else {
+            // Standard Description Output
+            finalDesc = `${mfr} ${rawDesc} ${ref}`.replace(/\s+/g, ' ').trim();
+        }
+        
+        // Apply the new Desc and Category to the local cache memory
         let pendingItem = this.pendingNewItems.find(i => i.ref === ref);
-        if (pendingItem) pendingItem.desc = newDesc;
+        if (pendingItem) {
+            pendingItem.desc = finalDesc;
+            if (isSuture) pendingItem.category = finalCategory;
+        }
 
         let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
-        if (dbItem) dbItem.desc = newDesc;
+        if (dbItem) {
+            dbItem.desc = finalDesc;
+            if (isSuture) dbItem.category = finalCategory;
+        }
 
         this.scannedObjects.forEach(scanned => {
           if (scanned.ref === ref && scanned.isNew) {
-            scanned.desc = newDesc;
+            scanned.desc = finalDesc;
           }
         });
         updatedCount++;
