@@ -289,6 +289,8 @@ window.exportThriveProducts = () => AuditManager.exportThriveProducts();
 window.exportShopifyProducts = () => AuditManager.exportShopifyProducts();
 window.exportShopifyInventory = () => AuditManager.exportShopifyInventory();
 window.exportEcommerceData = (platform, isNew) => AuditManager.exportEcommerceData(platform, isNew);
+window.executeShopifySeedTest = () => AuditManager.executeShopifySeedTest();
+window.executeShopifySandboxSync = () => AuditManager.executeShopifySandboxSync();
 
 window.generateRevMedPDF = (mode) => ReportsManager.generateRevMedPDF(mode);
 

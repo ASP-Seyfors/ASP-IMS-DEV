@@ -186,34 +186,8 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     }
 
     // Render the Modal
-    modal = document.createElement('div');
-    modal.id = 'binViewerModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-    
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:500px; max-height:85vh; display:flex; flex-direction:column; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #f57f17; padding-bottom:8px; margin-bottom:15px; flex-shrink:0;">
-          <h3 style="margin:0; color:#f57f17;">🗃️ Customer Bin Viewer</h3>
-          <button onclick="document.getElementById('binViewerModal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-        </div>
-        
-        <div style="font-size:0.85rem; color:#555; margin-bottom:15px; flex-shrink:0;">
-          Expand a customer below to view items currently reserved for them in physical warehouse bins.
-        </div>
-        
-        <div style="overflow-y:auto; flex-grow:1; padding-right:4px;">
-            ${contentHtml}
-        </div>
-        
-        <div style="margin-top:15px; text-align:right; flex-shrink:0; border-top:1px solid #eee; padding-top:12px;">
-            <button class="btn-small btn-cancel" style="padding:8px 16px;" onclick="document.getElementById('binViewerModal').remove()">Close Viewer</button>
-        </div>
-
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
+    document.getElementById('binViewerContent').innerHTML = contentHtml;
+    document.getElementById('binViewerModal').style.display = 'flex';
     if (typeof lucide !== 'undefined') lucide.createIcons();
   },
 
@@ -312,35 +286,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   
   // QUICK LOOKUP UTILITY MODAL
   openQuickLookupModal() {
-    let modal = document.getElementById('quickLookupModal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'quickLookupModal';
-      modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-      
-      modal.innerHTML = `
-        <div style="background:#fff; border-radius:8px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #00796b; padding-bottom:8px; margin-bottom:15px;">
-            <h3 style="margin:0; color:#00796b;">🔍 Quick Lookup</h3>
-            <button onclick="document.getElementById('quickLookupModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-          </div>
-          
-          <div style="margin-bottom:15px;">
-            <label style="font-weight:bold; font-size:0.85rem; display:block; margin-bottom:4px;">Scan or Enter REF / GTIN:</label>
-            <div style="display:flex; gap:6px;">
-              <input type="text" id="quickLookupInput" placeholder="e.g. 8698G or Scan 2D" style="flex:1; padding:8px; font-size:1rem; text-transform:uppercase;" onkeypress="if(event.key==='Enter') UIManager.executeQuickLookup()">
-              <button onclick="UIManager.executeQuickLookup()" style="background:#00796b; color:#fff; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer;">Search</button>
-            </div>
-          </div>
-          
-          <div id="quickLookupResult" style="min-height:120px;">
-            <div style="text-align:center; color:#777; padding:20px;">Scan or type a REF/GTIN above to inspect database records.</div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    }
-    modal.style.display = 'flex';
+    document.getElementById('quickLookupInput').value = '';
+    document.getElementById('quickLookupResult').innerHTML = '<div style="text-align:center; color:#777; padding:20px;">Scan or type a REF/GTIN above to inspect database records.</div>';
+    document.getElementById('quickLookupModal').style.display = 'flex';
     document.getElementById('quickLookupInput').focus();
   },
 
@@ -633,31 +581,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   },
 
   openQboModal() {
-    let modal = document.getElementById('qboModal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'qboModal';
-      modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-      
-      modal.innerHTML = `
-        <div style="background:#fff; border-radius:8px; width:100%; max-width:480px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #1565c0; padding-bottom:8px; margin-bottom:15px;">
-            <h3 style="margin:0; color:#1565c0;">☁️ QuickBooks Online Sync</h3>
-            <button onclick="document.getElementById('qboModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-          </div>
-          
-          <p style="font-size:0.85rem; color:#555; margin-bottom:20px;">
-            Fetch open invoices from QuickBooks Online.
-          </p>
-
-          <div style="text-align:center; margin-bottom: 20px;">
-            <button class="btn-action btn-auto" style="background-color: #1565c0; color: #fff; width: 100%; padding: 12px; font-size: 1rem;" onclick="triggerQboSync(event); document.getElementById('qboModal').style.display='none';">Fetch QBO Orders</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    }
-    modal.style.display = 'flex';
+    document.getElementById('qboModal').style.display = 'flex';
   },
 
   evaluateSyncIndicator() {
@@ -784,36 +708,8 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   },
 
   sendBugReport() {
-    let modal = document.createElement('div');
-    modal.id = 'bugReportModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-    
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:500px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-        <h3 style="margin:0 0 10px 0; color:#c62828; display:flex; align-items:center; gap:6px;"><i data-lucide="bug" style="width:20px; height:20px;"></i> Report a System Issue</h3>
-        <p style="font-size:0.85rem; color:#555; margin-top:0;">Please describe the error or unexpected behavior below. Diagnostic data will be attached automatically.</p>
-        
-        <div style="margin-bottom:12px;">
-          <label style="font-weight:bold; font-size:0.85rem; color:#333; display:block; margin-bottom:4px;">Issue Category:</label>
-          <select id="bugCategorySelect" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.9rem;">
-            <option value="General Bug / App Error">🐞 General Bug / App Error</option>
-            <option value="Scanning / Barcode Issue">📦 Scanning / Barcode Issue</option>
-            <option value="Database Correction">🗄️ Database / Item Info Correction</option>
-            <option value="Feature Request">✨ Feature Request / Suggestion</option>
-            <option value="Other">❓ Other / Not Sure</option>
-          </select>
-        </div>
-
-        <textarea id="bugDescInput" rows="4" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; resize:vertical; font-family:inherit; font-size:0.9rem;" placeholder="What were you doing when the issue occurred?"></textarea>
-        
-        <div style="display:flex; justify-content:space-between; gap:10px; margin-top:15px;">
-          <button onclick="document.getElementById('bugReportModal').remove()" style="flex:1; background:#757575; color:#fff; border:none; padding:10px; border-radius:4px; cursor:pointer;">Cancel</button>
-          <button id="btnSubmitBug" onclick="UIManager.submitBugPayload()" style="flex:1; background:#c62828; color:#fff; border:none; padding:10px; border-radius:4px; font-weight:bold; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:6px;">Submit Report</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    document.getElementById('bugDescInput').value = ''; // Reset on open
+    document.getElementById('bugReportModal').style.display = 'flex';
   },
 
   async submitBugPayload() {

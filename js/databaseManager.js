@@ -379,83 +379,28 @@ const DatabaseManager = {
     if (!dbItem) return;
 
     let isAdmin = AuthManager.currentUser && AuthManager.currentUser.isAdmin;
-    
     let priceInputHtml = isAdmin 
       ? `<input type="text" id="modalPrice" value="${dbItem.price || '$0.00'}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">` 
       : `<input type="text" id="modalPrice" value="${dbItem.price || '$0.00'}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#777;" readonly title="Admin approval required to edit pricing.">`;
-
     let costInputHtml = isAdmin 
       ? `<input type="text" id="modalCost" value="${dbItem.cost || '$0.00'}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">` 
       : `<input type="text" id="modalCost" value="***" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#999;" readonly title="Restricted Admin Data">`;
 
-    let modal = document.createElement('div');
-    modal.id = 'itemEditModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
+    document.getElementById('modalRef').value = dbItem.ref || dbItem.sku;
+    document.getElementById('modalMfr').value = dbItem.mfr || '';
+    document.getElementById('modalDesc').value = dbItem.desc || '';
+    document.getElementById('modalCat').value = dbItem.category || '';
+    document.getElementById('modalShelf').value = dbItem.shelf || '';
     
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:500px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #00796b; padding-bottom:8px; margin-bottom:15px;">
-          <h3 style="margin:0; color:#00796b;">✏️ Edit Item Details</h3>
-          <button onclick="document.getElementById('itemEditModal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-        </div>
-        
-        <div style="margin-bottom:10px;">
-          <label style="font-weight:bold; font-size:0.85rem; color:#555;">REF / SKU (Read-Only)</label>
-          <input type="text" id="modalRef" value="${dbItem.ref || dbItem.sku}" readonly style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background:#f0f0f0; font-weight:bold; color:#00796b;">
-        </div>
+    let statusEl = document.getElementById('modalStatus');
+    statusEl.value = dbItem.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
+    statusEl.style.color = dbItem.status === 'ACTIVE' ? '#2e7d32' : '#c62828';
 
-        <div style="margin-bottom:10px;">
-          <label style="font-weight:bold; font-size:0.85rem; color:#555;">Manufacturer</label>
-          <input type="text" id="modalMfr" value="${dbItem.mfr || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-        </div>
+    document.getElementById('modalPricingBlock').innerHTML = `
+      <div style="flex:1;"><label style="font-weight:bold; font-size:0.85rem; color:#555;">Selling Price</label>${priceInputHtml}</div>
+      <div style="flex:1;"><label style="font-weight:bold; font-size:0.85rem; color:#555;">Unit Cost</label>${costInputHtml}</div>`;
 
-        <div style="margin-bottom:10px;">
-          <label style="font-weight:bold; font-size:0.85rem; color:#555;">Description</label>
-          <textarea id="modalDesc" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; resize:vertical; min-height:60px;">${dbItem.desc || ''}</textarea>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-          <div style="flex:1;">
-            <label style="font-weight:bold; font-size:0.85rem; color:#555;">Category</label>
-            <input type="text" id="modalCat" value="${dbItem.category || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">
-          </div>
-          <div style="flex:1;">
-            <label style="font-weight:bold; font-size:0.85rem; color:#555;">Shelf Location</label>
-            <input type="text" id="modalShelf" value="${dbItem.shelf || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; text-transform:uppercase;" placeholder="e.g. A-14">
-          </div>
-        </div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-          <div style="flex:1;">
-            <label style="font-weight:bold; font-size:0.85rem; color:#555;">Status</label>
-            <select id="modalStatus" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-weight:bold; color:${dbItem.status === 'ACTIVE' ? '#2e7d32' : '#c62828'};">
-              <option value="ACTIVE" ${dbItem.status === 'ACTIVE' ? 'selected' : ''}>ACTIVE</option>
-              <option value="INACTIVE" ${dbItem.status !== 'ACTIVE' ? 'selected' : ''}>INACTIVE</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-bottom:20px; padding:10px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;">
-          <div style="flex:1;">
-            <label style="font-weight:bold; font-size:0.85rem; color:#555;">Selling Price</label>
-            ${priceInputHtml}
-          </div>
-          <div style="flex:1;">
-            <label style="font-weight:bold; font-size:0.85rem; color:#555;">Unit Cost</label>
-            ${costInputHtml}
-          </div>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; gap:10px;">
-          <button onclick="document.getElementById('itemEditModal').remove()" style="flex:1; background:#757575; color:#fff; border:none; padding:10px; border-radius:4px; cursor:pointer;">Cancel</button>
-          <button onclick="DatabaseManager.saveModalEdits()" style="flex:1; background:#00796b; color:#fff; border:none; padding:10px; border-radius:4px; font-weight:bold; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:6px;">
-            <i data-lucide="save" style="width:16px; height:16px;"></i> Apply Changes
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    document.getElementById('itemEditModal').style.display = 'flex';
   },
 
   saveModalEdits() {

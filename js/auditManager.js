@@ -813,38 +813,16 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let cust = document.getElementById('customerReportSelect').value;
     if (!cust) { alert("Please select a customer first."); return; }
 
-    // Read the scope selected in screens/reports.html
     let scopeRadio = document.querySelector('input[name="internalReportScope"]:checked');
     let limit = scopeRadio ? scopeRadio.value : '10';
 
-    let modal = document.createElement('div');
-    modal.id = 'internalReportOptionsModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-    
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:500px; padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #388e3c; padding-bottom:8px; margin-bottom:15px;">
-          <h3 style="margin:0; color:#388e3c;">📈 Internal Sales Report Options</h3>
-          <button onclick="document.getElementById('internalReportOptionsModal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-        </div>
-        <div style="margin-bottom:15px; font-size:0.85rem;">Account: <strong>${cust}</strong><br>Select the columns you want to include in the PDF export:</div>
-        
-        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px; background:#fafafa; border:1px solid #ddd; padding:12px; border-radius:4px;">
-          <label style="cursor:pointer;"><input type="checkbox" id="chkIntDesc" checked> Description</label>
-          <label style="cursor:pointer;"><input type="checkbox" id="chkIntHist" checked> Historical Vol.</label>
-          <label style="cursor:pointer;"><input type="checkbox" id="chkIntOnHand" checked> On-Hand Stock</label>
-          <label style="cursor:pointer;"><input type="checkbox" id="chkIntPrice" checked> Selling Price</label>
-          <label style="cursor:pointer;"><input type="checkbox" id="chkIntCost" checked> Unit Cost</label>
-        </div>
+    document.getElementById('internalReportCustomerName').textContent = cust;
+    document.getElementById('btnExportInternalReport').onclick = () => {
+      ReportsManager.generateInternalSalesReport(cust, limit);
+      document.getElementById('internalReportOptionsModal').style.display = 'none';
+    };
 
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-          <button onclick="document.getElementById('internalReportOptionsModal').remove()" style="background:#777; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Cancel</button>
-          <!-- Pass the limit variable straight into generateInternalSalesReport -->
-          <button onclick="AuditManager.generateInternalSalesReport('${cust}', '${limit}')" style="background:#388e3c; color:#fff; border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Export PDF</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+    document.getElementById('internalReportOptionsModal').style.display = 'flex';
   },
 
   generateInternalSalesReport(cust) {
@@ -954,14 +932,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let numPrice = parseFloat(String(i.price || '').replace(/[^0-9.-]+/g, '')) || 0;
       return numPrice > 0;
     });
-    
-    let existingModal = document.getElementById('stockReportEditorModal');
-    if (existingModal) existingModal.remove();
 
-    let modal = document.createElement('div');
-    modal.id = 'stockReportEditorModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-    
     let rowsHtml = '';
     items.forEach((it, idx) => {
       let safeDesc = (it.desc || '').replace(/"/g, '&quot;');
@@ -979,51 +950,29 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         </div>`;
     });
 
-    let top10Checked = limit === '10' ? 'checked' : '';
-    let allChecked = limit === 'all' ? 'checked' : '';
+    // 1. Configure the Modal UI for Customer Mode
+    document.getElementById('stockReportTitle').innerHTML = '📄 Build "Customer Inventory Stock Report"';
+    document.getElementById('stockReportTitle').style.color = '#7b1fa2';
+    document.getElementById('stockReportHeaderBox').innerHTML = `<strong>Account:</strong> ${cust}<br>Customize the SKUs, descriptions, stock quantities, and pricing below before exporting.`;
+    
+    // Hide Flyer-specific elements
+    document.getElementById('stockReportNoteContainer').style.display = 'none';
+    document.getElementById('stockReportActionRow').style.display = 'none';
+    document.getElementById('btnAddFlyerRow').style.display = 'inline-block';
 
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #7b1fa2; padding-bottom:8px; margin-bottom:15px;">
-          <h3 style="margin:0; color:#7b1fa2;">📄 Build "Customer Inventory Stock Report"</h3>
-          <button onclick="document.getElementById('stockReportEditorModal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-        </div>
+    // 2. Inject Data and Bind Buttons
+    document.getElementById('reportItemRowsContainer').innerHTML = rowsHtml;
+    document.getElementById('btnExportStockReportPdf').onclick = () => AuditManager.exportCustomerStockReportPDF(cust);
+    document.getElementById('btnExportStockReportEmail').onclick = () => AuditManager.draftEmailFlyer(cust);
 
-        <div style="background:#f3e5f5; border:1px solid #ce93d8; border-radius:4px; padding:10px; margin-bottom:15px; font-size:0.85rem;">
-          <strong>Account:</strong> ${cust}<br>
-          Customize the SKUs, descriptions, stock quantities, and pricing below before exporting.
-        </div>
-
-        <div style="margin-bottom:15px; background:#fafafa; border:1px solid #ddd; padding:10px; border-radius:4px; display:flex; flex-wrap:wrap; gap:15px;">
-          <label style="font-weight:bold; cursor:pointer; font-size:0.85rem; color:#333;"><input type="checkbox" id="chkIncludeDescFlyer" checked> Include Description</label>
-          <label style="font-weight:bold; cursor:pointer; font-size:0.85rem; color:#333;"><input type="checkbox" id="chkIncludeQtyFlyer" checked> Include Quantity</label>
-          <label style="font-weight:bold; cursor:pointer; font-size:0.85rem; color:#333;"><input type="checkbox" id="chkIncludePriceInReport" checked> Include Unit Price</label>
-        </div>
-
-        <div id="reportItemRowsContainer">${rowsHtml}</div>
-        <button onclick="AuditManager.addBlankRowToReportEditor()" style="background:#0277bd; color:#fff; border:none; padding:6px 12px; border-radius:4px; font-size:0.8rem; margin-top:8px; cursor:pointer;">+ Add Item to Flyer</button>
-
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #eee; padding-top:12px;">
-          <button onclick="document.getElementById('stockReportEditorModal').remove()" style="background:#777; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Cancel</button>
-          <button onclick="AuditManager.exportCustomerStockReportPDF('${cust}')" style="background:#7b1fa2; color:#fff; border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Export PDF</button>
-          <button onclick="AuditManager.draftEmailFlyer('${cust}')" style="background:#2e7d32; color:#fff; border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">📧 Copy to Email</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+    // 3. Show Modal
+    document.getElementById('stockReportEditorModal').style.display = 'flex';
   },
 
   openCustomSalesFlyer() {
     // Remove the strict customer requirement. Use "PROMO" if the dropdown is blank.
     let custInput = document.getElementById('customerReportSelect');
     let cust = (custInput && custInput.value) ? custInput.value : 'PROMO';
-
-    let existingModal = document.getElementById('stockReportEditorModal');
-    if (existingModal) existingModal.remove();
-
-    let modal = document.createElement('div');
-    modal.id = 'stockReportEditorModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
     
     // Pull ALL available inventory directly from the master database
     let availableItems = [];
@@ -1048,7 +997,6 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let safeRef = String(it.ref || '').replace(/"/g, '&quot;'); 
       let safePrice = String(it.price || '').replace(/"/g, '&quot;');
       
-      // Removed the "checked" attribute so you don't have to uncheck hundreds of items manually
       rowsHtml += `
         <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px; padding:6px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;" class="flyer-item-row">
           <input type="checkbox" class="flyer-chk" style="width:20px; height:20px; cursor:pointer;">
@@ -1059,42 +1007,24 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         </div>`;
     });
 
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:700px; max-height:90vh; overflow-y:auto; padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #f57f17; padding-bottom:8px; margin-bottom:15px;">
-          <h3 style="margin:0; color:#f57f17;">✨ Custom Promotional Flyer</h3>
-          <button onclick="document.getElementById('stockReportEditorModal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
-        </div>
-        <div style="background:#fff3e0; border:1px solid #ffcc80; border-radius:4px; padding:10px; margin-bottom:15px; font-size:0.85rem;">
-          Build a custom flyer from the <strong>Full Warehouse Inventory</strong>. Select items and set quantities below.
-        </div>
-        <div style="margin-bottom:15px; background:#fafafa; border:1px solid #ddd; padding:10px; border-radius:4px; display:flex; flex-wrap:wrap; gap:15px;">
-          <label style="font-weight:bold; cursor:pointer; font-size:0.85rem; color:#333;"><input type="checkbox" id="chkIncludeDescFlyer" checked> Include Description</label>
-          <label style="font-weight:bold; cursor:pointer; font-size:0.85rem; color:#333;"><input type="checkbox" id="chkIncludeQtyFlyer" checked> Include Quantity</label>
-          <label style="font-weight:bold; cursor:pointer; font-size:0.85rem; color:#333;"><input type="checkbox" id="chkIncludePriceInReport" checked> Include Unit Price</label>
-        </div>
-        <div style="margin-bottom:10px;">
-          <label style="font-size:0.85rem; font-weight:bold; color:#0277bd;">📝 Add Flyer Note / Intro Text:</label>
-          <textarea id="flyerNoteInput" rows="3" style="width:100%; padding:8px; font-size:0.85rem; resize:vertical;" placeholder="e.g. Good morning, we have the following items in stock..."></textarea>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding: 0 4px;">
-          <strong style="font-size:0.9rem; color:#333;">Available Inventory (${availableItems.length} items)</strong>
-          <div>
-            <button class="btn-small btn-auto" style="background:#0277bd; color:#fff; padding:4px 8px;" onclick="document.querySelectorAll('.flyer-chk').forEach(c => c.checked = true)">Select All</button>
-            <button class="btn-small btn-auto" style="background:#757575; color:#fff; padding:4px 8px;" onclick="document.querySelectorAll('.flyer-chk').forEach(c => c.checked = false)">Deselect All</button>
-          </div>
-        </div>
-        <div id="reportItemRowsContainer" style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:6px; border-radius:4px; background:#fff;">
-          ${rowsHtml.length > 0 ? rowsHtml : '<div style="text-align:center; padding:10px; color:#777;">No items currently available in stock.</div>'}
-        </div>
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #eee; padding-top:12px;">
-          <button onclick="document.getElementById('stockReportEditorModal').remove()" style="background:#777; color:#fff; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Cancel</button>
-          <button onclick="AuditManager.exportCustomerStockReportPDF('${cust}')" style="background:#7b1fa2; color:#fff; border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Export PDF</button>
-          <button onclick="AuditManager.draftEmailFlyer('${cust}')" style="background:#2e7d32; color:#fff; border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">📧 Copy to Email</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+    // 1. Configure the Modal UI for Flyer Mode
+    document.getElementById('stockReportTitle').innerHTML = '✨ Custom Promotional Flyer';
+    document.getElementById('stockReportTitle').style.color = '#f57f17';
+    document.getElementById('stockReportHeaderBox').innerHTML = 'Build a custom flyer from the <strong>Full Warehouse Inventory</strong>. Select items and set quantities below.';
+    
+    // Show Flyer-specific elements
+    document.getElementById('stockReportNoteContainer').style.display = 'block';
+    document.getElementById('stockReportActionRow').style.display = 'flex';
+    document.getElementById('stockReportItemCount').innerText = `Available Inventory (${availableItems.length} items)`;
+    document.getElementById('btnAddFlyerRow').style.display = 'none';
+
+    // 2. Inject Data and Bind Buttons
+    document.getElementById('reportItemRowsContainer').innerHTML = rowsHtml.length > 0 ? rowsHtml : '<div style="text-align:center; padding:10px; color:#777;">No items currently available in stock.</div>';
+    document.getElementById('btnExportStockReportPdf').onclick = () => AuditManager.exportCustomerStockReportPDF(cust);
+    document.getElementById('btnExportStockReportEmail').onclick = () => AuditManager.draftEmailFlyer(cust);
+
+    // 3. Show Modal
+    document.getElementById('stockReportEditorModal').style.display = 'flex';
   },
 
   addBlankRowToReportEditor() {
@@ -2202,8 +2132,6 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
  openRestoreModal() {
     let dir = JSON.parse(localStorage.getItem('asp_cloud_directory')) || [];
-    
-    // Filter out subsequent parts from the dropdown, only show Part 1 or un-split sessions
     let stocktakes = dir.filter(s => {
         let isStocktake = (s.sessionName.includes('FULL-INV') || s.sessionName.includes('Stocktake')) && s.status === 'Completed';
         let isSubsequentPart = s.sessionName.match(/Part [2-9]/i) || s.sessionName.match(/\(Part [2-9]+ of/i);
@@ -2215,28 +2143,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       return;
     }
 
-    let optionsHtml = stocktakes.map(s => `<option value="${s.id}">${s.dateStr} - ${s.sessionName}</option>`).join('');
-
-    let modal = document.createElement('div');
-    modal.id = 'systemRestoreModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
-    
-    modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:450px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-        <h3 style="margin:0 0 10px 0; color:#c62828; border-bottom:2px solid #c62828; padding-bottom:8px;">☁️ Cloud System Restore</h3>
-        <p style="font-size:0.85rem; color:#555;">Select a historical stocktake below. The system will download the required payloads from the Cloud Vault and mathematically replay all subsequent sessions to rebuild your inventory.</p>
-        
-        <select id="restoreBaselineSelect" style="width:100%; padding:10px; font-weight:bold; margin-bottom:20px; border:2px solid #c62828;">
-          ${optionsHtml}
-        </select>
-
-        <div style="display:flex; justify-content:space-between; gap:10px;">
-          <button onclick="document.getElementById('systemRestoreModal').remove()" style="flex:1; background:#757575; color:#fff; border:none; padding:10px; border-radius:4px; cursor:pointer;">Cancel</button>
-          <button onclick="AuditManager.executeCloudEventReplay()" style="flex:1; background:#c62828; color:#fff; border:none; padding:10px; border-radius:4px; font-weight:bold; cursor:pointer;">⚠️ Execute Replay</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+    document.getElementById('restoreBaselineSelect').innerHTML = stocktakes.map(s => `<option value="${s.id}">${s.dateStr} - ${s.sessionName}</option>`).join('');
+    document.getElementById('systemRestoreModal').style.display = 'flex';
   },
 
   async executeCloudEventReplay() {
@@ -2721,54 +2629,77 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
   },
 
   async executeShopifySandboxSync() {
-    let db = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db : [];
-    if (db.length === 0) { alert("No inventory data loaded in memory."); return; }
+      let btn = document.getElementById('btnShopifySync');
+      let progressContainer = document.getElementById('shopifySyncProgressContainer');
+      let progressBar = document.getElementById('shopifySyncProgressBar');
+      let statusText = document.getElementById('shopifySyncStatusText');
 
-    // ✨ FIX: Safely cast booleans to strings, and limit to 20 items per click to prevent Google timeouts!
-    let syncData = db.filter(i => String(i.syncedShopify || 'FALSE').toUpperCase() !== 'TRUE').slice(0, 20).map(item => {
-      let isBundle = (item.parentRef && parseInt(item.uomMult, 10) > 1);
-      let avail = 0;
-
-      if (isBundle) {
-          let parentItem = db.find(i => String(i.sku || i.ref || '').toUpperCase() === String(item.parentRef).toUpperCase());
-          if (parentItem) {
-              let parentAvail = (parseInt(parentItem.onHand || 0, 10)) - (parseInt(parentItem.reservedQty || 0, 10));
-              avail = Math.floor(parentAvail / parseInt(item.uomMult, 10));
-          }
-      } else {
-          avail = (parseInt(item.onHand || 0, 10)) - (parseInt(item.reservedQty || 0, 10));
+      if (!DatabaseManager.db || DatabaseManager.db.length === 0) {
+          UIManager.showCustomAlert("Error", "Database not loaded yet. Please sync the system first.");
+          return;
       }
+
+      // Filter out empty rows and bundles that don't need independent Shopify listings
+      let itemsToSync = DatabaseManager.db.filter(i => (i.ref || i.sku) && String(i.ref || i.sku).trim() !== "" && !i.parentRef);
       
-      let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-      let intendedStatus = cleanPrice > 0 ? "active" : "draft";
-      let handleRef = isBundle ? item.parentRef : (item.ref || item.sku || '');
-      let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      if (!confirm(`Are you sure you want to push all ${itemsToSync.length} master items to Shopify?\n\nThis will take several minutes to run in background batches.`)) return;
 
-      return {
-        ref: String(item.ref || item.sku),
-        handle: handle,
-        title: String(handleRef),
-        desc: String(item.desc || ''),
-        mfr: String(item.mfr || 'Unknown'),
-        category: String(item.category || 'Surgical Supply'),
-        shopifyCategory: String(item.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-        gtin: String(item.gtin || ''),
-        availableQty: avail, 
-        price: cleanPrice.toFixed(2),
-        status: intendedStatus,
-        isBundle: isBundle,
-        uomMult: item.uomMult || 1
-      };
-    });
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+      if (progressContainer) progressContainer.style.display = 'block';
+      if (statusText) statusText.innerText = 'Initializing...';
+      
+      let batchSize = 25; // Safe limit for Apps Script timeouts
+      let totalBatches = Math.ceil(itemsToSync.length / batchSize);
+      let successCount = 0;
 
-    if (syncData.length === 0) {
-      alert("All items in the database are already marked as Synced with Shopify!");
-      return;
-    }
+      for (let i = 0; i < totalBatches; i++) {
+          let batchRaw = itemsToSync.slice(i * batchSize, (i + 1) * batchSize);
+          
+          // Format the batch payload to perfectly match what the Apps Script expects
+          let payloadBatch = batchRaw.map(dbItem => {
+              let handleRef = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1) ? dbItem.parentRef : (dbItem.sku || dbItem.ref);
+              let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+              let cleanPrice = parseFloat(String(dbItem.price).replace(/[^0-9.-]+/g, '')) || 0;
+              let intendedStatus = cleanPrice > 0 ? "active" : "draft";
 
-    if (!confirm(`Are you ready to run a Live Sync to the Shopify Sandbox?\n\nThis will package up to ${syncData.length} pending items and send them to your Apps Script to UPSERT products and variants.`)) return;
+              return {
+                  ref: String(dbItem.sku || dbItem.ref),
+                  handle: handle,
+                  title: String(handleRef),
+                  desc: String(dbItem.desc || ''),
+                  mfr: String(dbItem.mfr || 'Unknown'),
+                  category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
+                  gtin: String(dbItem.gtin || ''),
+                  availableQty: String((parseInt(dbItem.onHand, 10) || 0) - (parseInt(dbItem.reservedQty, 10) || 0)),
+                  price: cleanPrice.toFixed(2),
+                  status: intendedStatus,
+                  isBundle: (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1),
+                  uomMult: dbItem.uomMult || 1
+              };
+          });
 
-    this.fireShopifyApiPayload("SYNC_SHOPIFY_SANDBOX", syncData, "☁️ Shopify Full Sync");
+          if (statusText) statusText.innerText = `Pushing Batch ${i + 1} of ${totalBatches}...`;
+          
+          try {
+              let response = await fetch(SessionManager.getActiveArchiveUrl(), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                  body: JSON.stringify({ action: 'SYNC_SHOPIFY_SANDBOX', payload: payloadBatch })
+              });
+              let result = await response.json();
+              if (result.status === 'success') successCount += payloadBatch.length;
+          } catch(err) {
+              console.error("Batch Sync Error:", err);
+          }
+
+          let percent = Math.round(((i + 1) / totalBatches) * 100);
+          if (progressBar) progressBar.style.width = `${percent}%`;
+          if (statusText) statusText.innerText = `${percent}% - Batch ${i + 1} Done`;
+      }
+
+      if (statusText) statusText.innerText = `Sync Complete! Processed ${successCount} items.`;
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      UIManager.showCustomAlert("Success", "Full Shopify Database Sync finished!");
   },
 
   // ✨ NEW: Reusable Network Function with Loading Overlay

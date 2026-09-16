@@ -363,14 +363,26 @@ const SessionManager = {
     if (!this.getActiveFeederUrl() || this.getActiveFeederUrl().includes("YOUR_")) return;
 
     try {
-      let res = await fetch(this.getActiveFeederUrl());
-      let data = await res.json();
+      // 1. Fetch Manual Orders from the Feeder URL
+      let manualReq = fetch(this.getActiveFeederUrl());
       
-      this.fetchedStagedData = data.stagedSessions || {};
+      // 2. Fetch QBO Invoices from the Database URL
+      let qboReq = fetch(`${this.getActiveArchiveUrl()}?action=GET_QBO_FEED`);
+
+      let [manualRes, qboRes] = await Promise.all([manualReq, qboReq]);
+      let manualData = await manualRes.json();
+      let qboData = await qboRes.json();
+
+      // Merge the session data
+      this.fetchedStagedData = {
+          ...(manualData.stagedSessions || {}),
+          ...(qboData.stagedSessions || {})
+      };
       
-      if (data.customerAnalytics) {
-        localStorage.setItem('asp_remote_analytics', JSON.stringify(data.customerAnalytics));
-        localStorage.setItem('asp_remote_customers', JSON.stringify(data.customerList));
+      // Preserve the Customer Analytics from the Orders Script
+      if (manualData.customerAnalytics) {
+        localStorage.setItem('asp_remote_analytics', JSON.stringify(manualData.customerAnalytics));
+        localStorage.setItem('asp_remote_customers', JSON.stringify(manualData.customerList));
       }
       
       let select = document.getElementById('stagedOrdersSelect');
@@ -395,7 +407,7 @@ const SessionManager = {
 
         if (!silent) {
           if (count > 0) alert(`Successfully synced! Found ${count} staged orders and updated Customer Analytics.`);
-          else alert("Synced successfully, but no staged orders found on the ASP_Scanner_Feed tab.");
+          else alert("Synced successfully, but no staged orders found in either feed.");
         }
       }
     } catch (err) {
@@ -1236,22 +1248,34 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
   },
 
   saveItemLog(ignoreOverpack = false) {
-    let rawGtin = document.getElementById('gtinInput').value.trim();
-    if (rawGtin.toUpperCase() === "N/A" || rawGtin.toUpperCase() === "NA") rawGtin = "";
-    
-    let ref = document.getElementById('refInput').value.trim().toUpperCase();
-    let lot = document.getElementById('lotInput').value.trim().toUpperCase();
-    if (lot === "N/A" || lot === "NA" || lot === "NO_LOT") lot = "";
-    
-    let exp = document.getElementById('expInput').value.trim();
-    if (exp.toUpperCase() === "N/A" || exp.toUpperCase() === "NA" || exp === "NO_EXP") exp = "";
-    
-    const vendor = document.getElementById('vendorSelect').value;
-    let qty = parseInt(document.getElementById('qtyInput').value, 10) || 1;
-    
-    const itemCust = document.getElementById('itemCustomerSelect') ? document.getElementById('itemCustomerSelect').value : '';
-    const itemOrder = document.getElementById('itemOrderNumInput') ? document.getElementById('itemOrderNumInput').value.trim() : '';
-    const iNote = document.getElementById('itemNoteInput') ? document.getElementById('itemNoteInput').value.trim() : '';
+        let rawGtin = document.getElementById('gtinInput').value.trim();
+        if (rawGtin.toUpperCase() === "N/A" || rawGtin.toUpperCase() === "NA") rawGtin = "";
+        
+        let ref = document.getElementById('refInput').value.trim().toUpperCase();
+        let lot = document.getElementById('lotInput').value.trim().toUpperCase();
+        if (lot === "N/A" || lot === "NA" || lot === "NO_LOT") lot = "";
+        
+        let exp = document.getElementById('expInput').value.trim();
+        if (exp.toUpperCase() === "N/A" || exp.toUpperCase() === "NA" || exp === "NO_EXP") exp = "";
+        
+        const vendor = document.getElementById('vendorSelect').value;
+        let qty = parseInt(document.getElementById('qtyInput').value, 10) || 1;
+        
+        // Changed const to let so we can mutate it
+        let itemCust = document.getElementById('itemCustomerSelect') ? document.getElementById('itemCustomerSelect').value.trim() : '';
+        const itemOrder = document.getElementById('itemOrderNumInput') ? document.getElementById('itemOrderNumInput').value.trim() : '';
+        const iNote = document.getElementById('itemNoteInput') ? document.getElementById('itemNoteInput').value.trim() : '';
+
+        // ✨ V5.1 PATCH: Enforce Strict Proper Case for Customer Names
+        if (itemCust) {
+            let upperTag = itemCust.toUpperCase();
+            let masterCustList = DatabaseManager.dbRaw && DatabaseManager.dbRaw.customers ? DatabaseManager.dbRaw.customers : [];
+            let matchedCust = masterCustList.find(c => String(c).toUpperCase().trim() === upperTag);
+            
+            if (matchedCust) {
+                itemCust = matchedCust; // Force it to the exact case from the DB
+            }
+        }
 
     let cTag = itemCust.trim();
     if (cTag && typeof DatabaseManager !== 'undefined' && typeof DatabaseManager.resolveAlias === 'function') {
@@ -1281,6 +1305,15 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     let uMult = 1;
 
     if (isNewItem) {
+       // ✨ V5.1 PATCH: Block new item creation during outbound orders
+       let isOutbound = this.currentWorkflowType && (this.currentWorkflowType.toUpperCase().includes('ORDER') || this.currentWorkflowType.toUpperCase().includes('PACK'));
+       
+       if (isOutbound) {
+           UIManager.showCustomAlert("Action Blocked", `You are packing an outbound order, but the barcode ${ref} does not exist in the database. Please process this item through a Receiving session first to establish its identity.`);
+           return;
+       }
+       // -----------------------------------------------------------
+
        let bundleChk = document.getElementById('chkIsBundle');
        let isBundle = bundleChk && bundleChk.checked;
        
@@ -1294,7 +1327,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
        }
 
        let confirmNew = confirm(`⚠️ UNRECOGNIZED REF DETECTED ⚠️\n\nThe REF/SKU "${ref}" does not exist in the master database.\n\nAre you sure you want to create a BRAND NEW item?`);
-       if (!confirmNew) return; 
+       if (!confirmNew) return;
 
        let alreadyPending = this.pendingNewItems.find(i => i.ref === ref);
        if (!alreadyPending) {
