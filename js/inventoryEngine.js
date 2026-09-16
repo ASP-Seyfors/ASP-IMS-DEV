@@ -266,7 +266,7 @@ const InventoryEngine = {
     });
 
     currentDb.forEach(dbItem => {
-      let ref = (dbItem.sku || dbItem.ref || '').toUpperCase();
+      let ref = (dbItem.sku || dbItem.ref || '').toUpperCase().trim(); // ✨ FIX: Added .trim() to prevent trailing space mismatches!
       if (typeof onHandChanges[ref] !== 'undefined') {
         dbItem.onHand = (dbItem.onHand || 0) + (onHandChanges[ref] || 0); 
         dbItem.reservedQty = (dbItem.reservedQty || 0) + (reservedChanges[ref] || 0);
@@ -332,7 +332,7 @@ const InventoryEngine = {
 
     // APPLY TO DATABASE WITH FLOOR SAFETY
     currentDb.forEach(dbItem => {
-      let ref = (dbItem.sku || dbItem.ref || '').toUpperCase();
+      let ref = (dbItem.sku || dbItem.ref || '').toUpperCase().trim(); // ✨ FIX: Added .trim() here too!
       if (typeof onHandChanges[ref] !== 'undefined') {
         dbItem.onHand = (dbItem.onHand || 0) + (onHandChanges[ref] || 0);
         dbItem.reservedQty = (dbItem.reservedQty || 0) + (reservedChanges[ref] || 0);

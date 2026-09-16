@@ -220,7 +220,13 @@ const SessionManager = {
       if (data.status === "success" && data.allocations) {
         let allocMap = {};
         data.allocations.forEach(a => {
-          let cleanCustName = String(a.customerName).trim().toUpperCase(); // ✨ FIX: Force uppercase to match Engine math
+          // ✨ FIX: Run incoming cloud data through the Alias Resolver to auto-merge legacy/manual sheet entries!
+          let rawCustName = String(a.customerName).trim();
+          let resolvedName = (typeof DatabaseManager !== 'undefined' && typeof DatabaseManager.resolveAlias === 'function') 
+              ? DatabaseManager.resolveAlias(rawCustName, 'customer') 
+              : rawCustName;
+              
+          let cleanCustName = resolvedName.toUpperCase(); 
           
           if (!allocMap[cleanCustName]) allocMap[cleanCustName] = {};
           
