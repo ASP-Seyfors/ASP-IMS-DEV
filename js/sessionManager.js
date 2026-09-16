@@ -2587,7 +2587,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       if (!custName) return;
       
       let binModal = document.getElementById('binViewerModal');
-      if (binModal) binModal.remove();
+      if (binModal) binModal.style.display = 'none'; // ✨ FIX: Hide it instead of destroying the HTML!
 
       // 🚨 THE FIX: Use the exact uppercase key, bypassing the alias resolver
       let targetKey = custName.toUpperCase();
