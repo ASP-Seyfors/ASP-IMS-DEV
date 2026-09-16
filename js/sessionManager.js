@@ -2626,7 +2626,6 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       btn.textContent = "⏳ Un-Reserving..."; btn.disabled = true;
       
       try {
-          // 🚨 THE FIX: Force uppercase when pulling the customer name from the DOM
           let custName = document.getElementById('unreserveCustomerName').innerText.toUpperCase();
           let checkboxes = document.querySelectorAll('.unreserve-chk:checked');
           
@@ -2635,125 +2634,175 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
               return;
           }
 
-      let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
-      let unreservedItems = [];
-      let shopifySyncPayload = [];
-      
-      checkboxes.forEach(chk => {
-          let ref = chk.getAttribute('data-ref');
-          let lot = chk.getAttribute('data-lot');
-          let exp = chk.getAttribute('data-exp');
-          let qty = parseInt(chk.getAttribute('data-qty'), 10) || 0;
-          let sessionId = chk.getAttribute('data-session');
+          // 1. Render the dynamic processing overlay
+          let overlay = document.createElement('div');
+          overlay.id = 'unreserveOverlay';
+          overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
+          overlay.innerHTML = `
+            <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
+              <h3 style="margin:0 0 15px 0; color:#d32f2f;">🔄 Processing Un-Reserve</h3>
+              <div style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ Adjusting inventory and syncing to the cloud...</div>
+              <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
+                <div style="width:100%; height:100%; background:#d32f2f; animation: pulse 1.5s infinite;"></div>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(overlay);
 
-          // 1. Remove from local Allocations memory
-          if (allocations[custName] && allocations[custName][ref]) {
-              let itemData = allocations[custName][ref];
-              if (itemData.details) {
-                  let detIndex = itemData.details.findIndex(d => d.lot === lot && d.exp === exp && d.sessionId === sessionId);
-                  if (detIndex > -1) itemData.details.splice(detIndex, 1);
-                  itemData.qty -= qty;
-                  if (itemData.qty <= 0) delete allocations[custName][ref];
-              } else if (itemData.qty !== undefined) {
-                  itemData.qty -= qty;
-                  if (itemData.qty <= 0) delete allocations[custName][ref];
+          let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
+          let unreservedItems = [];
+          
+          // 2. Adjust local memory
+          checkboxes.forEach(chk => {
+              let ref = chk.getAttribute('data-ref');
+              let lot = chk.getAttribute('data-lot');
+              let exp = chk.getAttribute('data-exp');
+              let qty = parseInt(chk.getAttribute('data-qty'), 10) || 0;
+              let sessionId = chk.getAttribute('data-session');
+
+              if (allocations[custName] && allocations[custName][ref]) {
+                  let itemData = allocations[custName][ref];
+                  if (itemData.details) {
+                      let detIndex = itemData.details.findIndex(d => d.lot === lot && d.exp === exp && d.sessionId === sessionId);
+                      if (detIndex > -1) itemData.details.splice(detIndex, 1);
+                      itemData.qty -= qty;
+                      if (itemData.qty <= 0) delete allocations[custName][ref];
+                  } else if (itemData.qty !== undefined) {
+                      itemData.qty -= qty;
+                      if (itemData.qty <= 0) delete allocations[custName][ref];
+                  }
+                  if (Object.keys(allocations[custName]).length === 0) delete allocations[custName];
               }
-              if (Object.keys(allocations[custName]).length === 0) delete allocations[custName];
-          }
 
-          // 2. Mathematically deduct the Reserved Qty in the Master DB
-          let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
-          if (dbItem) {
-              dbItem.reservedQty = Math.max(0, (dbItem.reservedQty || 0) - qty);
-              let availableQty = (parseInt(dbItem.onHand, 10) || 0) - dbItem.reservedQty;
-
-              // 3. Package the newly available item for Shopify
-              if (String(dbItem.syncedShopify).toUpperCase() === 'TRUE') {
-                  let handleRef = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1) ? dbItem.parentRef : ref;
-                  let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-                  let cleanPrice = parseFloat(String(dbItem.price).replace(/[^0-9.-]+/g, '')) || 0;
-                  let intendedStatus = cleanPrice > 0 ? "active" : "draft";
-
-                  shopifySyncPayload.push({
-                      ref: ref, handle: handle, title: String(handleRef), desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
-                      category: String(dbItem.category || 'Surgical Supply'),
-                      shopifyCategory: String(dbItem.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-                      gtin: String(dbItem.gtin || ''), availableQty: String(availableQty), price: cleanPrice.toFixed(2),
-                      status: intendedStatus, isBundle: (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1), uomMult: dbItem.uomMult || 1
-                  });
+              let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
+              if (dbItem) {
+                  dbItem.reservedQty = Math.max(0, (dbItem.reservedQty || 0) - qty);
               }
-          }
 
-          // 4. Log for Cloud Archive Traceability
-          unreservedItems.push({
-              ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: qty,
-              actionTag: "Un-Reserved", customerTag: custName, isNew: false, sessionId: Date.now().toString(),
-              itemNote: "Un-Reserved from Bin"
+              unreservedItems.push({
+                  ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: qty,
+                  actionTag: "Un-Reserved", customerTag: custName, isNew: false, sessionId: Date.now().toString(),
+                  itemNote: "Un-Reserved from Bin"
+              });
           });
-      });
 
-      // Save local memory
-      localStorage.setItem('asp_allocations', JSON.stringify(allocations));
-      localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
-      document.getElementById('modalUnreserve').style.display = 'none';
+          localStorage.setItem('asp_allocations', JSON.stringify(allocations));
+          localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
+          document.getElementById('modalUnreserve').style.display = 'none';
 
-      // 5. Fire all updates to the cloud seamlessly
-      this.syncAllocationsToCloud();
+          this.syncAllocationsToCloud();
 
-      let cleanCustomers = DatabaseManager.customers.filter(c => !c.startsWith("+") && c !== "#ERROR!");
-      let cleanSuppliers = DatabaseManager.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
-      let cleanVendors = DatabaseManager.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
+          let cleanCustomers = DatabaseManager.customers.filter(c => !c.startsWith("+") && c !== "#ERROR!");
+          let cleanSuppliers = DatabaseManager.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
+          let cleanVendors = DatabaseManager.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
 
-      let networkTasks = [];
+          let networkTasks = [];
 
-      networkTasks.push(
-          fetch(this.getActiveArchiveUrl(), {
-              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors } })
-          })
-      );
-
-      if (shopifySyncPayload.length > 0) {
           networkTasks.push(
               fetch(this.getActiveArchiveUrl(), {
                   method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                  body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifySyncPayload })
+                  body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors } })
               })
           );
-      }
 
-      // Generate the Ghost Session for the Audit Log
-      let uNameInput = document.getElementById('userNameInput');
-      let userName = uNameInput && uNameInput.value ? uNameInput.value.trim() : "Operator";
+          // 3. Robust Shopify Taxonomy Sync (Identical to completeSession)
+          let shopifyItems = [];
+          unreservedItems.forEach(scan => {
+              let parentRef = scan.ref.toUpperCase();
+              let parentDb = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === parentRef);
+              
+              if (parentDb) {
+                  let pTotal = parseInt(parentDb.onHand || 0, 10);
+                  let pRes = parseInt(parentDb.reservedQty || 0, 10);
+                  let pCleanPrice = parseFloat(String(parentDb.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+                  let pHandle = String(parentDb.sku || parentDb.ref).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-      let auditPayload = {
-          id: Date.now().toString(), status: "Completed", userName: userName,
-          sessionName: `Un-Reserve: ${custName}`, orderNum: "", workflowType: "Un-Reserve",
-          dateStr: new Date().toLocaleDateString().replace(/\//g, '.'), startStr: new Date().toLocaleTimeString(),
-          manifestEnabled: false, expectedManifest: [], scannedObjects: unreservedItems,
-          pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
-      };
+                  shopifyItems.push({
+                      ref: String(parentDb.sku || parentDb.ref),
+                      handle: pHandle,
+                      title: String(parentDb.sku || parentDb.ref),
+                      desc: String(parentDb.desc || ''),
+                      mfr: String(parentDb.mfr || 'Unknown'),
+                      category: String(parentDb.category || 'Surgical Supply'),
+                      shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
+                      gtin: String(parentDb.gtin || ''),
+                      availableQty: String(pTotal - pRes),
+                      price: pCleanPrice.toFixed(2),
+                      status: pCleanPrice > 0 ? "active" : "draft",
+                      isBundle: false,
+                      uomMult: 1
+                  });
 
-      let localArchive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
-      localArchive.unshift(auditPayload);
-      localStorage.setItem('asp_session_archive', JSON.stringify(localArchive));
+                  let childBundles = DatabaseManager.db.filter(i => String(i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
+                  childBundles.forEach(bundle => {
+                      let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+                      shopifyItems.push({
+                          ref: String(bundle.sku || bundle.ref),
+                          handle: pHandle,
+                          title: String(parentDb.sku || parentDb.ref),
+                          desc: String(bundle.desc || parentDb.desc || ''),
+                          mfr: String(parentDb.mfr || 'Unknown'),
+                          category: String(parentDb.category || 'Surgical Supply'),
+                          shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
+                          gtin: String(parentDb.gtin || ''),
+                          availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
+                          price: bCleanPrice.toFixed(2),
+                          status: bCleanPrice > 0 ? "active" : "draft",
+                          isBundle: true,
+                          uomMult: bundle.uomMult
+                      });
+                  });
+              }
+          });
+          
+          let uniqueShopifySync = Array.from(new Map(shopifyItems.map(i => [i.ref, i])).values());
+          if (uniqueShopifySync.length > 0) {
+              networkTasks.push(fetch(this.getActiveArchiveUrl(), { 
+                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                  body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: uniqueShopifySync }) 
+              }).catch(e => console.warn("Shopify background sync failed")));
+          }
 
-      networkTasks.push(
-          fetch(this.getActiveArchiveUrl(), {
-              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: "ARCHIVE_SESSION", payload: auditPayload })
-          })
-      );
+          // 4. Submit Ghost Session to Audit Log
+          let uNameInput = document.getElementById('userNameInput');
+          let userName = uNameInput && uNameInput.value ? uNameInput.value.trim() : "Operator";
 
-      // Await all background requests so the browser doesn't kill the thread early
+          let auditPayload = {
+              id: Date.now().toString(), status: "Completed", userName: userName,
+              sessionName: `Un-Reserve: ${custName}`, orderNum: "", workflowType: "Un-Reserve",
+              dateStr: new Date().toLocaleDateString().replace(/\//g, '.'), startStr: new Date().toLocaleTimeString(),
+              manifestEnabled: false, expectedManifest: [], scannedObjects: unreservedItems,
+              pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
+          };
+
+          let localArchive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
+          localArchive.unshift(auditPayload);
+          localStorage.setItem('asp_session_archive', JSON.stringify(localArchive));
+
+          networkTasks.push(
+              fetch(this.getActiveArchiveUrl(), {
+                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                  body: JSON.stringify({ action: "ARCHIVE_SESSION", payload: auditPayload })
+              })
+          );
+
+          // 5. Await network and tear down overlay
           await Promise.all(networkTasks);
+
+          let overlayEl = document.getElementById('unreserveOverlay');
+          if (overlayEl) document.body.removeChild(overlayEl);
 
           UIManager.showCustomAlert("Success", `Successfully un-reserved ${unreservedItems.length} item(s) and synced inventory!`);
       
+      } catch (err) {
+          let overlayEl = document.getElementById('unreserveOverlay');
+          if (overlayEl) document.body.removeChild(overlayEl);
+          UIManager.showCustomAlert("Error", "Failed to process un-reserve: " + err.message, true);
       } finally {
-          // This always runs at the very end to restore the button!
-          btn.textContent = origText; 
-          btn.disabled = false;
+          if (btn) {
+              btn.textContent = origText; 
+              btn.disabled = false;
+          }
       }
   }
 };
