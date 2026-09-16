@@ -2,9 +2,9 @@
    1. ASP Classic (Light Theme - Matches Website)
    ========================================= */
 body, body.theme-gold {
-  --bg-color: #f4f6f8; 
+  --bg-color: #ecea7a; 
   --desktop-bg: #e9ecef;
-  --card-bg: #ffffff;
+  --card-bg: #c7a925;
   --raw-bg: #f8f9fa;
   --border-color: #e0e0e0;
   --input-bg: #ffffff;

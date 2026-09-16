@@ -2645,10 +2645,22 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       if (!confirm(`Are you sure you want to push all ${itemsToSync.length} master items to Shopify?\n\nThis will take several minutes to run in background batches.`)) return;
 
       if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
-      if (progressContainer) progressContainer.style.display = 'block';
-      if (statusText) statusText.innerText = 'Initializing...';
       
-      let batchSize = 25; // Safe limit for Apps Script timeouts
+      let overlay = document.createElement('div');
+      overlay.id = 'shopifyFullSyncOverlay';
+      overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
+      overlay.innerHTML = `
+        <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
+          <h3 style="margin:0 0 15px 0; color:#f57f17;">☁️ Full Shopify Warehouse Sync</h3>
+          <div id="shopifySyncStatusText" style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ Initializing...</div>
+          <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
+            <div id="shopifySyncProgressBar" style="width:0%; height:100%; background:#f57f17; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      let batchSize = 50; // Safe limit for Apps Script timeouts
       let totalBatches = Math.ceil(itemsToSync.length / batchSize);
       let successCount = 0;
 
@@ -2667,8 +2679,10 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
                   handle: handle,
                   title: String(handleRef),
                   desc: String(dbItem.desc || ''),
-                  mfr: String(dbItem.mfr || 'Unknown'),
-                  category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
+                  mfr: String(dbItem.mfr || 'Unknown'),// ✨ FIX: Map Column O to Type/Tags, and Column T to Category
+                  product_type: String(dbItem.category || 'Surgical Supply'),
+                  tags: String(dbItem.category || 'Surgical Supply'),
+                  category: String(dbItem.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
                   gtin: String(dbItem.gtin || ''),
                   availableQty: String((parseInt(dbItem.onHand, 10) || 0) - (parseInt(dbItem.reservedQty, 10) || 0)),
                   price: cleanPrice.toFixed(2),
@@ -2692,6 +2706,9 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
               console.error("Batch Sync Error:", err);
           }
 
+          // ✨ FIX: Pause for 1 second between batches to let the Google Apps Script breathe
+          await new Promise(r => setTimeout(r, 1000));
+
           let percent = Math.round(((i + 1) / totalBatches) * 100);
           if (progressBar) progressBar.style.width = `${percent}%`;
           if (statusText) statusText.innerText = `${percent}% - Batch ${i + 1} Done`;
@@ -2699,6 +2716,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
       if (statusText) statusText.innerText = `Sync Complete! Processed ${successCount} items.`;
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      document.body.removeChild(overlay);
       UIManager.showCustomAlert("Success", "Full Shopify Database Sync finished!");
   },
 
