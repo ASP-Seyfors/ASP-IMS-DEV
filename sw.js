@@ -17,25 +17,63 @@
  * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
  * All Rights Reserved.
  * ======================================================================= */
-const CACHE_NAME = 'asp-ims-dev-v5.0.6';
+const CACHE_NAME = 'asp-ims-dev-v5.0.7';
 
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './css/styles.css',
-  './js/app.js',
-  './js/auditManager.js',
-  './js/authManager.js',
-  './js/databaseManager.js',
-  './js/reportsManager.js',
-  './js/scannerManager.js',
-  './js/sessionManager.js',
-  './js/uiManager.js',
   './database.json',
   './ASP_Box_Web_RGB_DEV.png',
   './ASP_Icon_192_DEV.png',
   './ASP_Icon_512_DEV.png',
+  
+  // CSS
+  './css/layout.css',
+  './css/component.css',
+  './css/utilities.css',
+  
+  // JavaScript
+  './js/config.js',
+  './js/componentManager.js',
+  './js/app.js',
+  './js/auditManager.js',
+  './js/authManager.js',
+  './js/databaseManager.js',
+  './js/inventoryEngine.js',
+  './js/reportsManager.js',
+  './js/scannerManager.js',
+  './js/sessionManager.js',
+  './js/uiManager.js',
+  
+  // HTML Screens
+  './screens/login.html',
+  './screens/setup.html',
+  './screens/manifestEntry.html',
+  './screens/manifestReview.html',
+  './screens/scanning.html',
+  './screens/review.html',
+  './screens/summary.html',
+  './screens/auditHub.html',
+  './screens/archive.html',
+  './screens/settings.html',
+  './screens/reports.html',
+  './screens/dbEditor.html',
+  './screens/help.html',
+  './screens/devTools.html',
+  
+  // HTML Modals
+  './modals/itemEditModal.html',
+  './modals/binViewerModal.html',
+  './modals/quickLookupModal.html',
+  './modals/qboModal.html',
+  './modals/bugReportModal.html',
+  './modals/inventoryReportOptionsModal.html',
+  './modals/internalReportOptionsModal.html',
+  './modals/stockReportEditorModal.html',
+  './modals/systemRestoreModal.html',
+  
+  // External CDNs
   'https://unpkg.com/html5-qrcode',
   'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
