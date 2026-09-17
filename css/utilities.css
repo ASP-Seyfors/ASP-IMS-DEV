@@ -88,13 +88,14 @@ body.font-large input, body.font-large select, body.font-large button { font-siz
 }
 
 /* =========================================================
-   REPORT MODALS & BIN VIEWER DARK MODE OVERRIDES
+   REPORT MODALS & UI OVERRIDES FOR DARK MODE
 ========================================================= */
 body.dark-mode #reportOptionsModal > div,
 body.dark-mode #internalReportOptionsModal > div,
 body.dark-mode #stockReportEditorModal > div,
 body.dark-mode #binViewerModal > div,
-body.dark-mode #dmgViewerModal > div {
+body.dark-mode #damagedBinViewerModal > div,
+body.dark-mode #quickLookupModal > div {
     background-color: var(--card-bg) !important;
     color: var(--text-main) !important;
 }
@@ -103,16 +104,29 @@ body.dark-mode #reportOptionsModal h3,
 body.dark-mode #internalReportOptionsModal h3,
 body.dark-mode #stockReportEditorModal h3,
 body.dark-mode #binViewerModal h3,
-body.dark-mode #dmgViewerModal h3 {
+body.dark-mode #damagedBinViewerModal h3,
+body.dark-mode #quickLookupModal h3 {
     color: var(--heading-color) !important;
 }
 
-/* Force the hardcoded light-colored header boxes to adapt */
+/* Target all the hardcoded light-colored summary boxes in modals */
 body.dark-mode [style*="background:#f3e5f5"], 
 body.dark-mode [style*="background:#e8f5e9"],
 body.dark-mode [style*="background:#fff3e0"],
-body.dark-mode [style*="background:#f0f8ff"] {
+body.dark-mode [style*="background:#f0f8ff"],
+body.dark-mode [style*="background:#fafafa"],
+body.dark-mode [style*="background:#f9f9f9"],
+body.dark-mode [style*="background:#f1f8e9"] {
     background-color: var(--raw-bg) !important;
     border-color: var(--border-color) !important;
     color: var(--text-main) !important;
+}
+
+/* Make inputs inside the Customer Flyer Builder visible in dark mode */
+body.dark-mode .flyer-item-row input[type="text"],
+body.dark-mode .flyer-item-row input[type="number"],
+body.dark-mode .flyer-item-row input[type="text"][readonly] {
+    background-color: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
 }
