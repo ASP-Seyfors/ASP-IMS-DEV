@@ -456,7 +456,7 @@ const DatabaseManager = {
 
         localStorage.setItem('asp_wh_db', JSON.stringify(this.db));
         
-        // ✨ NEW: Push item edits to Shopify AND handle Bundle logic
+        // ✨ FIX: Push item edits to Shopify AND handle Bundle logic
         let shopifyUpdatePayload = [];
         let isBundle = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1);
         let parentItem = isBundle ? this.db.find(i => (i.sku || i.ref || '').toUpperCase() === dbItem.parentRef.toUpperCase()) : dbItem;
@@ -470,6 +470,8 @@ const DatabaseManager = {
             shopifyUpdatePayload.push({
                 ref: String(dbItem.ref || dbItem.sku),
                 handle: pHandle, title: pTitle, desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
+                product_type: String(dbItem.category || 'Surgical Supply'), // ✨ RESTORED
+                tags: String(dbItem.category || 'Surgical Supply'), // ✨ RESTORED
                 category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
                 availableQty: String(Math.floor((pTotal - pRes) / parseInt(dbItem.uomMult, 10))),
                 price: cleanPrice.toFixed(2), status: cleanPrice > 0 ? "active" : "draft",
@@ -480,6 +482,8 @@ const DatabaseManager = {
             shopifyUpdatePayload.push({
                 ref: String(dbItem.ref || dbItem.sku),
                 handle: pHandle, title: pTitle, desc: String(dbItem.desc || ''), mfr: String(dbItem.mfr || 'Unknown'),
+                product_type: String(dbItem.category || 'Surgical Supply'), // ✨ RESTORED
+                tags: String(dbItem.category || 'Surgical Supply'), // ✨ RESTORED
                 category: String(dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
                 availableQty: String(pTotal - pRes), price: cleanPrice.toFixed(2), status: cleanPrice > 0 ? "active" : "draft",
                 isBundle: false, uomMult: 1
@@ -491,6 +495,8 @@ const DatabaseManager = {
                 shopifyUpdatePayload.push({
                     ref: String(bundle.sku || bundle.ref),
                     handle: pHandle, title: pTitle, desc: String(bundle.desc || dbItem.desc || ''), mfr: String(bundle.mfr || dbItem.mfr || 'Unknown'),
+                    product_type: String(bundle.category || dbItem.category || 'Surgical Supply'), // ✨ RESTORED
+                    tags: String(bundle.category || dbItem.category || 'Surgical Supply'), // ✨ RESTORED
                     category: String(bundle.shopifyCategory || bundle.category || dbItem.shopifyCategory || dbItem.category || 'Business & Industrial > Medical > Medical Supplies'),
                     availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
                     price: bCleanPrice.toFixed(2), status: bCleanPrice > 0 ? "active" : "draft",
@@ -549,21 +555,21 @@ const DatabaseManager = {
         }
 
         // ✨ NEW: Fire Email Alert if Price Changed
-        if (isAdmin && oldPrice !== price) {
-            let alertPayload = {
-                action: "PRICE_ALERT",
-                payload: {
-                    user: AuthManager.currentUser ? AuthManager.currentUser.name : "Admin",
-                    ref: ref,
-                    oldPrice: oldPrice,
-                    newPrice: price
-                }
-            };
-            fetch(SessionManager.cloudArchiveUrl, {
-                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(alertPayload)
-            }).catch(e => console.warn("Price alert email failed to send."));
-        }
+        //if (isAdmin && oldPrice !== price) {
+            //let alertPayload = {
+                //action: "PRICE_ALERT",
+                //payload: {
+                    //user: AuthManager.currentUser ? AuthManager.currentUser.name : "Admin",
+                    //ref: ref,
+                    //oldPrice: oldPrice,
+                    //newPrice: price
+                //}
+            //};
+            //fetch(SessionManager.cloudArchiveUrl, {
+                //method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                //body: JSON.stringify(alertPayload)
+            //}).catch(e => console.warn("Price alert email failed to send."));
+        //}
 
         UIManager.showCustomAlert("Item Updated", `✅ ${ref} has been updated locally.\n\nClick "Upload Pending Data" later to push these changes to the cloud.`);
         this.renderDbGridEditor(); 

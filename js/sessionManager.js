@@ -435,7 +435,7 @@ const SessionManager = {
       await fetch(this.getActiveFeederUrl(), {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ✨ THE ACTUAL FIX
         body: JSON.stringify({ action: "FETCH_QBO" })
       });
 
@@ -1505,7 +1505,10 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       
       if (data.status === "success" && data.desc) {
          let input = document.getElementById(`advDesc_${index}`);
-         if (input) input.value = data.desc;
+         if (input) {
+             input.value = data.desc;
+             input.setAttribute('data-autofetched', 'true'); // ✨ THE FIX: Mark this as a successful AI fetch
+         }
          if (btn) { btn.textContent = "✅ Success"; btn.style.backgroundColor = "#2e7d32"; }
       } else {
          throw new Error(data.message || "Parse failed.");
@@ -1589,22 +1592,23 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         // Grab the Suture checkbox state dynamically
         let sutureChk = document.getElementById(`chkSuture_${index}`);
         let isSuture = sutureChk && sutureChk.checked;
+        let isAutoFetched = input.getAttribute('data-autofetched') === 'true'; // ✨ Check the flag
         
-        if (isSuture) {
+        if (isSuture && isAutoFetched) {
+            // ONLY append the Box math if the AI Auto-Fetch actually worked
             finalCategory = "Suture";
             let lastChar = ref.slice(-1).toUpperCase();
             let boxQtyStr = "";
             let refBase = ref; 
             
-            // Format Box Quantities based on the suffix character
             if (lastChar === 'G') { boxQtyStr = "(BX/12)"; refBase = ref.slice(0, -1); }
             else if (lastChar === 'T') { boxQtyStr = "(BX/24)"; refBase = ref.slice(0, -1); }
             else if (lastChar === 'H') { boxQtyStr = "(BX/36)"; refBase = ref.slice(0, -1); }
             
-            // Compile the Suture Description (MFR + Desc + Box Qty + Trimmed REF)
             finalDesc = `${mfr} ${rawDesc} ${boxQtyStr} ${refBase}`.replace(/\s+/g, ' ').trim();
         } else {
-            // Standard Description Output
+            // If they typed it manually, just save what they typed
+            if (isSuture) finalCategory = "Suture"; 
             finalDesc = `${mfr} ${rawDesc} ${ref}`.replace(/\s+/g, ' ').trim();
         }
         
