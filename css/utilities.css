@@ -86,3 +86,33 @@ body.font-large input, body.font-large select, body.font-large button { font-siz
   border: 1px solid #ced4da !important;
   font-weight: 800;
 }
+
+/* =========================================================
+   REPORT MODALS & BIN VIEWER DARK MODE OVERRIDES
+========================================================= */
+body.dark-mode #reportOptionsModal > div,
+body.dark-mode #internalReportOptionsModal > div,
+body.dark-mode #stockReportEditorModal > div,
+body.dark-mode #binViewerModal > div,
+body.dark-mode #dmgViewerModal > div {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+}
+
+body.dark-mode #reportOptionsModal h3,
+body.dark-mode #internalReportOptionsModal h3,
+body.dark-mode #stockReportEditorModal h3,
+body.dark-mode #binViewerModal h3,
+body.dark-mode #dmgViewerModal h3 {
+    color: var(--heading-color) !important;
+}
+
+/* Force the hardcoded light-colored header boxes to adapt */
+body.dark-mode [style*="background:#f3e5f5"], 
+body.dark-mode [style*="background:#e8f5e9"],
+body.dark-mode [style*="background:#fff3e0"],
+body.dark-mode [style*="background:#f0f8ff"] {
+    background-color: var(--raw-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}
