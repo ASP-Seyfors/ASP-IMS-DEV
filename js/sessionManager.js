@@ -1353,7 +1353,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                syncedThrive: "FALSE", syncedShopify: "FALSE",
                desc: "Navigate to vendor website for item description.", 
                category: "General", 
-               shopifyCategory: "Business & Industrial > Medical > Medical Supplies", 
+               shopifyCategory: "Medical Supplies", 
                status: "INACTIVE",
                parentRef: pRef, uomMult: uMult, shelf: ""
            });
@@ -1374,7 +1374,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                        syncedThrive: "FALSE", syncedShopify: "FALSE",
                        desc: "Navigate to vendor website for item description.", 
                        category: "General", 
-                       shopifyCategory: "Business & Industrial > Medical > Medical Supplies", 
+                       shopifyCategory: "Medical Supplies", 
                        status: "INACTIVE",
                        parentRef: "", uomMult: 1, shelf: ""
                    });

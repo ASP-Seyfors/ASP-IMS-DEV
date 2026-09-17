@@ -2022,10 +2022,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let vendor = String(item.mfr || '').replace(/"/g, '""');
         
         // ✨ FIX: Apply the standard taxonomy to manual CSV exports
-        let cat = String(item.category || item.categories || 'Business & Industrial > Medical > Medical Supplies').replace(/"/g, '""');
+        let cat = String(item.category || item.categories || 'Medical Supplies').replace(/"/g, '""');
         
         let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-        let status = String(item.status || "active").toLowerCase();
+        let rawStatus = String(item.status || "ACTIVE").toUpperCase();
+        let status = (rawStatus === "INACTIVE" || rawStatus === "DRAFT") ? "draft" : "active";
         let published = status === "active" ? "TRUE" : "FALSE";
         let gtin = String(item.gtin || '').replace(/"/g, '""').trim();
         if (gtin === 'N/A') gtin = '';
@@ -2617,7 +2618,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         mfr: item.mfr,
         gtin: item.gtin,
         category: item.category || "Surgical Supply",
-        shopifyCategory: item.shopifyCategory || "Business & Industrial > Medical > Medical Supplies",
+        shopifyCategory: item.shopifyCategory || "Medical Supplies",
         availableQty: total - res,
         price: item.price || "$0.00"
       };

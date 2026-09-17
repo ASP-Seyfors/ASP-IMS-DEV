@@ -625,7 +625,7 @@ const DatabaseManager = {
             onDotMed: row[11], dotMedPrice: row[12], 
             syncedShopify: row[13], category: row[14], status: row[15], 
             parentRef: row[16], uomMult: row[17], shelf: row[18],
-            shopifyCategory: row[19] || "Business & Industrial > Medical > Medical Supplies"
+            shopifyCategory: row[19] || "Medical Supplies"
           }));
           
           fullDb.items = fullDb.items.concat(mappedItems);
@@ -805,7 +805,7 @@ const DatabaseManager = {
             gtin: String(parentItem.gtin || ''),
             availableQty: String(Math.max(0, pTotal - pRes)),
             price: pCleanPrice.toFixed(2),
-            status: String(parentItem.status || "active").toLowerCase(),
+            status: String(parentItem.status || "ACTIVE").toUpperCase() === "INACTIVE" ? "draft" : "active",
             isBundle: false,
             uomMult: 1
         });
@@ -834,7 +834,7 @@ const DatabaseManager = {
                 gtin: String(bundle.gtin || ''),
                 availableQty: String(Math.max(0, Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10)))),
                 price: bCleanPrice.toFixed(2),
-                status: String(bundle.status || parentItem.status || "active").toLowerCase(),
+                status: String(bundle.status || parentItem.status || "ACTIVE").toUpperCase() === "INACTIVE" ? "draft" : "active",
                 isBundle: true,
                 uomMult: bundle.uomMult
             });
