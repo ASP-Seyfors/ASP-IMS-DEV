@@ -24,14 +24,17 @@ body.font-large input, body.font-large select, body.font-large button { font-siz
 #workstationUserModal > div,
 #bugReportModal > div,
 #qboModal > div,
-#systemRestoreModal > div {
+#systemRestoreModal > div,
+#modalUnreserve > div {
     background-color: var(--card-bg) !important;
     color: var(--text-main) !important;
 }
+
 #workstationUserModal h3,
 #bugReportModal h3,
 #qboModal h3,
-#systemRestoreModal h3 {
+#systemRestoreModal h3,
+#modalUnreserve h3 {
     color: var(--heading-color) !important;
 }
 #workstationUserModal p,
