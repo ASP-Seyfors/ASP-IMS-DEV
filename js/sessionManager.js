@@ -368,56 +368,64 @@ const SessionManager = {
   async fetchStagedSessions(silent = false) {
     if (!this.getActiveFeederUrl() || this.getActiveFeederUrl().includes("YOUR_")) return;
 
+    this.fetchedStagedData = {};
+    let manualData = { stagedSessions: {} };
+    let qboData = { stagedSessions: {} };
+
+    // 1. Fetch Manual Orders from the Feeder URL (Safely)
     try {
-      // 1. Fetch Manual Orders from the Feeder URL
-      let manualReq = fetch(this.getActiveFeederUrl());
-      
-      // 2. Fetch QBO Invoices from the Database URL
-      let qboReq = fetch(`${this.getActiveArchiveUrl()}?action=GET_QBO_FEED`);
-
-      let [manualRes, qboRes] = await Promise.all([manualReq, qboReq]);
-      let manualData = await manualRes.json();
-      let qboData = await qboRes.json();
-
-      // Merge the session data
-      this.fetchedStagedData = {
-          ...(manualData.stagedSessions || {}),
-          ...(qboData.stagedSessions || {})
-      };
-      
-      // Preserve the Customer Analytics from the Orders Script
-      if (manualData.customerAnalytics) {
-        localStorage.setItem('asp_remote_analytics', JSON.stringify(manualData.customerAnalytics));
-        localStorage.setItem('asp_remote_customers', JSON.stringify(manualData.customerList));
+      let manualRes = await fetch(this.getActiveFeederUrl());
+      let manualText = await manualRes.text();
+      if (manualText.trim().startsWith('{')) {
+          manualData = JSON.parse(manualText);
       }
-      
-      let select = document.getElementById('stagedOrdersSelect');
-      if (select) {
-        select.innerHTML = '<option value="">-- Select Staged Order --</option>';
-        let count = 0;
-        for (let sessionName in this.fetchedStagedData) {
-          let sessionObj = this.fetchedStagedData[sessionName];
-          let items = Array.isArray(sessionObj) ? sessionObj : (sessionObj.items || []);
-          if (sessionObj.isCompleted === true || sessionObj.status === 'COMPLETED') continue;
+    } catch (e) { console.warn("Manual Orders Feed failed:", e); }
 
-          let opt = document.createElement('option');
-          opt.value = sessionName;
-          opt.textContent = `📦 ${sessionName} (${items.length} items)`;
-          select.appendChild(opt);
-          count++;
-        }
-
-        if (typeof UIManager !== 'undefined' && UIManager.populateCustomerDropdown) {
-          UIManager.populateCustomerDropdown();
-        }
-
-        if (!silent) {
-          if (count > 0) alert(`Successfully synced! Found ${count} staged orders and updated Customer Analytics.`);
-          else alert("Synced successfully, but no staged orders found in either feed.");
-        }
+    // 2. Fetch QBO Invoices from the Database URL (Safely)
+    try {
+      let qboRes = await fetch(`${this.getActiveArchiveUrl()}?action=GET_QBO_FEED`);
+      let qboText = await qboRes.text();
+      if (qboText.trim().startsWith('{')) {
+          qboData = JSON.parse(qboText);
       }
-    } catch (err) {
-      if (!silent) alert("Error syncing feed: " + err.message);
+    } catch (e) { console.warn("QBO Feed failed:", e); }
+
+    // Merge the session data safely
+    this.fetchedStagedData = {
+        ...(manualData.stagedSessions || {}),
+        ...(qboData.stagedSessions || {})
+    };
+    
+    // Preserve the Customer Analytics from the Orders Script
+    if (manualData.customerAnalytics) {
+      localStorage.setItem('asp_remote_analytics', JSON.stringify(manualData.customerAnalytics));
+      localStorage.setItem('asp_remote_customers', JSON.stringify(manualData.customerList));
+    }
+    
+    let select = document.getElementById('stagedOrdersSelect');
+    if (select) {
+      select.innerHTML = '<option value="">-- Select Staged Order --</option>';
+      let count = 0;
+      for (let sessionName in this.fetchedStagedData) {
+        let sessionObj = this.fetchedStagedData[sessionName];
+        let items = Array.isArray(sessionObj) ? sessionObj : (sessionObj.items || []);
+        if (sessionObj.isCompleted === true || sessionObj.status === 'COMPLETED') continue;
+
+        let opt = document.createElement('option');
+        opt.value = sessionName;
+        opt.textContent = `📦 ${sessionName} (${items.length} items)`;
+        select.appendChild(opt);
+        count++;
+      }
+
+      if (typeof UIManager !== 'undefined' && UIManager.populateCustomerDropdown) {
+        UIManager.populateCustomerDropdown();
+      }
+
+      if (!silent) {
+        if (count > 0) alert(`Successfully synced! Found ${count} staged orders and updated Customer Analytics.`);
+        else alert("Synced successfully, but no staged orders found in either feed.");
+      }
     }
   },
 
@@ -432,10 +440,11 @@ const SessionManager = {
     if (btn && !silent) { btn.textContent = "⏳ Fetching QBO..."; btn.disabled = true; btn.style.opacity = "0.7"; }
 
     try {
-      await fetch(this.getActiveFeederUrl(), {
+      // ✨ THE FIX: Target the Archive URL (Database Script) where QBO_Engine actually lives!
+      await fetch(this.getActiveArchiveUrl(), {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ✨ THE ACTUAL FIX
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({ action: "FETCH_QBO" })
       });
 
@@ -2491,7 +2500,8 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     };
 
     try {
-      await fetch(this.getActiveFeederUrl(), { 
+      // ✨ THE FIX: Target the Archive URL (Database Script) where QBO_Engine actually lives!
+      await fetch(this.getActiveArchiveUrl(), { 
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },

@@ -2025,8 +2025,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let cat = String(item.category || item.categories || 'Business & Industrial > Medical > Medical Supplies').replace(/"/g, '""');
         
         let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-        let status = cleanPrice > 0 ? "active" : "draft";
-        let published = cleanPrice > 0 ? "TRUE" : "FALSE";
+        let status = String(item.status || "active").toLowerCase();
+        let published = status === "active" ? "TRUE" : "FALSE";
         let gtin = String(item.gtin || '').replace(/"/g, '""').trim();
         if (gtin === 'N/A') gtin = '';
 

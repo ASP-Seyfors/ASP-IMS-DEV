@@ -805,7 +805,7 @@ const DatabaseManager = {
             gtin: String(parentItem.gtin || ''),
             availableQty: String(Math.max(0, pTotal - pRes)),
             price: pCleanPrice.toFixed(2),
-            status: pCleanPrice > 0 ? "active" : "draft",
+            status: String(parentItem.status || "active").toLowerCase(),
             isBundle: false,
             uomMult: 1
         });
@@ -834,7 +834,7 @@ const DatabaseManager = {
                 gtin: String(bundle.gtin || ''),
                 availableQty: String(Math.max(0, Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10)))),
                 price: bCleanPrice.toFixed(2),
-                status: bCleanPrice > 0 ? "active" : "draft",
+                status: String(bundle.status || parentItem.status || "active").toLowerCase(),
                 isBundle: true,
                 uomMult: bundle.uomMult
             });
