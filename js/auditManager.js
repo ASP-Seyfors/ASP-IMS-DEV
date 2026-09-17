@@ -2667,30 +2667,9 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       for (let i = 0; i < totalBatches; i++) {
           let batchRaw = itemsToSync.slice(i * batchSize, (i + 1) * batchSize);
           
-          // Format the batch payload to perfectly match what the Apps Script expects
-          let payloadBatch = batchRaw.map(dbItem => {
-              let handleRef = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1) ? dbItem.parentRef : (dbItem.sku || dbItem.ref);
-              let handle = String(handleRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-              let cleanPrice = parseFloat(String(dbItem.price).replace(/[^0-9.-]+/g, '')) || 0;
-              let intendedStatus = cleanPrice > 0 ? "active" : "draft";
-
-              return {
-                  ref: String(dbItem.sku || dbItem.ref),
-                  handle: handle,
-                  title: String(handleRef),
-                  desc: String(dbItem.desc || ''),
-                  mfr: String(dbItem.mfr || 'Unknown'),// ✨ FIX: Map Column O to Type/Tags, and Column T to Category
-                  product_type: String(dbItem.category || 'Surgical Supply'),
-                  tags: String(dbItem.category || 'Surgical Supply'),
-                  category: String(dbItem.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-                  gtin: String(dbItem.gtin || ''),
-                  availableQty: String((parseInt(dbItem.onHand, 10) || 0) - (parseInt(dbItem.reservedQty, 10) || 0)),
-                  price: cleanPrice.toFixed(2),
-                  status: intendedStatus,
-                  isBundle: (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1),
-                  uomMult: dbItem.uomMult || 1
-              };
-          });
+          // ✨ NEW: Call the centralized Shopify Payload Builder
+          let batchRefs = batchRaw.map(dbItem => dbItem.ref || dbItem.sku);
+          let payloadBatch = DatabaseManager.buildShopifyPayload(batchRefs);
 
           if (statusText) statusText.innerText = `Pushing Batch ${i + 1} of ${totalBatches}...`;
           

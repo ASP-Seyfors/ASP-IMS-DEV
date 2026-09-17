@@ -1785,61 +1785,14 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
             networkTasks.push(this.pushQboWriteBack(completedSessionObj));
         }
 
-        // ✨ NEW: Targeted Shopify Sync with strict string-casting
-        let shopifyItems = [];
-        this.scannedObjects.forEach(scan => {
-            let parentRef = scan.ref.toUpperCase();
-            let parentDb = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === parentRef);
-            
-            if (parentDb) {
-                let pTotal = parseInt(parentDb.onHand || 0, 10);
-                let pRes = parseInt(parentDb.reservedQty || 0, 10);
-                let pCleanPrice = parseFloat(String(parentDb.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-                let pHandle = String(parentDb.sku || parentDb.ref).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-
-                shopifyItems.push({
-                    ref: String(parentDb.sku || parentDb.ref),
-                    handle: pHandle,
-                    title: String(parentDb.sku || parentDb.ref),
-                    desc: String(parentDb.desc || ''),
-                    mfr: String(parentDb.mfr || 'Unknown'),
-                    category: String(parentDb.category || 'Surgical Supply'),
-                    shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-                    gtin: String(parentDb.gtin || ''),
-                    availableQty: String(pTotal - pRes),
-                    price: pCleanPrice.toFixed(2),
-                    status: pCleanPrice > 0 ? "active" : "draft",
-                    isBundle: false,
-                    uomMult: 1
-                });
-
-                let childBundles = DatabaseManager.db.filter(i => String(i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
-                childBundles.forEach(bundle => {
-                    let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-                    shopifyItems.push({
-                        ref: String(bundle.sku || bundle.ref),
-                        handle: pHandle,
-                        title: String(parentDb.sku || parentDb.ref),
-                        desc: String(bundle.desc || parentDb.desc || ''),
-                        mfr: String(parentDb.mfr || 'Unknown'),
-                        category: String(parentDb.category || 'Surgical Supply'),
-                        shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-                        gtin: String(parentDb.gtin || ''),
-                        availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
-                        price: bCleanPrice.toFixed(2),
-                        status: bCleanPrice > 0 ? "active" : "draft",
-                        isBundle: true,
-                        uomMult: bundle.uomMult
-                    });
-                });
-            }
-        });
+        // ✨ NEW: Call the centralized Shopify Payload Builder
+        let refsToSync = this.scannedObjects.map(scan => scan.ref);
+        let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
         
-        let uniqueShopifySync = Array.from(new Map(shopifyItems.map(i => [i.ref, i])).values());
-        if (uniqueShopifySync.length > 0 && archiveUrl) {
+        if (shopifyUpdatePayload.length > 0 && archiveUrl) {
             networkTasks.push(fetch(archiveUrl, { 
                 method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: uniqueShopifySync }) 
+                body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifyUpdatePayload }) 
             }).catch(e => console.warn("Shopify background sync failed")));
         }
 
@@ -2709,61 +2662,14 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
               })
           );
 
-          // 3. Robust Shopify Taxonomy Sync (Identical to completeSession)
-          let shopifyItems = [];
-          unreservedItems.forEach(scan => {
-              let parentRef = scan.ref.toUpperCase();
-              let parentDb = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === parentRef);
-              
-              if (parentDb) {
-                  let pTotal = parseInt(parentDb.onHand || 0, 10);
-                  let pRes = parseInt(parentDb.reservedQty || 0, 10);
-                  let pCleanPrice = parseFloat(String(parentDb.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-                  let pHandle = String(parentDb.sku || parentDb.ref).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-
-                  shopifyItems.push({
-                      ref: String(parentDb.sku || parentDb.ref),
-                      handle: pHandle,
-                      title: String(parentDb.sku || parentDb.ref),
-                      desc: String(parentDb.desc || ''),
-                      mfr: String(parentDb.mfr || 'Unknown'),
-                      category: String(parentDb.category || 'Surgical Supply'),
-                      shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-                      gtin: String(parentDb.gtin || ''),
-                      availableQty: String(pTotal - pRes),
-                      price: pCleanPrice.toFixed(2),
-                      status: pCleanPrice > 0 ? "active" : "draft",
-                      isBundle: false,
-                      uomMult: 1
-                  });
-
-                  let childBundles = DatabaseManager.db.filter(i => String(i.parentRef || '').toUpperCase() === parentRef && parseInt(i.uomMult, 10) > 1);
-                  childBundles.forEach(bundle => {
-                      let bCleanPrice = parseFloat(String(bundle.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-                      shopifyItems.push({
-                          ref: String(bundle.sku || bundle.ref),
-                          handle: pHandle,
-                          title: String(parentDb.sku || parentDb.ref),
-                          desc: String(bundle.desc || parentDb.desc || ''),
-                          mfr: String(parentDb.mfr || 'Unknown'),
-                          category: String(parentDb.category || 'Surgical Supply'),
-                          shopifyCategory: String(parentDb.shopifyCategory || 'Business & Industrial > Medical > Medical Supplies'),
-                          gtin: String(parentDb.gtin || ''),
-                          availableQty: String(Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10))),
-                          price: bCleanPrice.toFixed(2),
-                          status: bCleanPrice > 0 ? "active" : "draft",
-                          isBundle: true,
-                          uomMult: bundle.uomMult
-                      });
-                  });
-              }
-          });
+          // 3. Robust Shopify Taxonomy Sync using Centralized Builder
+          let refsToSync = unreservedItems.map(scan => scan.ref);
+          let shopifySyncPayload = DatabaseManager.buildShopifyPayload(refsToSync);
           
-          let uniqueShopifySync = Array.from(new Map(shopifyItems.map(i => [i.ref, i])).values());
-          if (uniqueShopifySync.length > 0) {
+          if (shopifySyncPayload.length > 0) {
               networkTasks.push(fetch(this.getActiveArchiveUrl(), { 
                   method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                  body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: uniqueShopifySync }) 
+                  body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifySyncPayload }) 
               }).catch(e => console.warn("Shopify background sync failed")));
           }
 
