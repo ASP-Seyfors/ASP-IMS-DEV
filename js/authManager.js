@@ -85,7 +85,7 @@ const AuthManager = {
       this.currentUser = { name: payload.name, email: payload.email, verified: true, isAdmin: isAdmin };
       this.isGuest = false;
       this.isWorkstation = isWorkstationEmail;
-      this.isSales = isSalesAccount; // ✨ Assign flag
+      this.isSales = this.SALES_EMAILS.includes(payload.email.toLowerCase()); // ✨ Assign flag
       
       if (this.isWorkstation) {
         // ✨ NEW: Intercept the login and force the user name prompt
