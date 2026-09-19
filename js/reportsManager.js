@@ -786,7 +786,7 @@ const ReportsManager = {
                     <td style="padding:4px;">${sub.freq}</td>
                     <td style="padding:4px; color:${sub.status === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
                     <td style="padding:4px; text-align:right;">
-                       <button class="btn-small" style="padding:2px 6px; font-size:0.7rem;" onclick="document.getElementById('subName').value='${sub.name}'; document.getElementById('subEmail').value='${sub.email}'; document.getElementById('subFreq').value='${sub.freq === 'Daily' ? 'Daily' : 'Weekly'}'; document.getElementById('subStatus').value='${sub.status === 'ACTIVE' ? 'Active' : 'Inactive'}';">Edit</button>
+                       <button class="btn-small" style="padding:2px 6px; font-size:0.7rem;" onclick="document.getElementById('subName').value='${sub.name}'; document.getElementById('subEmail').value='${sub.email}'; document.getElementById('subFreq').value='${sub.freq === 'Daily' ? 'Daily' : 'Weekly'}'; document.getElementById('subStatus').value='${sub.status === 'ACTIVE' ? 'Active' : 'Inactive'}'; document.getElementById('subCategories').value='${sub.categories || ''}';">Edit</button>
                     </td>
                   </tr>`;
               });

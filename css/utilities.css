@@ -44,6 +44,25 @@ body.font-large input, body.font-large select, body.font-large button { font-siz
     color: var(--text-main) !important;
 }
 
+#workstationUserModal > div,
+#bugReportModal > div,
+#qboModal > div,
+#systemRestoreModal > div,
+#modalUnreserve > div,
+#modalSubCategories > div {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+}
+
+#workstationUserModal h3,
+#bugReportModal h3,
+#qboModal h3,
+#systemRestoreModal h3,
+#modalUnreserve h3,
+#modalSubCategories h3 {
+    color: var(--heading-color) !important;
+}
+
 .gtin-diff-banner {
   font-size: 0.85rem;
   font-weight: bold;
