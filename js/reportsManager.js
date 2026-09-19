@@ -19,6 +19,58 @@
  * ======================================================================= */
 const ReportsManager = {
 
+  openCategoryModal() {
+    let container = document.getElementById('subCategoryChecklist');
+    container.innerHTML = '';
+
+    // 1. Extract, split, and clean all categories from local memory
+    let categorySet = new Set();
+    
+    DatabaseManager.db.forEach(item => {
+      let catString = item.category || 'Uncategorized';
+      
+      // Split by comma to handle items with multiple categories
+      let parts = catString.split(',');
+      parts.forEach(part => {
+        let cleanCat = part.trim();
+        if (cleanCat !== '') {
+          categorySet.add(cleanCat);
+        }
+      });
+    });
+
+    // 2. Convert Set to Array and alphabetize
+    let categories = Array.from(categorySet).sort();
+
+    // 3. Check which ones the user already has saved in the input field
+    let currentSelections = (document.getElementById('subCategories').value || '')
+                            .split(',')
+                            .map(s => s.trim());
+
+    // 4. Build the HTML checkboxes dynamically
+    categories.forEach(cat => {
+      let isChecked = currentSelections.includes(cat) ? 'checked' : '';
+      container.innerHTML += `
+        <label style="font-size:0.9rem; cursor:pointer; display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" class="sub-cat-chk" value="${cat}" ${isChecked}> ${cat}
+        </label>
+      `;
+    });
+
+    // 5. Reveal the modal
+    document.getElementById('modalSubCategories').style.display = 'flex';
+  },
+
+  confirmCategorySelection() {
+    let checkboxes = document.querySelectorAll('.sub-cat-chk:checked');
+    let selected = Array.from(checkboxes).map(chk => chk.value);
+    
+    let input = document.getElementById('subCategories');
+    input.value = selected.join(', ');
+    
+    document.getElementById('modalSubCategories').style.display = 'none';
+  },
+
   openInventoryReportOptions(type) {
     if (type !== 'in_stock') {
       this.generateInventoryReport(type); 
@@ -765,8 +817,10 @@ const ReportsManager = {
           return;
       }
 
-      let payload = { name: name, email: email, freq: freq, status: status };
-      
+      let categoryPref = document.getElementById('subCategories').value.trim();
+       
+      let payload = { name: name, email: email, freq: freq, status: status, categories: categoryPref };
+
       fetch(SessionManager.getActiveArchiveUrl(), {
           method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: "UPDATE_SUBSCRIBER", payload: payload })
