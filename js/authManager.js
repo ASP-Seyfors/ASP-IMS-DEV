@@ -106,11 +106,11 @@ const AuthManager = {
                 email: rawEmail, 
                 role: role, 
                 verified: true,
-                isAdmin: (role === 'ADMIN_USERS' || role === 'SYS_ADMINS') 
+                isAdmin: (role === 'ADMIN' || role === 'SYS_ADMIN') 
             };
             
             this.isGuest = false;
-            this.isWorkstation = (role === 'WORKSTATIONS');
+            this.isWorkstation = (role === 'WORKSTATION');
             
             if (this.isWorkstation) {
                 this.promptWorkstationUser();
@@ -259,7 +259,7 @@ const AuthManager = {
     if (lookupBtn) lookupBtn.style.display = 'inline-block';
 
     // SALES LOCKDOWN
-    if (r === 'SALES_USERS') {
+    if (r === 'SALES') {
         document.querySelectorAll('.form-row').forEach(row => row.style.display = 'none');
         if (btnStart) btnStart.parentElement.style.display = 'none';
         if (archiveBtn) archiveBtn.style.display = 'none';
@@ -290,14 +290,14 @@ const AuthManager = {
     }
 
     // ADMIN VISIBILITY
-    if (devToolsContainer) devToolsContainer.style.display = (r === 'SYS_ADMINS') ? 'flex' : 'none';
-    if (rowQboSettings) rowQboSettings.style.display = (r === 'SYS_ADMINS' || r === 'ADMIN_USERS') ? 'flex' : 'none';
-    if (rowQboSync) rowQboSync.style.display = (r === 'SYS_ADMINS' || r === 'ADMIN_USERS') ? 'flex' : 'none';
+    if (devToolsContainer) devToolsContainer.style.display = (r === 'SYS_ADMIN') ? 'flex' : 'none';
+    if (rowQboSettings) rowQboSettings.style.display = (r === 'SYS_ADMIN' || r === 'ADMIN') ? 'flex' : 'none';
+    if (rowQboSync) rowQboSync.style.display = (r === 'SYS_ADMIN' || r === 'ADMIN') ? 'flex' : 'none';
 
     // BADGE COLORS
     if (roleBadge) {
-        let badgeMap = { 'SYS_ADMINS': {t: 'Sys Admin', c: '#7b1fa2'}, 'ADMIN_USERS': {t: 'Admin', c: '#d32f2f'}, 'SALES_USERS': {t: 'Sales', c: '#f57f17'}, 'WORKSTATIONS': {t: 'Workstation', c: '#0277bd'}, 'STANDARD_USERS': {t: 'Standard', c: '#2e7d32'} };
-        let b = badgeMap[r] || badgeMap['STANDARD_USERS'];
+        let badgeMap = { 'SYS_ADMIN': {t: 'Sys Admin', c: '#7b1fa2'}, 'ADMIN': {t: 'Admin', c: '#d32f2f'}, 'SALES': {t: 'Sales', c: '#f57f17'}, 'WORKSTATION': {t: 'Workstation', c: '#0277bd'}, 'STANDARD': {t: 'Standard', c: '#2e7d32'} };
+        let b = badgeMap[r] || badgeMap['STANDARD'];
         roleBadge.textContent = b.t;
         roleBadge.style.backgroundColor = b.c;
     }
