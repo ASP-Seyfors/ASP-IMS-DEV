@@ -34,6 +34,8 @@ const DatabaseManager = {
   suppliers: JSON.parse(localStorage.getItem('asp_wh_suppliers')) || defaultSuppliers,
   customers: JSON.parse(localStorage.getItem('asp_wh_customers')) || defaultCustomers,
 
+  shippingRules: JSON.parse(localStorage.getItem('asp_shipping_rules')) || {},
+
   // ✨ NEW: Alias Dictionaries and Resolver Engine
   customerAliases: JSON.parse(localStorage.getItem('asp_wh_cust_aliases')) || {},
   supplierAliases: JSON.parse(localStorage.getItem('asp_wh_sup_aliases')) || {},
@@ -853,6 +855,12 @@ const DatabaseManager = {
     if (cloudDb.supplierAliases) {
       this.supplierAliases = cloudDb.supplierAliases;
       localStorage.setItem('asp_wh_sup_aliases', JSON.stringify(this.supplierAliases));
+    }
+    
+    // ✨ NEW: Store Customer Shipping Rules
+    if (cloudDb.shippingRules) {
+      this.shippingRules = cloudDb.shippingRules;
+      localStorage.setItem('asp_shipping_rules', JSON.stringify(this.shippingRules));
     }
 
     if (cloudDb.items && cloudDb.items.length > 0) {
