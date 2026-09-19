@@ -258,29 +258,27 @@ const AuthManager = {
     if (archiveBtn) archiveBtn.style.display = 'inline-block';
     if (lookupBtn) lookupBtn.style.display = 'inline-block';
     
-    // Reset standard elements before applying lockdowns
-    document.querySelectorAll('.form-row').forEach(row => row.style.display = 'flex');
-    if (btnStart) btnStart.parentElement.style.display = 'block';
-    if (btnStock) btnStock.style.display = 'inline-block';
-    if (preloadToggle) preloadToggle.style.display = 'block';
-    if (stagedFeed) stagedFeed.style.display = 'block';
-    if (panelArchiveExport) panelArchiveExport.style.display = 'block';
-    if (reportsCust) reportsCust.style.display = 'block';
-    if (panelSubscribers) panelSubscribers.style.display = 'block';
-    if (btnTrace) btnTrace.style.display = 'inline-block';
+    // 1. Force the UI to a clean baseline matching the current form inputs
+    if (typeof UIManager !== 'undefined') {
+        UIManager.toggleSessionType();
+        UIManager.toggleAdvancedMode(); 
+    }
 
     // 1. SALES LOCKDOWN
     if (r === 'SALES') {
-        document.querySelectorAll('.form-row').forEach(row => row.style.display = 'none');
+        // Force Advanced Mode open FIRST so it builds the UI, then we hide what we don't want
+        if (advChk) { advChk.checked = true; if(typeof UIManager !== 'undefined') UIManager.toggleAdvancedMode(true); }
+        if (advLabel) advLabel.style.display = 'none';
+
+        // STRICT SCOPE: Only hide form rows on the Setup Screen so we don't break the Settings page
+        document.querySelectorAll('#screenSetup .form-row').forEach(row => row.style.display = 'none');
+        
         if (btnStart) btnStart.parentElement.style.display = 'none';
         if (archiveBtn) archiveBtn.style.display = 'none';
         if (btnStock) btnStock.style.display = 'none';
         if (preloadToggle) preloadToggle.style.display = 'none';
         if (stagedFeed) stagedFeed.style.display = 'none';
         if (panelArchiveExport) panelArchiveExport.style.display = 'none'; 
-        
-        if (advChk) { advChk.checked = true; if(typeof UIManager !== 'undefined') UIManager.toggleAdvancedMode(true); }
-        if (advLabel) advLabel.style.display = 'none';
     }
 
     // 2. WORKSTATION / ADMIN / STANDARD LOGIC
