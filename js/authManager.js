@@ -19,6 +19,11 @@
  * All Rights Reserved.
  * ======================================================================= */
 const AuthManager = {
+  // ✨ Dynamically load roles from config.js based on the active environment
+  ADMIN_EMAILS: ENV_CONFIG.ADMIN_EMAILS || [],
+  SALES_EMAILS: ENV_CONFIG.SALES_EMAILS || [],
+  SYS_ADMINS: ENV_CONFIG.SYS_ADMINS || [],
+
   currentUser: null,
   isGuest: false,
   isWorkstation: false, // NEW FLAG
@@ -29,9 +34,6 @@ const AuthManager = {
   
   // NOTE: This is the actual Google Cloud Client ID to allow secure Google Sign-in.
   clientId: "578227168676-721gv6n3bt5qqcd67v1vhi6111c35fcc.apps.googleusercontent.com",
-
-  // Add your authorized admin emails here
-  ADMIN_EMAILS: ['jessica@alliedsurgicalproducts.com', 'thomas@alliedsurgicalproducts.com', 'asp.techops.workstation@gmail.com'],
 
   init() {
     let savedSession = sessionStorage.getItem('asp_auth_session');
@@ -83,6 +85,7 @@ const AuthManager = {
       this.currentUser = { name: payload.name, email: payload.email, verified: true, isAdmin: isAdmin };
       this.isGuest = false;
       this.isWorkstation = isWorkstationEmail;
+      this.isSales = isSalesAccount; // ✨ Assign flag
       
       if (this.isWorkstation) {
         // ✨ NEW: Intercept the login and force the user name prompt
@@ -230,12 +233,39 @@ const AuthManager = {
       
       // UI Element Targeting
       let btnStock = document.getElementById('btnStocktake');
-      let btnDbEditor = document.querySelector('button[onclick="UIManager.openDbEditor()"]'); // Select by action since it lacks an ID
+      let btnTrace = document.getElementById('btnTraceability'); 
       let preloadToggle = document.getElementById('rowPreloadToggle');
       let feedPanel = document.getElementById('panelStagedFeed');
       let reportsInv = document.getElementById('panelInventoryReports');
       let reportsRevMed = document.getElementById('panelRevMedReports');
       let reportsCust = document.getElementById('panelCustomerReports');
+      let panelArchiveExport = document.getElementById('panelArchiveExport'); // ✨ Targets Cloud Session Reports
+
+      // ✨ NEW: SALES USER LOCKDOWN
+      if (this.isSales) {
+          // 1. Hide all standard session inputs (Shipment, Supplier, Customer, Order, Process)
+          document.querySelectorAll('.form-row').forEach(row => row.style.display = 'none');
+          
+          // 2. Hide the Start Session and local Archive buttons
+          let btnStart = document.querySelector('.btn-start');
+          if (btnStart) btnStart.parentElement.style.display = 'none';
+          if (archiveBtn) archiveBtn.style.display = 'none';
+
+          // 3. Hide Dangerous Enterprise Tools & Extraneous Reports
+          if (btnStock) btnStock.style.display = 'none';
+          if (btnTrace) btnTrace.style.display = 'none';
+          if (preloadToggle) preloadToggle.style.display = 'none';
+          if (feedPanel) feedPanel.style.display = 'none';
+          if (panelArchiveExport) panelArchiveExport.style.display = 'none'; 
+
+          // 4. Force "Advanced Mode" open to reveal the Reports/DB Editor, then hide the toggle
+          let advChk = document.getElementById('chkAdvancedMode');
+          if (advChk) {
+              advChk.checked = true;
+              UIManager.toggleAdvancedMode(true);
+              advLabel.style.display = 'none';
+          }
+      }
 
       if (this.isWorkstation) {
          if (userNameInput) userNameInput.style.display = 'none';
@@ -268,7 +298,7 @@ const AuthManager = {
 
       let devToolsContainer = document.getElementById('devToolsContainer');
       if (devToolsContainer) {
-        let isDeveloper = this.currentUser.email.toLowerCase() === 'thomas@alliedsurgicalproducts.com';
+        let isDeveloper = this.currentUser.email.toLowerCase() === SYS_ADMINS;
         devToolsContainer.style.display = isDeveloper ? 'flex' : 'none';
       }
 
