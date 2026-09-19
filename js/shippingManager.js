@@ -11,10 +11,10 @@ const ShippingManager = {
         document.getElementById('shipmentManagerModal').style.display = 'flex';
     },
 
-    populateCustomerLogistics() {
-        // Parse exact customer name from session
+    async populateCustomerLogistics() {
         let baseName = SessionManager.currentSessionName.split('(')[0].trim().toUpperCase();
         document.getElementById('shipCustName').value = baseName;
+        document.getElementById('shipAddressCompany').value = baseName;
         
         let rules = DatabaseManager.shippingRules[baseName] || {};
         let carrierSel = document.getElementById('shipCarrier');
@@ -26,6 +26,87 @@ const ShippingManager = {
         
         document.getElementById('shipAccountNum').value = rules.account || '';
         document.getElementById('shipNotes').value = rules.notes || '';
+
+        // ✨ AUTO-FILL NEW COLUMNS FROM DATABASE CACHE
+        document.getElementById('shipAddressName').value = rules.contactName || '';
+        document.getElementById('shipPhone').value = rules.phone || ''; // Ensure phone input exists or map accordingly
+        
+        // Split the single address string from Col E into street, city, state, zip for the form inputs
+        if (rules.address) {
+            document.getElementById('shipAddressStreet1').value = rules.address;
+            
+            // Basic regex helpers to parse city/state/zip if formatted cleanly
+            let zipMatch = rules.address.match(/\b\d{5}\b/);
+            let stateMatch = rules.address.match(/\b([A-Z]{2})\b/g);
+            
+            if (zipMatch) document.getElementById('shipAddressZip').value = zipMatch[0];
+            if (stateMatch && stateMatch.length > 0) {
+                // Grab the last 2-letter uppercase match as the state
+                document.getElementById('shipAddressState').value = stateMatch[stateMatch.length - 1];
+            }
+        }
+    },
+
+    async generateFedExLabel() {
+        let btn = document.getElementById('btnGenerateFedExLabel');
+        let origText = btn ? btn.innerText : "Purchase FedEx Label";
+        if (btn) { btn.innerText = "⏳ Requesting Label..."; btn.disabled = true; }
+
+        // ✨ PULL REAL DATA DIRECTLY FROM THE MODAL INPUTS (Filled via Database Rules)
+        let customerName = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
+        let contactName = document.getElementById('shipAddressName').value.trim() || "Receiving Dept";
+        let street = document.getElementById('shipAddressStreet1').value.trim();
+        let city = document.getElementById('shipAddressCity').value.trim() || "Tampa";
+        let state = document.getElementById('shipAddressState').value.trim() || "FL";
+        let zip = document.getElementById('shipAddressZip').value.trim() || "33602";
+        
+        let totalWeight = parseFloat(document.getElementById('shipWeight').value) || 1.0;
+        let orderNum = SessionManager.currentOrderNum || "TEST-ORDER"; 
+
+        let payload = {
+            action: "CREATE_SHIPMENT",
+            payload: {
+                customerName: customerName,
+                contactName: contactName,
+                orderNum: orderNum,
+                totalWeight: totalWeight,
+                street: street,
+                city: city,
+                state: state,
+                zip: zip
+            }
+        };
+
+        try {
+            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            
+            let data = await res.json();
+            
+            if (data.status === "success") {
+                alert(`✅ FedEx Label Generated!\nTracking: ${data.trackingNumber}`);
+                
+                let pdfData = "data:application/pdf;base64," + data.label;
+                let printWin = window.open('', '_blank');
+                if (printWin) {
+                    printWin.document.write(`<iframe width='100%' height='100%' src='${pdfData}' style='border:none; margin:0; padding:0;'></iframe>`);
+                    printWin.document.title = `FedEx_Label_${data.trackingNumber}`;
+                } else {
+                    alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");
+                }
+
+                this.skipAndComplete();
+            } else {
+                alert("FedEx API Error: " + data.message);
+            }
+        } catch (err) {
+            alert("Network Error generating FedEx Label: " + err.message);
+        } finally {
+            if (btn) { btn.innerText = origText; btn.disabled = false; }
+        }
     },
 
     recalculateBoxMath() {
@@ -100,77 +181,5 @@ const ShippingManager = {
         else if (val === 'S') { document.getElementById('shipDimL').value = 12; document.getElementById('shipDimW').value = 6; document.getElementById('shipDimH').value = 6; }
         else if (val === 'M') { document.getElementById('shipDimL').value = 22; document.getElementById('shipDimW').value = 13; document.getElementById('shipDimH').value = 15; }
         else if (val === 'L') { document.getElementById('shipDimL').value = 27; document.getElementById('shipDimW').value = 15; document.getElementById('shipDimH').value = 17; }
-    },
-
-    async generateFedExLabel() {
-        // Grab the button to show a loading state
-        let btn = document.getElementById('btnGenerateFedExLabel'); // Ensure your HTML button has this ID!
-        let origText = btn ? btn.innerText : "Generate FedEx Label";
-        if (btn) { btn.innerText = "⏳ Requesting Label..."; btn.disabled = true; }
-
-        // Pull the pre-calculated math directly from your UI fields
-        let customerName = document.getElementById('shipCustName').value.trim() || "Valued Customer";
-        let totalWeight = parseFloat(document.getElementById('shipWeight').value) || 1.0;
-        let dimL = document.getElementById('shipDimL').value || 12;
-        let dimW = document.getElementById('shipDimW').value || 6;
-        let dimH = document.getElementById('shipDimH').value || 6;
-        let orderNum = SessionManager.currentOrderNum || ""; 
-
-        let payload = {
-            action: "CREATE_SHIPMENT",
-            payload: {
-                customerName: customerName,
-                orderNum: orderNum,
-                totalWeight: totalWeight,
-                dimL: dimL,
-                dimW: dimW,
-                dimH: dimH,
-                street: "123 Sandbox Ave", // Hardcoded dummy variables for Sandbox testing
-                city: "Tampa",
-                state: "FL",
-                zip: "33602"
-            }
-        };
-
-        try {
-            // Note: We omit mode: 'no-cors' here so the browser is allowed to read the JSON response from Google
-            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            
-            let data = await res.json();
-            
-            if (data.status === "success") {
-                alert(`✅ FedEx Label Generated!\nTracking: ${data.trackingNumber}`);
-                
-                // Convert the Base64 response into a printable PDF and open it in a new tab
-                let pdfData = "data:application/pdf;base64," + data.label;
-                let printWin = window.open('', '_blank');
-                if (printWin) {
-                    printWin.document.write(`<iframe width='100%' height='100%' src='${pdfData}' style='border:none; margin:0; padding:0;'></iframe>`);
-                    printWin.document.title = `FedEx_Label_${data.trackingNumber}`;
-                } else {
-                    alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");
-                }
-
-                // Automatically move to the next screen
-                this.skipAndComplete();
-
-            } else {
-                alert("FedEx API Error: " + data.message);
-            }
-        } catch (err) {
-            alert("Network Error generating FedEx Label: " + err.message);
-        } finally {
-            if (btn) { btn.innerText = origText; btn.disabled = false; }
-        }
-    },
-
-    skipAndComplete() {
-        document.getElementById('shipmentManagerModal').style.display = 'none';
-        // Pass skipShipping = true to bypass the intercept
-        SessionManager.completeSession(true, true);
-    }
+    }    
 };
