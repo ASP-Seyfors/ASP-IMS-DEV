@@ -1685,7 +1685,16 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     });
   },
 
-  completeSession(skipConfirm = false) {
+  completeSession(skipConfirm = false, skipShipping = false) {
+    
+    // ✨ THE INTERCEPT: Trigger Shipment Manager for Pick & Pack
+    if (this.currentWorkflowType === 'Picking & Packing' && !skipShipping) {
+      if (typeof ShippingManager !== 'undefined') {
+        ShippingManager.openModal();
+        return; // Halt normal completion until shipping is resolved
+      }
+    }
+
     const executeCompletion = async () => {
       
       let overlay = document.createElement('div');

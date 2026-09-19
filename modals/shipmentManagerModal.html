@@ -12,7 +12,7 @@
       <h2 style="margin:0; color:#7b1fa2; display:flex; align-items:center; gap:8px;">
         <i data-lucide="package-check" style="width:24px; height:24px;"></i> Shipment Manager
       </h2>
-      <button onclick="document.getElementById('shipmentManagerModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main, #333);">&times;</button>
+      <button onclick="ShippingManager.skipAndComplete()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main, #333);">&times;</button>
     </div>
 
     <!-- Scrollable Content -->
@@ -138,7 +138,7 @@
               <button id="btnLogTrackingOnly" class="btn-action" style="background:#0277bd; color:#fff; flex:1; font-size:0.9rem; padding:8px; margin:0;">
                 Log Tracking Only
               </button>
-              <button class="btn-action" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:8px; margin:0;" onclick="document.getElementById('shipmentManagerModal').style.display='none'">
+              <button class="btn-action" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:8px; margin:0;" onclick="ShippingManager.skipAndComplete()">
                 Skip
               </button>
             </div>

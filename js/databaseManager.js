@@ -627,7 +627,8 @@ const DatabaseManager = {
             onDotMed: row[11], dotMedPrice: row[12], 
             syncedShopify: row[13], category: row[14], status: row[15], 
             parentRef: row[16], uomMult: row[17], shelf: row[18],
-            shopifyCategory: row[19] || "Medical Supplies"
+            shopifyCategory: row[19] || "Medical Supplies",
+            weight: row[20], dimL: row[21], dimW: row[22], dimH: row[23] // ✨ NEW MAPPINGS
           }));
           
           fullDb.items = fullDb.items.concat(mappedItems);
