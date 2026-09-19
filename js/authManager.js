@@ -35,7 +35,7 @@ const AuthManager = {
     if (savedSession) {
       this.currentUser = JSON.parse(savedSession);
       this.isGuest = false;
-      this.isWorkstation = this.currentUser.email.toLowerCase() === 'asp.techops.workstation@gmail.com';
+      this.isWorkstation = (this.currentUser.role === 'WORKSTATION');
       this.unlockApp();
     } else {
       this.showLoginScreen();
@@ -76,7 +76,6 @@ const AuthManager = {
         return;
     }
 
-    // 2. Render Loading Overlay while checking the cloud
     let overlay = document.createElement('div');
     overlay.id = 'authOverlay';
     overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; color:#fff; flex-direction:column;';
@@ -86,7 +85,7 @@ const AuthManager = {
     try {
         let res = await fetch(`${ENV_CONFIG.CLOUD_ARCHIVE_URL}?action=VERIFY_USER&email=${encodeURIComponent(rawEmail)}`);
         let data = await res.json();
-        document.body.removeChild(overlay);
+        if(document.getElementById('authOverlay')) document.body.removeChild(document.getElementById('authOverlay'));
 
         if (data.status === 'success') {
             if (data.profile.disabled) {
@@ -100,7 +99,6 @@ const AuthManager = {
                 return;
             }
             
-            // Map the Profile
             this.currentUser = { 
                 name: data.profile.name || payload.name, 
                 email: rawEmail, 
@@ -122,7 +120,7 @@ const AuthManager = {
             alert("Auth Error: " + data.message);
         }
     } catch (err) {
-        document.body.removeChild(overlay);
+        if(document.getElementById('authOverlay')) document.body.removeChild(document.getElementById('authOverlay'));
         alert("Network Error during authentication: " + err.message);
     }
   },
@@ -133,7 +131,7 @@ const AuthManager = {
     modal.id = 'workstationUserModal';
     modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
     
-    let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users) ? DatabaseManager.users : ["Trey", "Thomas", "Jessica", "+ New User"];
+    let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users && DatabaseManager.users.length > 0) ? DatabaseManager.users : ["Trey", "Thomas", "Jessica", "+ New User"];
     let optionsHtml = userList.map(u => `<option value="${u}">${u}</option>`).join('');
 
     modal.innerHTML = `
@@ -153,7 +151,6 @@ const AuthManager = {
     `;
     document.body.appendChild(modal);
     
-    // Dynamic "+ New User" logic
     document.getElementById('workstationUserSelect').addEventListener('change', (e) => {
         if (e.target.value === "+ New User") {
             let newName = prompt("Enter new User Name:");
@@ -196,7 +193,7 @@ const AuthManager = {
 
   continueAsGuest() {
     this.isGuest = true;
-    this.currentUser = { name: "Guest Scanner", email: "", verified: false };
+    this.currentUser = { name: "Guest Scanner", email: "", role: "GUEST", verified: false };
     this.unlockApp();
   },
 
@@ -205,7 +202,6 @@ const AuthManager = {
     document.getElementById('screenSetup').style.display = 'block';
     document.body.style.borderTop = "12px solid " + (typeof ENV_CONFIG !== 'undefined' && ENV_CONFIG.THEME_COLOR ? ENV_CONFIG.THEME_COLOR : "#0277bd");
     
-    // UI Elements
     let advLabel = document.getElementById('chkAdvancedMode') ? document.getElementById('chkAdvancedMode').parentElement : null;
     let advChk = document.getElementById('chkAdvancedMode');
     let archiveBtn = document.getElementById('btnSessionArchive');
@@ -223,7 +219,7 @@ const AuthManager = {
     let reportsRevMed = document.getElementById('panelRevMedReports');
     let reportsCust = document.getElementById('panelCustomerReports');
     let panelArchiveExport = document.getElementById('panelArchiveExport');
-    let panelSubscribers = document.getElementById('panelSubscribers'); // Automated Distro List
+    let panelSubscribers = document.getElementById('panelSubscribers');
     
     let devToolsContainer = document.getElementById('devToolsContainer');
     let rowQboSync = document.getElementById('rowQboSync');
@@ -240,25 +236,40 @@ const AuthManager = {
       if (btnStock) btnStock.style.display = 'none';
       if (btnTrace) btnTrace.style.display = 'none';
       if (rowQboSettings) rowQboSettings.style.display = 'none';
+      if (devToolsContainer) devToolsContainer.style.display = 'none';
+      if (rowQboSync) rowQboSync.style.display = 'none';
       
       if (roleBadge) { roleBadge.textContent = "Guest Mode"; roleBadge.style.backgroundColor = "#c62828"; }
       
       if (advChk) advChk.checked = false;
-      UIManager.toggleAdvancedMode(false); 
+      if (typeof UIManager !== 'undefined' && UIManager.toggleAdvancedMode) UIManager.toggleAdvancedMode(false); 
       
-      DatabaseManager.suppliers = ["+ Add Supplier"]; DatabaseManager.customers = ["+ Add Customer"];
-      DatabaseManager.populatePartners(); DatabaseManager.populateItemCustomerSelect();
+      if (typeof DatabaseManager !== 'undefined') {
+          DatabaseManager.suppliers = ["+ Add Supplier"]; DatabaseManager.customers = ["+ Add Customer"];
+          DatabaseManager.populatePartners(); DatabaseManager.populateItemCustomerSelect();
+      }
       return;
     } 
 
-    // --- VERIFIED ROLES ---
     let r = this.currentUser.role;
     
+    // Show standard authorized buttons first
     if (advLabel) advLabel.style.display = 'flex';
     if (archiveBtn) archiveBtn.style.display = 'inline-block';
     if (lookupBtn) lookupBtn.style.display = 'inline-block';
+    
+    // Reset standard elements before applying lockdowns
+    document.querySelectorAll('.form-row').forEach(row => row.style.display = 'flex');
+    if (btnStart) btnStart.parentElement.style.display = 'block';
+    if (btnStock) btnStock.style.display = 'inline-block';
+    if (preloadToggle) preloadToggle.style.display = 'block';
+    if (stagedFeed) stagedFeed.style.display = 'block';
+    if (panelArchiveExport) panelArchiveExport.style.display = 'block';
+    if (reportsCust) reportsCust.style.display = 'block';
+    if (panelSubscribers) panelSubscribers.style.display = 'block';
+    if (btnTrace) btnTrace.style.display = 'inline-block';
 
-    // SALES LOCKDOWN
+    // 1. SALES LOCKDOWN
     if (r === 'SALES') {
         document.querySelectorAll('.form-row').forEach(row => row.style.display = 'none');
         if (btnStart) btnStart.parentElement.style.display = 'none';
@@ -268,19 +279,20 @@ const AuthManager = {
         if (stagedFeed) stagedFeed.style.display = 'none';
         if (panelArchiveExport) panelArchiveExport.style.display = 'none'; 
         
-        if (advChk) { advChk.checked = true; UIManager.toggleAdvancedMode(true); }
+        if (advChk) { advChk.checked = true; if(typeof UIManager !== 'undefined') UIManager.toggleAdvancedMode(true); }
         if (advLabel) advLabel.style.display = 'none';
     }
 
-    // WORKSTATION / ADMIN / STANDARD LOGIC
+    // 2. WORKSTATION / ADMIN / STANDARD LOGIC
     if (this.isWorkstation) {
         if (reportsCust) reportsCust.style.display = 'none';
         if (panelSubscribers) panelSubscribers.style.display = 'none'; 
-
+        if (btnStock) btnStock.style.display = 'none'; 
+        
         if (userNameInput) userNameInput.style.display = 'none';
         if (userNameSelect) {
             userNameSelect.style.display = 'block';
-            let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users) ? DatabaseManager.users : ["Trey", "Thomas", "Jessica", "+ New User"];
+            let userList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.users && DatabaseManager.users.length > 0) ? DatabaseManager.users : ["Trey", "Thomas", "Jessica", "+ New User"];
             userNameSelect.innerHTML = userList.map(u => `<option value="${u}">${u}</option>`).join('');
             userNameSelect.value = localStorage.getItem('asp_user_name') || userList[0];
         }
@@ -289,23 +301,35 @@ const AuthManager = {
         if (userNameSelect) userNameSelect.style.display = 'none';
     }
 
-    // ADMIN VISIBILITY
+    // 3. ADMIN VISIBILITY
     if (devToolsContainer) devToolsContainer.style.display = (r === 'SYS_ADMIN') ? 'flex' : 'none';
     if (rowQboSettings) rowQboSettings.style.display = (r === 'SYS_ADMIN' || r === 'ADMIN') ? 'flex' : 'none';
     if (rowQboSync) rowQboSync.style.display = (r === 'SYS_ADMIN' || r === 'ADMIN') ? 'flex' : 'none';
 
-    // BADGE COLORS
+    // 4. BADGE COLORS
     if (roleBadge) {
-        let badgeMap = { 'SYS_ADMIN': {t: 'Sys Admin', c: '#7b1fa2'}, 'ADMIN': {t: 'Admin', c: '#d32f2f'}, 'SALES': {t: 'Sales', c: '#f57f17'}, 'WORKSTATION': {t: 'Workstation', c: '#0277bd'}, 'STANDARD': {t: 'Standard', c: '#2e7d32'} };
-        let b = badgeMap[r] || badgeMap['STANDARD'];
+        let badgeMap = { 
+            'SYS_ADMIN': {t: 'Sys Admin', c: '#7b1fa2'}, 
+            'ADMIN': {t: 'Admin', c: '#d32f2f'}, 
+            'SALES': {t: 'Sales', c: '#f57f17'}, 
+            'WORKSTATION': {t: 'Workstation', c: '#0277bd'}, 
+            'STANDARD': {t: 'Standard', c: '#2e7d32'} 
+        };
+        let b = badgeMap[r] || {t: 'Guest', c: '#c62828'};
         roleBadge.textContent = b.t;
         roleBadge.style.backgroundColor = b.c;
     }
     
-    DatabaseManager.suppliers = JSON.parse(localStorage.getItem('asp_wh_suppliers')) || ["+ Add Supplier"];
-    DatabaseManager.customers = JSON.parse(localStorage.getItem('asp_wh_customers')) || ["+ Add Customer"];
-    DatabaseManager.populatePartners(); DatabaseManager.populateItemCustomerSelect();
-    if (typeof UIManager.populateCustomerDropdown === 'function') UIManager.populateCustomerDropdown();    
+    if (typeof DatabaseManager !== 'undefined') {
+        DatabaseManager.suppliers = JSON.parse(localStorage.getItem('asp_wh_suppliers')) || ["+ Add Supplier"];
+        DatabaseManager.customers = JSON.parse(localStorage.getItem('asp_wh_customers')) || ["+ Add Customer"];
+        DatabaseManager.populatePartners(); 
+        DatabaseManager.populateItemCustomerSelect();
+    }
+    
+    if (typeof UIManager !== 'undefined' && typeof UIManager.populateCustomerDropdown === 'function') {
+        UIManager.populateCustomerDropdown();    
+    }
 
     if (!sessionStorage.getItem('asp_has_auto_synced')) {
         sessionStorage.setItem('asp_has_auto_synced', 'true');
