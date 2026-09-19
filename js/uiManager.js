@@ -177,8 +177,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
                     <summary style="cursor:pointer; font-weight:bold; display:flex; justify-content:space-between; align-items:center; outline:none;">
                         <span style="color:#0277bd; display:flex; align-items:center; gap:6px;"><i data-lucide="folder" style="width:16px; height:16px;"></i> ${cust}</span>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="badge-info" style="background:#f57f17; color:#fff;">${totalItems} Units</span>
-                            <button class="btn-small" style="background-color:#d32f2f; color:#fff; padding:2px 8px;" onclick="SessionManager.openUnreserveModal('${cust}')">Un-Reserve</button>
+                            <span class="badge-info" style="background:#f57f17; color:#fff;">${totalItems} Units</span>${(AuthManager.currentUser && AuthManager.currentUser.role === 'SALES_USERS') ? '' : `<button class="btn-small" style="background-color:#d32f2f; color:#fff; padding:2px 8px;" onclick="SessionManager.openUnreserveModal('${cust}')">Un-Reserve</button>`}
                         </div>
                       </summary>
                     <div style="padding-top:8px; margin-top:6px; border-top:2px solid #0277bd;">
