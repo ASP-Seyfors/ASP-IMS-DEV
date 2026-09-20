@@ -47,135 +47,6 @@ const ShippingManager = {
         }
     },
 
-    async generateFedExLabel() {
-        let btn = document.getElementById('btnGenerateFedExLabel');
-        let origText = btn ? btn.innerText : "Purchase FedEx Label";
-
-        // Pull real data directly from the modal inputs
-        let customerName = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
-        let contactName = document.getElementById('shipAddressName').value.trim();
-        let street = document.getElementById('shipAddressStreet1').value.trim();
-        let city = document.getElementById('shipAddressCity').value.trim();
-        let state = document.getElementById('shipAddressState').value.trim();
-        let zip = document.getElementById('shipAddressZip').value.trim();
-        
-        let totalWeight = parseFloat(document.getElementById('shipWeight').value) || 1.0;
-
-        let serviceType = document.getElementById('shipServiceType').value;
-        let isResidential = document.querySelector('input[name="shipAddressType"]:checked').value === 'residential';
-        
-        // FedEx Strict Routing: Ground to Residential MUST be Ground Home Delivery
-        if (serviceType === 'FEDEX_GROUND' && isResidential) {
-            serviceType = 'GROUND_HOME_DELIVERY';
-        }
-
-        let orderNum = SessionManager.currentOrderNum || ""; 
-
-        // ✨ NEW: STRICT FRONTEND VALIDATION (The Gatekeeper)
-        let missingFields = [];
-        if (!contactName) missingFields.push("Contact Name");
-        if (!street) missingFields.push("Street Address");
-        if (!city) missingFields.push("City");
-        if (!state) missingFields.push("State");
-        if (!zip) missingFields.push("ZIP Code");
-
-        if (missingFields.length > 0) {
-            alert("⚠️ Cannot purchase label. Missing required shipping details:\n\n- " + missingFields.join("\n- ") + "\n\nPlease update the Destination Address fields and try again.");
-            return; // Instantly stops execution!
-        }
-
-        if (btn) { btn.innerText = "⏳ Requesting Label..."; btn.disabled = true; }
-
-        let payload = {
-            action: "CREATE_SHIPMENT",
-            payload: {
-                customerName: customerName,
-                contactName: contactName,
-                orderNum: orderNum,
-                totalWeight: totalWeight,
-                street: street,
-                city: city,
-                state: state,
-                zip: zip,
-                serviceType: serviceType
-            }
-        };
-
-        try {
-            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            
-            let data = await res.json();
-            
-            if (data.status === "success") {
-                alert(`✅ FedEx Label Generated!\nTracking: ${data.trackingNumber}`);
-                
-                let pdfData = "data:application/pdf;base64," + data.label;
-                let printWin = window.open('', '_blank');
-                if (printWin) {
-                    printWin.document.write(`<iframe width='100%' height='100%' src='${pdfData}' style='border:none; margin:0; padding:0;'></iframe>`);
-                    printWin.document.title = `FedEx_Label_${data.trackingNumber}`;
-                } else {
-                    alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");
-                }
-
-                this.skipAndComplete();
-            } else {
-                alert("FedEx API Error: " + data.message);
-            }
-        } catch (err) {
-            alert("Network Error generating FedEx Label: " + err.message);
-        } finally {
-            if (btn) { btn.innerText = origText; btn.disabled = false; }
-        }
-    },
-
-    async logManualTracking() {
-        let trackingNum = prompt("Please paste the pre-provided tracking number:");
-        if (!trackingNum || trackingNum.trim() === "") return; // Cancel if empty
-
-        let btn = document.getElementById('btnLogTrackingOnly');
-        let origText = btn.innerText;
-        if (btn) { btn.innerText = "⏳ Logging..."; btn.disabled = true; }
-
-        let customerName = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
-        let carrier = document.getElementById('shipCarrier').value;
-        let orderNum = SessionManager.currentOrderNum || "";
-
-        let payload = {
-            action: "LOG_MANUAL_TRACKING",
-            payload: {
-                customerName: customerName,
-                orderNum: orderNum,
-                carrier: carrier,
-                trackingNumber: trackingNum.trim()
-            }
-        };
-
-        try {
-            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            
-            let data = await res.json();
-            
-            if (data.status === "success") {
-                this.skipAndComplete(); // Close modal and finish workflow
-            } else {
-                alert("Database Error: " + data.message);
-            }
-        } catch (err) {
-            alert("Network Error logging tracking: " + err.message);
-        } finally {
-            if (btn) { btn.innerText = origText; btn.disabled = false; }
-        }
-    },
-
     recalculateBoxMath() {
         let totalVol = 0;
         let totalWeight = 0;
@@ -242,21 +113,136 @@ const ShippingManager = {
         document.getElementById('shipWeightWarning').style.display = hasNonSuture ? 'flex' : 'none';
     },
 
-    skipAndComplete() {
-        let modal = document.getElementById('shipmentManagerModal');
-        if (modal) modal.style.display = 'none';
-        
-        // Ensure the global session completion sequence triggers
-        if (typeof SessionManager !== 'undefined') {
-            SessionManager.completeSession();
-        }
-    },
-
     handleBoxSizeChange() {
         let val = document.getElementById('shipBoxSize').value;
         if (val === 'XS') { document.getElementById('shipDimL').value = 8; document.getElementById('shipDimW').value = 8; document.getElementById('shipDimH').value = 8; }
         else if (val === 'S') { document.getElementById('shipDimL').value = 12; document.getElementById('shipDimW').value = 6; document.getElementById('shipDimH').value = 6; }
         else if (val === 'M') { document.getElementById('shipDimL').value = 22; document.getElementById('shipDimW').value = 13; document.getElementById('shipDimH').value = 15; }
         else if (val === 'L') { document.getElementById('shipDimL').value = 27; document.getElementById('shipDimW').value = 15; document.getElementById('shipDimH').value = 17; }
-    }    
+    },
+    
+    skipAndComplete() {
+        let modal = document.getElementById('shipmentManagerModal');
+        if (modal) modal.style.display = 'none';
+
+        // Reset the button states in case they try another session later
+        let btn1 = document.getElementById('btnLogTrackingOnly');
+        if (btn1) { btn1.innerText = "Log Tracking Only"; btn1.disabled = false; }
+        
+        let btn2 = document.getElementById('btnGenerateLabel');
+        if (btn2) { btn2.innerHTML = `<i data-lucide="printer"></i> Purchase FedEx Label`; btn2.disabled = false; }
+
+        // Safely complete the workflow
+        if (typeof SessionManager !== 'undefined' && typeof SessionManager.completeSession === 'function') {
+            SessionManager.completeSession();
+        }
+    },
+
+    async logManualTracking() {
+        let trackingNum = prompt("Please paste the pre-provided tracking number:");
+        if (!trackingNum || trackingNum.trim() === "") return;
+
+        let btn = document.getElementById('btnLogTrackingOnly');
+        let origText = btn.innerText;
+        if (btn) { btn.innerText = "⏳ Logging..."; btn.disabled = true; }
+
+        let customerName = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
+        let carrier = document.getElementById('shipCarrier').value;
+        let orderNum = SessionManager.currentOrderNum || "";
+
+        let payload = {
+            action: "LOG_MANUAL_TRACKING",
+            payload: {
+                customerName: customerName,
+                orderNum: orderNum,
+                carrier: carrier,
+                trackingNumber: trackingNum.trim()
+            }
+        };
+
+        try {
+            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            let data = await res.json();
+            
+            if (data.status === "success") {
+                // ✨ FIX: Explicitly call ShippingManager to prevent 'this' context errors
+                ShippingManager.skipAndComplete(); 
+            } else {
+                alert("Database Error: " + data.message);
+            }
+        } catch (err) {
+            alert("Network Error logging tracking: " + err.message);
+        } finally {
+            if (btn) { btn.innerText = origText; btn.disabled = false; }
+        }
+    },
+
+    async generateFedExLabel() {
+        let btn = document.getElementById('btnGenerateLabel');
+        let origText = btn.innerHTML;
+        if (btn) { btn.innerHTML = "⏳ Requesting Label..."; btn.disabled = true; }
+
+        try {
+            let customerName = document.getElementById('shipAddressCompany').value.trim();
+            let contactName = document.getElementById('shipAddressContact').value.trim();
+            let street = document.getElementById('shipAddress1').value.trim() + " " + document.getElementById('shipAddress2').value.trim();
+            let city = document.getElementById('shipAddressCity').value.trim();
+            let state = document.getElementById('shipAddressState').value.trim();
+            let zip = document.getElementById('shipAddressZip').value.trim();
+            
+            let totalWeight = document.getElementById('shipEstWeight').value;
+            let orderNum = SessionManager.currentOrderNum || "N/A";
+            
+            // ✨ FIX: FedEx Strict Routing (Ground to Residential MUST be Ground Home Delivery)
+            let serviceType = document.getElementById('shipServiceType').value;
+            let isResidential = document.querySelector('input[name="shipAddressType"]:checked').value === 'residential';
+            if (serviceType === 'FEDEX_GROUND' && isResidential) {
+                serviceType = 'GROUND_HOME_DELIVERY';
+            }
+
+            let payload = {
+                action: "CREATE_SHIPMENT",
+                payload: {
+                    customerName: customerName,
+                    contactName: contactName,
+                    orderNum: orderNum,
+                    totalWeight: totalWeight,
+                    street: street,
+                    city: city,
+                    state: state,
+                    zip: zip,
+                    serviceType: serviceType
+                }
+            };
+
+            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            
+            let data = await res.json();
+            
+            if (data.status === "success") {
+                let pdfDataUri = "data:application/pdf;base64," + data.label;
+                let printWindow = window.open(pdfDataUri, "_blank");
+                if (!printWindow) {
+                    alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");
+                }
+                
+                // ✨ FIX: Explicitly call ShippingManager to prevent context errors
+                ShippingManager.skipAndComplete();
+            } else {
+                alert("FedEx API Error: " + data.message);
+            }
+        } catch (err) {
+            alert("Network Error generating FedEx Label: " + err.message);
+        } finally {
+            if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+        }
+    }
 };

@@ -182,3 +182,7 @@ body.theme-sage .flyer-item-row input[type="text"][readonly] {
     color: var(--text-main) !important;
     border-color: var(--border-color) !important;
 }
+
+#modalUnreserve {
+    z-index: 9999999 !important; /* 7 nines to guarantee it sits on top of everything */
+}
