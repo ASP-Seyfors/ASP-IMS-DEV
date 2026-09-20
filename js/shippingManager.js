@@ -13,31 +13,53 @@ const ShippingManager = {
 
     async populateCustomerLogistics() {
         let baseName = SessionManager.currentSessionName.split('(')[0].trim().toUpperCase();
-        document.getElementById('shipCustName').value = baseName;
-        document.getElementById('shipAddressCompany').value = baseName;
-        
         let rules = DatabaseManager.shippingRules[baseName] || {};
-        let carrierSel = document.getElementById('shipCarrier');
         
-        if (rules.method) {
-            let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
-            if (opt) carrierSel.value = opt.value;
-        }
-        
-        // ✨ FIXED: Removed references to missing IDs that caused the crash
         let safeSet = (id, val) => { let el = document.getElementById(id); if (el) el.value = val || ''; };
         
+        // Populate core rules
+        safeSet('shipCustName', baseName);
+        safeSet('shipAddressCompany', baseName);
         safeSet('shipAccountNum', rules.account);
         safeSet('shipInstructions', rules.notes);
         safeSet('shipAddressContact', rules.contactName);
         
+        let carrierSel = document.getElementById('shipCarrier');
+        if (rules.method && carrierSel) {
+            let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
+            if (opt) carrierSel.value = opt.value;
+        }
+
+        // ✨ SMART ADDRESS PARSER
+        // Parses a single string from the DB (e.g. "4914 Flora Ave, Holiday, FL 34690")
         if (rules.address) {
-            safeSet('shipAddress1', rules.address);
-            let zipMatch = rules.address.match(/\b\d{5}\b/);
-            let stateMatch = rules.address.match(/\b([A-Z]{2})\b/g);
+            let addr = rules.address.trim();
+            
+            // Extract Zip (5 digits)
+            let zipMatch = addr.match(/\b\d{5}\b/);
             if (zipMatch) safeSet('shipAddressZip', zipMatch[0]);
-            if (stateMatch && stateMatch.length > 0) safeSet('shipAddressState', stateMatch[stateMatch.length - 1]);
+            
+            // Extract State (2 uppercase letters)
+            let stateMatch = addr.match(/\b([A-Z]{2})\b/g);
+            if (stateMatch && stateMatch.length > 0) {
+                safeSet('shipAddressState', stateMatch[stateMatch.length - 1]);
+            }
+
+            // Split by comma to isolate Street and City
+            let parts = addr.split(',');
+            if (parts.length >= 2) {
+                // The first chunk is the Street
+                safeSet('shipAddress1', parts[0].trim());
+                
+                // The second chunk contains the City (strip out state/zip if they are in the same chunk)
+                let cityStr = parts[1].replace(/\b\d{5}\b/g, '').replace(/\b([A-Z]{2})\b/g, '').trim();
+                safeSet('shipAddressCity', cityStr);
+            } else {
+                // Fallback if no commas were used in the Google Sheet
+                safeSet('shipAddress1', addr);
+            }
         } else {
+            // Clear fields if no address is found in the database
             safeSet('shipAddress1', '');
             safeSet('shipAddress2', '');
             safeSet('shipAddressCity', '');
@@ -189,9 +211,19 @@ const ShippingManager = {
             
             let data = await res.json();
             if (data.status === "success") {
-                let pdfDataUri = "data:application/pdf;base64," + data.label;
-                let printWindow = window.open(pdfDataUri, "_blank");
+                // Convert Base64 to a standard Blob so Chrome allows the PDF to open
+                let byteCharacters = atob(data.label);
+                let byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                let byteArray = new Uint8Array(byteNumbers);
+                let fileBlob = new Blob([byteArray], { type: 'application/pdf' });
+                let blobUrl = URL.createObjectURL(fileBlob);
+                
+                let printWindow = window.open(blobUrl, "_blank");
                 if (!printWindow) alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");
+                
                 this.skipAndComplete();
             } else {
                 alert("FedEx API Error: " + data.message);

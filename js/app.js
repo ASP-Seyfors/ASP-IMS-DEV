@@ -63,6 +63,56 @@ async function checkAppUpdates() {
   if (btn) btn.textContent = "🔄 Check for Updates";
 }
 
+async function sendDeploymentBlast() {
+    let oldVer = document.getElementById('blastOldVer').value.trim();
+    let newVer = document.getElementById('blastNewVer').value.trim();
+    let notes = document.getElementById('blastNotes').value.trim();
+
+    if (!newVer || !notes) {
+        alert("Please provide the New Version number and Release Notes.");
+        return;
+    }
+
+    let btn = document.getElementById('btnSendBlast');
+    let origHtml = btn.innerHTML;
+    btn.innerHTML = "⏳ Sending Blast...";
+    btn.disabled = true;
+
+    let payload = {
+        action: "SEND_UPDATE_EMAIL",
+        payload: {
+            oldVersion: oldVer,
+            newVersion: newVer,
+            notes: notes
+        }
+    };
+
+    try {
+        // FIXED: Using the correct URL method (getActiveArchiveUrl)
+        let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        
+        let data = await res.json();
+        
+        if (data.status === "success") {
+            alert("Success! Deployment email has been sent to the team.");
+            document.getElementById('blastOldVer').value = newVer;
+            document.getElementById('blastNewVer').value = "";
+            document.getElementById('blastNotes').value = "";
+        } else {
+            alert("Error sending email: " + data.message);
+        }
+    } catch (err) {
+        alert("Network Error: " + err.message);
+    } finally {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+    }
+}
+
 window.forceAppUpdate = async function() {
     // Circuit Breaker: Prevent infinite loops
     if (sessionStorage.getItem('isUpdating') === 'true') {
@@ -291,7 +341,9 @@ window.exportShopifyInventory = () => AuditManager.exportShopifyInventory();
 window.exportEcommerceData = (platform, isNew) => AuditManager.exportEcommerceData(platform, isNew);
 window.executeShopifySeedTest = () => AuditManager.executeShopifySeedTest();
 window.executeShopifySandboxSync = () => AuditManager.executeShopifySandboxSync();
-
 window.generateRevMedPDF = (mode) => ReportsManager.generateRevMedPDF(mode);
+
+// Add it right here at the bottom
+window.sendDeploymentBlast = sendDeploymentBlast;
 
 window.forceAppUpdate = forceAppUpdate;
