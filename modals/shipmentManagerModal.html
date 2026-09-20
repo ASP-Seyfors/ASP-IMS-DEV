@@ -26,9 +26,22 @@
             <h4 style="margin: 0 0 10px 0; color: #ce93d8; border-bottom: 1px dashed #555; padding-bottom: 5px;">
               <i data-lucide="clipboard-list" style="width:14px; height:14px;"></i> Customer Shipping Rules
             </h4>
-            <div style="margin-bottom: 10px;">
-              <label style="font-size:0.8rem; font-weight:bold; color: var(--text-main);">Customer Account</label>
-              <input type="text" id="shipCustName" class="form-input" readonly style="background: #e0e0e0; color: #333; font-weight: bold; text-align: center;">
+            <!-- Address Book Controls -->
+            <div style="background: rgba(2, 119, 189, 0.1); padding: 10px; border: 1px solid #0277bd; border-radius: 4px; margin-bottom: 15px;">
+              <label style="font-size: 0.8rem; font-weight: bold; color: #0277bd; display: block; margin-bottom: 4px;">Search Address Book:</label>
+              <select id="shipAddressBookSelect" class="form-input" style="border-color: #0277bd; margin-bottom: 10px;" onchange="ShippingManager.loadFromAddressBook(this.value)">
+                <option value="">-- Load Saved Address --</option>
+              </select>
+              
+              <div style="display: flex; gap: 8px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label style="font-size:0.8rem; font-weight:bold; color: var(--text-main); display:block; margin-bottom: 2px;">Customer / Company ID</label>
+                    <input type="text" id="shipCustName" class="form-input" placeholder="Company Name for Database">
+                </div>
+                <button id="btnSaveAddress" class="btn-small" style="background: #0277bd; color: #fff; padding: 8px 12px; height: 36px; white-space: nowrap; border: none; border-radius: 4px; cursor: pointer;" onclick="ShippingManager.saveAddressBookEntry()">
+                    <i data-lucide="save" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i>Save Info
+                </button>
+              </div>
             </div>
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
               <div style="flex: 1; min-width:0;">

@@ -8,6 +8,7 @@ const ShippingManager = {
     openModal() {
         this.populateCustomerLogistics();
         this.recalculateBoxMath();
+        this.populateAddressDropdown();
         document.getElementById('shipmentManagerModal').style.display = 'flex';
     },
 
@@ -65,6 +66,115 @@ const ShippingManager = {
             safeSet('shipAddressCity', '');
             safeSet('shipAddressState', '');
             safeSet('shipAddressZip', '');
+        }
+    },
+
+    populateAddressDropdown() {
+        let select = document.getElementById('shipAddressBookSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Load Saved Address --</option>';
+        
+        let addresses = Object.keys(DatabaseManager.shippingRules).sort();
+        addresses.forEach(cust => {
+            let opt = document.createElement('option');
+            opt.value = cust;
+            opt.textContent = cust;
+            select.appendChild(opt);
+        });
+    },
+
+    loadFromAddressBook(customerName) {
+        if (!customerName) return;
+        let rules = DatabaseManager.shippingRules[customerName.toUpperCase()] || {};
+        
+        let safeSet = (id, val) => { let el = document.getElementById(id); if (el) el.value = val || ''; };
+        
+        safeSet('shipCustName', customerName);
+        safeSet('shipAddressCompany', customerName);
+        safeSet('shipAccountNum', rules.account);
+        safeSet('shipInstructions', rules.notes);
+        safeSet('shipAddressContact', rules.contactName);
+        
+        let carrierSel = document.getElementById('shipCarrier');
+        if (rules.method && carrierSel) {
+            let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
+            if (opt) carrierSel.value = opt.value;
+        }
+
+        if (rules.address) {
+            let addr = rules.address.trim();
+            let zipMatch = addr.match(/\b\d{5}\b/);
+            if (zipMatch) safeSet('shipAddressZip', zipMatch[0]);
+            
+            let stateMatch = addr.match(/\b([A-Z]{2})\b/g);
+            if (stateMatch && stateMatch.length > 0) safeSet('shipAddressState', stateMatch[stateMatch.length - 1]);
+
+            let parts = addr.split(',');
+            if (parts.length >= 2) {
+                safeSet('shipAddress1', parts[0].trim());
+                safeSet('shipAddress2', ''); // Clear line 2
+                safeSet('shipAddressCity', parts[1].replace(/\b\d{5}\b/g, '').replace(/\b([A-Z]{2})\b/g, '').trim());
+            } else {
+                safeSet('shipAddress1', addr);
+            }
+        }
+    },
+
+    async saveAddressBookEntry() {
+        let btn = document.getElementById('btnSaveAddress');
+        let origText = btn.innerHTML;
+        btn.innerHTML = "⏳ Saving...";
+        btn.disabled = true;
+
+        let custName = document.getElementById('shipCustName').value.trim() || document.getElementById('shipAddressCompany').value.trim();
+        let street1 = document.getElementById('shipAddress1').value.trim();
+        let street2 = document.getElementById('shipAddress2').value.trim();
+        let city = document.getElementById('shipAddressCity').value.trim();
+        let state = document.getElementById('shipAddressState').value.trim();
+        let zip = document.getElementById('shipAddressZip').value.trim();
+        
+        let combinedStreet = street2 ? `${street1} ${street2}` : street1;
+        let formattedAddress = `${combinedStreet}, ${city}, ${state} ${zip}`;
+
+        let newRules = {
+            contactName: document.getElementById('shipAddressContact').value.trim(),
+            email: "", 
+            phone: "", 
+            address: formattedAddress,
+            method: document.getElementById('shipCarrier').value,
+            account: document.getElementById('shipAccountNum').value.trim(),
+            notes: document.getElementById('shipInstructions').value.trim()
+        };
+
+        let payload = {
+            action: "SAVE_SHIPPING_INFO",
+            payload: {
+                customerName: custName,
+                ...newRules
+            }
+        };
+
+        try {
+            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            let data = await res.json();
+            
+            if (data.status === "success") {
+                // Update local memory so it's instantly available without a full refresh
+                DatabaseManager.shippingRules[custName.toUpperCase()] = newRules;
+                this.populateAddressDropdown();
+                UIManager.showCustomAlert("Success", "✅ Address book updated successfully!");
+            } else {
+                alert("Database Error: " + data.message);
+            }
+        } catch (err) {
+            alert("Network Error: " + err.message);
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
         }
     },
 
