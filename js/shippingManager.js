@@ -20,7 +20,7 @@ const ShippingManager = {
         
         // Populate core rules
         safeSet('shipCustName', baseName);
-        safeSet('shipAddressCompany', baseName);
+        safeSet('shipAddressCompany', rules.formalCompany || baseName); // ✨ Prioritizes the Formal FedEx Name
         safeSet('shipAccountNum', rules.account);
         safeSet('shipInstructions', rules.notes);
         safeSet('shipAddressContact', rules.contactName);
@@ -137,6 +137,7 @@ const ShippingManager = {
         let formattedAddress = `${combinedStreet}, ${city}, ${state} ${zip}`;
 
         let newRules = {
+            formalCompany: document.getElementById('shipAddressCompany').value.trim(), // ✨ The long FedEx Name
             contactName: document.getElementById('shipAddressContact').value.trim(),
             email: "", 
             phone: "", 
@@ -149,7 +150,7 @@ const ShippingManager = {
         let payload = {
             action: "SAVE_SHIPPING_INFO",
             payload: {
-                customerName: custName,
+                customerName: custName, // The short ID to link them
                 ...newRules
             }
         };
