@@ -210,17 +210,20 @@ const UIManager = {// GLOBAL CONFIGURATIONS
                 if (det.qty > 0) {
                     totalItems += det.qty;
                     rowsHtml += `
-                        <div style="padding:8px 0; border-bottom:1px dashed #ccc; font-size:0.85rem;">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                <span style="font-weight:bold; color:#c62828;">${ref}</span>
-                                <span style="font-weight:bold; color:#333;">Qty: ${det.qty}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555;">
-                                <span>Lot: ${det.lot} | Exp: ${det.exp}</span>
-                                <span style="font-style:italic;">Note: ${det.orderNum || 'None'}</span>
-                            </div>
-                        </div>`;
-                }
+                      <div style="padding:8px 0; border-bottom:1px dashed #ccc; font-size:0.85rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                          <span style="font-weight:bold; color:#c62828;">${ref}</span>
+                          <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-weight:bold; color:#333;">Qty: ${det.qty}</span>
+                            <button class="btn-small" style="background-color:#d32f2f; color:#fff; padding:2px 8px; font-size:0.7rem;" onclick="SessionManager.openUnreserveModal('ASP DAMAGED INVENTORY')">Un-Reserve</button>
+                          </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555;">
+                          <span>Lot: ${det.lot} | Exp: ${det.exp}</span>
+                          <span style="font-style:italic;">Note: ${det.orderNum || 'None'}</span>
+                        </div>
+                      </div>`;
+                  }
             });
         }
     });

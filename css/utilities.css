@@ -122,9 +122,16 @@ body.theme-sage #damagedBinViewerModal > div,
 body.theme-slate #quickLookupModal > div,
 body.theme-sage #quickLookupModal > div,
 body.theme-slate #modalUnreserve > div,
-body.theme-sage #modalUnreserve > div {
+body.theme-sage #modalUnreserve > div, 
+body.theme-slate #shipmentManagerModal > div,
+body.theme-sage #shipmentManagerModal > div {
     background-color: var(--card-bg) !important;
     color: var(--text-main) !important;
+}
+
+body.theme-slate #shipmentManagerModal h2,
+body.theme-sage #shipmentManagerModal h2 {
+    color: var(--heading-color) !important;
 }
 
 body.theme-slate #reportOptionsModal h3,

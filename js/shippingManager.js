@@ -62,6 +62,12 @@ const ShippingManager = {
         let totalWeight = parseFloat(document.getElementById('shipWeight').value) || 1.0;
 
         let serviceType = document.getElementById('shipServiceType').value;
+        let isResidential = document.querySelector('input[name="shipAddressType"]:checked').value === 'residential';
+        
+        // FedEx Strict Routing: Ground to Residential MUST be Ground Home Delivery
+        if (serviceType === 'FEDEX_GROUND' && isResidential) {
+            serviceType = 'GROUND_HOME_DELIVERY';
+        }
 
         let orderNum = SessionManager.currentOrderNum || ""; 
 
@@ -234,6 +240,11 @@ const ShippingManager = {
         
         document.getElementById('shipWeight').value = totalWeight.toFixed(1);
         document.getElementById('shipWeightWarning').style.display = hasNonSuture ? 'flex' : 'none';
+    },
+
+    skipAndComplete() {
+        document.getElementById('shipmentManagerModal').style.display = 'none';
+        SessionManager.completeSession();
     },
 
     handleBoxSizeChange() {
