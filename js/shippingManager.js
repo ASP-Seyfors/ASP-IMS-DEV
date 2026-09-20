@@ -114,7 +114,8 @@ const ShippingManager = {
         let btn2 = document.getElementById('btnGenerateLabel');
         if (btn2) { btn2.innerHTML = `<i data-lucide="printer"></i> Purchase FedEx Label`; btn2.disabled = false; }
 
-        if (typeof SessionManager !== 'undefined') SessionManager.completeSession();
+        // ✨ FIXED: Pass (true, true) to bypass the shipping intercept
+        if (typeof SessionManager !== 'undefined') SessionManager.completeSession(true, true);
     },
 
     async logManualTracking() {
