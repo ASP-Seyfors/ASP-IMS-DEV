@@ -235,7 +235,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
 
     modal = document.createElement('div');
     modal.id = 'damagedBinViewerModal';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
+    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99990; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
     
     modal.innerHTML = `
       <div style="background:#fff; border-radius:8px; width:100%; max-width:500px; max-height:85vh; display:flex; flex-direction:column; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
