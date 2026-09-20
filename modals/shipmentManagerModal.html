@@ -35,7 +35,16 @@
                   <select id="shipCarrier" class="form-input">
                     <option value="FEDEX">FedEx</option>
                     <option value="UPS">UPS</option>
-                    <option value="USPS">USPS</option>
+                  </select>
+                </div>
+                <div style="flex:1;">
+                  <label style="font-size:0.8rem; font-weight:bold; color:#555;">Service Level</label>
+                  <select id="shipServiceType" class="form-input">
+                    <option value="FEDEX_GROUND">Ground</option>
+                    <option value="FEDEX_EXPRESS_SAVER">Express Saver (3 Day)</option>
+                    <option value="FEDEX_2_DAY">2Day Air</option>
+                    <option value="STANDARD_OVERNIGHT">Standard Overnight</option>
+                    <option value="PRIORITY_OVERNIGHT">Priority Overnight</option>
                   </select>
                 </div>
                 <div style="flex:1;">
@@ -135,7 +144,7 @@
               <i data-lucide="printer" style="width:20px; height:20px;"></i> Purchase FedEx Label
             </button>
             <div style="display:flex; gap:10px;">
-              <button id="btnLogTrackingOnly" class="btn-action" style="background:#0277bd; color:#fff; flex:1; font-size:0.9rem; padding:8px; margin:0;">
+              <button id="btnLogTrackingOnly" onclick="ShippingManager.logManualTracking()" class="btn-action" style="background:#0277bd; color:#fff; flex:1; font-size:0.9rem; padding:8px; margin:0;">
                 Log Tracking Only
               </button>
               <button class="btn-action" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:8px; margin:0;" onclick="ShippingManager.skipAndComplete()">

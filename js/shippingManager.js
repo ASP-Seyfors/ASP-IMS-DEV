@@ -50,18 +50,35 @@ const ShippingManager = {
     async generateFedExLabel() {
         let btn = document.getElementById('btnGenerateFedExLabel');
         let origText = btn ? btn.innerText : "Purchase FedEx Label";
-        if (btn) { btn.innerText = "⏳ Requesting Label..."; btn.disabled = true; }
 
-        // ✨ PULL REAL DATA DIRECTLY FROM THE MODAL INPUTS (Filled via Database Rules)
+        // Pull real data directly from the modal inputs
         let customerName = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
-        let contactName = document.getElementById('shipAddressName').value.trim() || "Receiving Dept";
+        let contactName = document.getElementById('shipAddressName').value.trim();
         let street = document.getElementById('shipAddressStreet1').value.trim();
-        let city = document.getElementById('shipAddressCity').value.trim() || "Tampa";
-        let state = document.getElementById('shipAddressState').value.trim() || "FL";
-        let zip = document.getElementById('shipAddressZip').value.trim() || "33602";
+        let city = document.getElementById('shipAddressCity').value.trim();
+        let state = document.getElementById('shipAddressState').value.trim();
+        let zip = document.getElementById('shipAddressZip').value.trim();
         
         let totalWeight = parseFloat(document.getElementById('shipWeight').value) || 1.0;
-        let orderNum = SessionManager.currentOrderNum || "TEST-ORDER"; 
+
+        let serviceType = document.getElementById('shipServiceType').value;
+
+        let orderNum = SessionManager.currentOrderNum || ""; 
+
+        // ✨ NEW: STRICT FRONTEND VALIDATION (The Gatekeeper)
+        let missingFields = [];
+        if (!contactName) missingFields.push("Contact Name");
+        if (!street) missingFields.push("Street Address");
+        if (!city) missingFields.push("City");
+        if (!state) missingFields.push("State");
+        if (!zip) missingFields.push("ZIP Code");
+
+        if (missingFields.length > 0) {
+            alert("⚠️ Cannot purchase label. Missing required shipping details:\n\n- " + missingFields.join("\n- ") + "\n\nPlease update the Destination Address fields and try again.");
+            return; // Instantly stops execution!
+        }
+
+        if (btn) { btn.innerText = "⏳ Requesting Label..."; btn.disabled = true; }
 
         let payload = {
             action: "CREATE_SHIPMENT",
@@ -73,7 +90,8 @@ const ShippingManager = {
                 street: street,
                 city: city,
                 state: state,
-                zip: zip
+                zip: zip,
+                serviceType: serviceType
             }
         };
 
@@ -104,6 +122,49 @@ const ShippingManager = {
             }
         } catch (err) {
             alert("Network Error generating FedEx Label: " + err.message);
+        } finally {
+            if (btn) { btn.innerText = origText; btn.disabled = false; }
+        }
+    },
+
+    async logManualTracking() {
+        let trackingNum = prompt("Please paste the pre-provided tracking number:");
+        if (!trackingNum || trackingNum.trim() === "") return; // Cancel if empty
+
+        let btn = document.getElementById('btnLogTrackingOnly');
+        let origText = btn.innerText;
+        if (btn) { btn.innerText = "⏳ Logging..."; btn.disabled = true; }
+
+        let customerName = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
+        let carrier = document.getElementById('shipCarrier').value;
+        let orderNum = SessionManager.currentOrderNum || "";
+
+        let payload = {
+            action: "LOG_MANUAL_TRACKING",
+            payload: {
+                customerName: customerName,
+                orderNum: orderNum,
+                carrier: carrier,
+                trackingNumber: trackingNum.trim()
+            }
+        };
+
+        try {
+            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            
+            let data = await res.json();
+            
+            if (data.status === "success") {
+                this.skipAndComplete(); // Close modal and finish workflow
+            } else {
+                alert("Database Error: " + data.message);
+            }
+        } catch (err) {
+            alert("Network Error logging tracking: " + err.message);
         } finally {
             if (btn) { btn.innerText = origText; btn.disabled = false; }
         }
