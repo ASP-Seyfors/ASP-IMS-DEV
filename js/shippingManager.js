@@ -243,8 +243,13 @@ const ShippingManager = {
     },
 
     skipAndComplete() {
-        document.getElementById('shipmentManagerModal').style.display = 'none';
-        SessionManager.completeSession();
+        let modal = document.getElementById('shipmentManagerModal');
+        if (modal) modal.style.display = 'none';
+        
+        // Ensure the global session completion sequence triggers
+        if (typeof SessionManager !== 'undefined') {
+            SessionManager.completeSession();
+        }
     },
 
     handleBoxSizeChange() {

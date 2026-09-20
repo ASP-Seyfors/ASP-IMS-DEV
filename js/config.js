@@ -9,7 +9,7 @@ if (currentUrl.includes("ASP-IMS-DEMO")) {
     ENV_CONFIG = {
         CLOUD_ARCHIVE_URL: "https://script.google.com/macros/s/AKfycbyODX9mhA1QL83lRcpWEuRQ6JGjFSYCYu_dnUbTrfXzVb59Q2jflnyxX4-DvbOBazj2yg/exec",
         GOOGLE_FEEDER_URL: "https://script.google.com/macros/s/AKfycbx2IMSdGKmIVsiXms5FjH-ZRXYeMzwmCd2n6wiaff5F4ORO8Kdjilp65mFmp4WcqaZL6w/exec",
-        APP_VERSION: "5.3.0 (DEMO)",
+        APP_VERSION: "5.3.1 (DEMO)",
         ENVIRONMENT_NAME: "ASP DEMO",
         THEME_COLOR: "#37c015",
         

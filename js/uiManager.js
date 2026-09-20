@@ -214,8 +214,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                           <span style="font-weight:bold; color:#c62828;">${ref}</span>
                           <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-weight:bold; color:#333;">Qty: ${det.qty}</span>
-                            <button class="btn-small" style="background-color:#d32f2f; color:#fff; padding:2px 8px; font-size:0.7rem;" onclick="SessionManager.openUnreserveModal('ASP DAMAGED INVENTORY')">Un-Reserve</button>
+                            <span style="font-weight:bold; color:#333;">Qty: ${det.qty}</span>${(AuthManager.currentUser && AuthManager.currentUser.role !== 'SALES' && AuthManager.currentUser.role !== 'GUEST') 
+                                ? `<button class="btn-small" style="background-color:#d32f2f; color:#fff; padding:2px 8px; font-size:0.7rem;" onclick="SessionManager.openUnreserveModal('ASP DAMAGED INVENTORY')">Un-Reserve</button>` 
+                                : ''}
                           </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#555;">
