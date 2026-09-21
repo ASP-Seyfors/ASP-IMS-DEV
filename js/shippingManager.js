@@ -106,10 +106,11 @@ const ShippingManager = {
                 payload: {
                     customerName: document.getElementById('shipAddressCompany').value.trim(),
                     contactName: document.getElementById('shipAddressContact').value.trim(),
-                    phone: document.getElementById('shipAddressPhone').value.trim(),
-                    email: document.getElementById('shipAddressEmail').value.trim(),
                     orderNum: SessionManager.currentOrderNum || "N/A",
                     totalWeight: document.getElementById('shipWeight').value,
+                    dimL: document.getElementById('shipDimL').value || "",
+                    dimW: document.getElementById('shipDimW').value || "",
+                    dimH: document.getElementById('shipDimH').value || "",
                     street: document.getElementById('shipAddress1').value.trim() + " " + document.getElementById('shipAddress2').value.trim(),
                     city: document.getElementById('shipAddressCity').value.trim(),
                     state: document.getElementById('shipAddressState').value.trim(),
@@ -170,14 +171,17 @@ const ShippingManager = {
                 payload: {
                     customerName: document.getElementById('shipAddressCompany').value.trim(),
                     contactName: document.getElementById('shipAddressContact').value.trim(),
-                    phone: document.getElementById('shipAddressPhone').value.trim(),
-                    email: document.getElementById('shipAddressEmail').value.trim(),
                     orderNum: SessionManager.currentOrderNum || "N/A",
                     totalWeight: document.getElementById('shipWeight').value,
+                    dimL: document.getElementById('shipDimL').value || "",
+                    dimW: document.getElementById('shipDimW').value || "",
+                    dimH: document.getElementById('shipDimH').value || "",
                     street: document.getElementById('shipAddress1').value.trim() + " " + document.getElementById('shipAddress2').value.trim(),
                     city: document.getElementById('shipAddressCity').value.trim(),
                     state: document.getElementById('shipAddressState').value.trim(),
-                    zip: document.getElementById('shipAddressZip').value.trim()
+                    zip: document.getElementById('shipAddressZip').value.trim(),
+                    serviceType: serviceType,
+                    isResidential: isResidential
                 }
             };
 
@@ -438,7 +442,11 @@ const ShippingManager = {
                 customerName: document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim(),
                 orderNum: SessionManager.currentOrderNum || "",
                 carrier: document.getElementById('shipCarrier').value,
-                trackingNumber: trackingNum.trim()
+                trackingNumber: trackingNum.trim(),
+                totalWeight: document.getElementById('shipWeight').value || "",
+                dimL: document.getElementById('shipDimL').value || "",
+                dimW: document.getElementById('shipDimW').value || "",
+                dimH: document.getElementById('shipDimH').value || ""
             }
         };
 
