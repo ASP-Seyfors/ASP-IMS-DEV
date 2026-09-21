@@ -15,7 +15,16 @@ async function openActiveShipmentsHub() {
             if (arr.length === 0) return "<p style='color:#777; font-style:italic;'>No pending shipments.</p>";
             return arr.map(s => {
                 let dStr = new Date(s.date).toLocaleDateString();
-                let link = s.tracking ? `<a href="https://www.fedex.com/fedextrack/?trknbr=${s.tracking}" target="_blank" style="color:#0277bd; font-weight:bold; text-decoration:none;">Track: ${s.tracking}</a>` : "No Tracking #";
+                let link = "No Tracking #";
+                
+                if (s.tracking) {
+                    let url = `https://www.fedex.com/fedextrack/?trknbr=${s.tracking}`; // Default to FedEx
+                    if (String(s.carrier).toUpperCase().includes("UPS")) {
+                        url = `https://www.ups.com/track?track=yes&trackNums=${s.tracking}`;
+                    }
+                    link = `<a href="${url}" target="_blank" style="color:#0277bd; font-weight:bold; text-decoration:none;">Track: ${s.tracking}</a>`;
+                }
+
                 return `<div style="background:#fff; border:1px solid #ddd; padding:8px; margin-bottom:8px; border-radius:4px;">
                             <div style="font-weight:bold;">${s.partner} <span style="float:right; color:#777; font-size:0.75rem;">${dStr}</span></div>
                             <div style="color:#555;">PO: ${s.po}</div>
