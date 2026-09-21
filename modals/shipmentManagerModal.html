@@ -46,7 +46,7 @@
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
               <div style="flex: 1; min-width:0;">
                 <label style="font-size:0.8rem; font-weight:bold; color: var(--text-main);">Carrier</label>
-                <select id="shipCarrier" class="form-input" style="width:100%; box-sizing:border-box;">
+                <select id="shipCarrier" class="form-input" style="width:100%; box-sizing:border-box;" onchange="ShippingManager.updateCarrierUI()">
                   <option value="FEDEX">FedEx</option>
                   <option value="UPS">UPS</option>
                 </select>

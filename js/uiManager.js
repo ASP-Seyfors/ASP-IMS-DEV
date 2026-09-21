@@ -561,6 +561,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   },
 
   closeAuditHub() {
+    let trackModal = document.getElementById('shipmentTrackingModal');
+    if (trackModal) trackModal.style.display = 'none'; // ✨ Force tracking modal closed
+
     document.getElementById('screenAuditHub').style.display = 'none';
     document.getElementById('screenSetup').style.display = 'block';
   },

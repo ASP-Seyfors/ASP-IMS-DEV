@@ -166,6 +166,11 @@ window.onload = async () => {
   let versionDisplay = document.getElementById('appVersionDisplay');
   if (versionDisplay) versionDisplay.textContent = "App Version: " + ENV_CONFIG.APP_VERSION;
 
+  let blastNew = document.getElementById('blastNewVer');
+  if (blastNew && typeof ENV_CONFIG !== 'undefined') {
+      blastNew.value = ENV_CONFIG.APP_VERSION;
+  }
+
   // 3. Initialize remaining systems
   UIManager.loadSavedTheme(); 
   DatabaseManager.init(); 

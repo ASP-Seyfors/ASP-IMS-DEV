@@ -9,6 +9,7 @@ const ShippingManager = {
         this.populateCustomerLogistics();
         this.recalculateBoxMath();
         this.populateAddressDropdown();
+        this.updateCarrierUI(); // ✨ Set correct button state on load
         document.getElementById('shipmentManagerModal').style.display = 'flex';
     },
 
@@ -67,6 +68,25 @@ const ShippingManager = {
             safeSet('shipAddressState', '');
             safeSet('shipAddressZip', '');
         }
+    },
+
+    updateCarrierUI() {
+        let carrier = document.getElementById('shipCarrier').value.toUpperCase();
+        let btn = document.getElementById('btnGenerateLabel');
+        if (!btn) return;
+
+        if (carrier.includes('UPS')) {
+            btn.innerHTML = `<i data-lucide="external-link"></i> Continue to UPS.com`;
+            btn.onclick = () => ShippingManager.generateUPSPlaceholder();
+            btn.style.backgroundColor = "#ffb300"; // UPS Yellow/Gold
+            btn.style.color = "#000";
+        } else {
+            btn.innerHTML = `<i data-lucide="printer"></i> Purchase FedEx Label`;
+            btn.onclick = () => ShippingManager.generateFedExLabel();
+            btn.style.backgroundColor = "#2e7d32"; // FedEx Green
+            btn.style.color = "#fff";
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     },
 
     populateAddressDropdown() {
@@ -236,6 +256,26 @@ const ShippingManager = {
         else if (val === 'S') { document.getElementById('shipDimL').value = 12; document.getElementById('shipDimW').value = 6; document.getElementById('shipDimH').value = 6; }
         else if (val === 'M') { document.getElementById('shipDimL').value = 22; document.getElementById('shipDimW').value = 13; document.getElementById('shipDimH').value = 15; }
         else if (val === 'L') { document.getElementById('shipDimL').value = 27; document.getElementById('shipDimW').value = 15; document.getElementById('shipDimH').value = 17; }
+    },
+
+    generateUPSPlaceholder() {
+        window.open('https://www.ups.com/ship', '_blank');
+
+        let comp = document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim();
+        let street = document.getElementById('shipAddress1').value.trim() + " " + document.getElementById('shipAddress2').value.trim();
+        let city = document.getElementById('shipAddressCity').value.trim();
+        let state = document.getElementById('shipAddressState').value.trim();
+        let zip = document.getElementById('shipAddressZip').value.trim();
+        let weight = document.getElementById('shipWeight').value;
+
+        UIManager.showCustomAlert("UPS Manual Processing", 
+            `<div style="text-align:left; font-size: 13px;">
+                Please complete the shipment on the UPS website using these details:<br><br>
+                <b>To:</b> ${comp}<br>
+                <b>Address:</b> ${street}, ${city}, ${state} ${zip}<br>
+                <b>Weight:</b> ${weight} lbs<br><br>
+                <i>Once you purchase the label from UPS, return here and click <b>Log Tracking Only</b> to save the tracking number to the database.</i>
+            </div>`);
     },
     
     skipAndComplete() {
