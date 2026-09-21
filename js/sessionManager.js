@@ -516,6 +516,11 @@ const SessionManager = {
         sel.innerHTML = '';
         sel.add(first);
         opts.forEach(o => sel.add(o));
+        
+        // ✨ iOS SAFARI FIX: Invisible bumpers prevent the bottom option from clipping
+        let spacer1 = document.createElement('option'); spacer1.disabled = true; spacer1.text = " ";
+        let spacer2 = document.createElement('option'); spacer2.disabled = true; spacer2.text = " ";
+        sel.add(spacer1); sel.add(spacer2);
       }
     });
 
@@ -523,7 +528,7 @@ const SessionManager = {
 
     this.bindOrderInputListener(); 
   },
-
+  
   startStocktakeSession(mode) {
     let uName = document.getElementById('userNameInput').value.trim();
     if (typeof AuthManager !== 'undefined' && AuthManager.isWorkstation) {
