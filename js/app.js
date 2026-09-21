@@ -343,7 +343,8 @@ window.executeShopifySeedTest = () => AuditManager.executeShopifySeedTest();
 window.executeShopifySandboxSync = () => AuditManager.executeShopifySandboxSync();
 window.generateRevMedPDF = (mode) => ReportsManager.generateRevMedPDF(mode);
 
-// Add it right here at the bottom
 window.sendDeploymentBlast = sendDeploymentBlast;
+
+window.openActiveShipmentsHub = openActiveShipmentsHub;
 
 window.forceAppUpdate = forceAppUpdate;
