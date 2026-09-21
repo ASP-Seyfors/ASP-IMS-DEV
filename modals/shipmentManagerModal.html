@@ -29,7 +29,7 @@
             <!-- Address Book Controls -->
             <div style="background: rgba(2, 119, 189, 0.1); padding: 10px; border: 1px solid #0277bd; border-radius: 4px; margin-bottom: 15px;">
               <label style="font-size: 0.8rem; font-weight: bold; color: #0277bd; display: block; margin-bottom: 4px;">Search Address Book:</label>
-              <select id="shipAddressBookSelect" class="form-input" style="border-color: #0277bd; margin-bottom: 10px;" onchange="ShippingManager.loadFromAddressBook(this.value)">
+              <select id="shipAddressBookSelect" class="form-input" style="border-color: #0277bd; margin-bottom: 10px; max-width: 100%; text-overflow: ellipsis;" onchange="ShippingManager.loadFromAddressBook(this.value)">
                 <option value="">-- Load Saved Address --</option>
               </select>
               

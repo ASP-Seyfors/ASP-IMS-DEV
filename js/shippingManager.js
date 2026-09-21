@@ -128,7 +128,7 @@ const ShippingManager = {
                 for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
                 let byteArray = new Uint8Array(byteNumbers);
                 let fileBlob = new Blob([byteArray], { type: 'application/pdf' });
-                let blobUrl = URL.createObjectURL(blobBlob);
+                let blobUrl = URL.createObjectURL(fileBlob);
                 
                 let printWindow = window.open(blobUrl, "_blank");
                 if (!printWindow) alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");

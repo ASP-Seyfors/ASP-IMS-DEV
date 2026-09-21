@@ -528,7 +528,7 @@ const SessionManager = {
 
     this.bindOrderInputListener(); 
   },
-  
+
   startStocktakeSession(mode) {
     let uName = document.getElementById('userNameInput').value.trim();
     if (typeof AuthManager !== 'undefined' && AuthManager.isWorkstation) {
