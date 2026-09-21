@@ -1987,7 +1987,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let desc = String(item.desc || '').replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
         let cat = String(item.category || '').replace(/"/g, '""');
         let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-        let activeStatus = (item.status === 'INACTIVE' || cleanPrice === 0) ? 'INACTIVE' : 'ACTIVE';
+        let activeStatus = (item.status === 'INACTIVE') ? 'INACTIVE' : 'ACTIVE';
         csvContent += `,"${ref}","","${cat}","","${desc}","","","","","","","","","","","","","","${activeStatus}","","ENABLED","","ENABLED",""\n`;
       });
       
@@ -2026,7 +2026,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         
         let cleanPrice = parseFloat(String(item.price || '').replace(/[^0-9.-]+/g, '')) || 0;
         let rawStatus = String(item.status || "ACTIVE").toUpperCase();
-        let status = (rawStatus === "INACTIVE" || rawStatus === "DRAFT") ? "draft" : "active";
+        let status = (item.status === 'INACTIVE') ? 'draft' : 'active';
         let published = status === "active" ? "TRUE" : "FALSE";
         let gtin = String(item.gtin || '').replace(/"/g, '""').trim();
         if (gtin === 'N/A') gtin = '';
@@ -2545,7 +2545,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let safePrice = cleanPrice > 0 ? cleanPrice.toFixed(2) : '';
       let safeCost = String(item.cost || '').replace(/[^0-9.-]+/g, '');
       
-      let status = (item.status === 'INACTIVE' || cleanPrice === 0) ? 'draft' : 'active';
+      let status = (item.status === 'INACTIVE') ? 'draft' : 'active';
       let category = String(item.category || '').replace(/"/g, '""');
 
       let row = [

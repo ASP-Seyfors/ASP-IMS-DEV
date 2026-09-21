@@ -440,17 +440,23 @@ const SessionManager = {
     if (btn && !silent) { btn.textContent = "⏳ Fetching QBO..."; btn.disabled = true; btn.style.opacity = "0.7"; }
 
     try {
-      // ✨ THE FIX: Target the Archive URL (Database Script) where QBO_Engine actually lives!
-      await fetch(this.getActiveArchiveUrl(), {
+      // ✨ THE FIX: Removed 'no-cors' so the app actually waits for QBO to finish!
+      let res = await fetch(this.getActiveArchiveUrl(), {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({ action: "FETCH_QBO" })
       });
+      
+      let data = await res.json();
+      if (data.status === "error") throw new Error(data.message);
 
+      // Now that we know QBO is done, update the frontend dropdown
       await this.fetchStagedSessions(true);
 
-      if (!silent) alert("✅ QuickBooks Sync Complete! Check the Shipments & Orders Feed dropdown above.");
+      if (!silent) {
+          if (data.count === 0) alert("✅ Sync Complete, but no new open invoices were found in QBO.");
+          else alert(`✅ QuickBooks Sync Complete! Found ${data.count} new open invoice(s).`);
+      }
     } catch (err) {
       if (!silent) alert("Error triggering QBO Sync: " + err.message);
     } finally {

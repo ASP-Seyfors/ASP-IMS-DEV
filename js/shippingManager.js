@@ -269,7 +269,7 @@ const ShippingManager = {
         let weight = document.getElementById('shipWeight').value;
 
         UIManager.showCustomAlert("UPS Manual Processing", 
-            `<div style="text-align:left; font-size: 13px;">
+            `<div style="text-align:left; font-size: 13px; color: #333;">
                 Please complete the shipment on the UPS website using these details:<br><br>
                 <b>To:</b> ${comp}<br>
                 <b>Address:</b> ${street}, ${city}, ${state} ${zip}<br>
