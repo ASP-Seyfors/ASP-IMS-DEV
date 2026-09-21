@@ -641,6 +641,9 @@ const DatabaseManager = {
             // ✨ ADD THESE TWO LINES TO CATCH THE DICTIONARY FROM APPS SCRIPT
             fullDb.customerAliases = data.db.customerAliases || {}; 
             fullDb.supplierAliases = data.db.supplierAliases || {}; 
+            
+            // ✨ NEW: Catch the shipping rules so importCloudDatabase can save them
+            fullDb.shippingRules = data.db.shippingRules || {};
           }
           totalPages = data.totalPages || 1;
           page++;
