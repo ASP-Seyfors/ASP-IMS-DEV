@@ -838,15 +838,33 @@ const ReportsManager = {
   },
 
   filterFlyerItems() {
-    let term = document.getElementById('flyerSearchBox').value.toLowerCase();
-    // Targets the dynamic rows injected by your AuditManager script
-    let rows = document.querySelectorAll('#reportItemRowsContainer > div'); 
+    let input = document.getElementById('flyerSearchBox');
+    if (!input) return;
     
-    rows.forEach(row => {
-      let text = row.innerText.toLowerCase();
-      // Keep display:flex intact for your row styling
-      row.style.display = text.includes(term) ? 'flex' : 'none';
-    });
+    let filter = input.value.toUpperCase().trim();
+    let container = document.getElementById('reportItemRowsContainer');
+    if (!container) return;
+    
+    let rows = container.getElementsByClassName('flyer-item-row');
+    let visibleCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        let refInput = rows[i].querySelector('.rep-ref');
+        let descInput = rows[i].querySelector('.rep-desc');
+        
+        let refText = refInput ? refInput.value.toUpperCase() : "";
+        let descText = descInput ? descInput.value.toUpperCase() : "";
+        
+        if (refText.includes(filter) || descText.includes(filter)) {
+            rows[i].style.display = "flex"; // Must be 'flex', not 'block'
+            visibleCount++;
+        } else {
+            rows[i].style.display = "none";
+        }
+    }
+
+    // Safety check to prevent the modal from collapsing into a tiny sliver if there are no matches
+    container.style.minHeight = visibleCount === 0 ? "50px" : "auto";
   },
 
   addBlankRowToReportEditor() {
