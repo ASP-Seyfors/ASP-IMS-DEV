@@ -25,6 +25,8 @@ const ShippingManager = {
         safeSet('shipAccountNum', rules.account);
         safeSet('shipInstructions', rules.notes);
         safeSet('shipAddressContact', rules.contactName);
+        safeSet('shipAddressEmail', rules.email);
+        safeSet('shipAddressPhone', rules.phone);
         
         let carrierSel = document.getElementById('shipCarrier');
         if (rules.method && carrierSel) {
@@ -104,6 +106,8 @@ const ShippingManager = {
                 payload: {
                     customerName: document.getElementById('shipAddressCompany').value.trim(),
                     contactName: document.getElementById('shipAddressContact').value.trim(),
+                    phone: document.getElementById('shipAddressPhone').value.trim(),
+                    email: document.getElementById('shipAddressEmail').value.trim(),
                     orderNum: SessionManager.currentOrderNum || "N/A",
                     totalWeight: document.getElementById('shipWeight').value,
                     street: document.getElementById('shipAddress1').value.trim() + " " + document.getElementById('shipAddress2').value.trim(),
@@ -166,6 +170,8 @@ const ShippingManager = {
                 payload: {
                     customerName: document.getElementById('shipAddressCompany').value.trim(),
                     contactName: document.getElementById('shipAddressContact').value.trim(),
+                    phone: document.getElementById('shipAddressPhone').value.trim(),
+                    email: document.getElementById('shipAddressEmail').value.trim(),
                     orderNum: SessionManager.currentOrderNum || "N/A",
                     totalWeight: document.getElementById('shipWeight').value,
                     street: document.getElementById('shipAddress1').value.trim() + " " + document.getElementById('shipAddress2').value.trim(),
@@ -239,6 +245,8 @@ const ShippingManager = {
         safeSet('shipAccountNum', rules.account);
         safeSet('shipInstructions', rules.notes);
         safeSet('shipAddressContact', rules.contactName);
+        safeSet('shipAddressEmail', rules.email);
+        safeSet('shipAddressPhone', rules.phone);
         
         let carrierSel = document.getElementById('shipCarrier');
         if (rules.method && carrierSel) {

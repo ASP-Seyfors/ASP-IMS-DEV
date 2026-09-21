@@ -454,8 +454,8 @@ const SessionManager = {
       await this.fetchStagedSessions(true);
 
       if (!silent) {
-          if (data.count === 0) alert("✅ Sync Complete, but no new open invoices were found in QBO.");
-          else alert(`✅ QuickBooks Sync Complete! Found ${data.count} new open invoice(s).`);
+          if (data.count === 0) alert("✅ Sync Complete! No pending open invoices currently staged.");
+          else alert(`✅ QuickBooks Sync Complete! You have ${data.count} open invoice(s) pending fulfillment.`);
       }
     } catch (err) {
       if (!silent) alert("Error triggering QBO Sync: " + err.message);
