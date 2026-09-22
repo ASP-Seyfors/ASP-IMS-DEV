@@ -1016,7 +1016,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     document.getElementById('stockReportNoteContainer').style.display = 'block';
     document.getElementById('stockReportActionRow').style.display = 'flex';
     document.getElementById('stockReportItemCount').innerText = `Available Inventory (${availableItems.length} items)`;
-    document.getElementById('btnAddFlyerRow').style.display = 'none';
+    document.getElementById('btnAddFlyerRow').style.display = 'inline-block';
 
     // 2. Inject Data and Bind Buttons
     document.getElementById('reportItemRowsContainer').innerHTML = rowsHtml.length > 0 ? rowsHtml : '<div style="text-align:center; padding:10px; color:#777;">No items currently available in stock.</div>';

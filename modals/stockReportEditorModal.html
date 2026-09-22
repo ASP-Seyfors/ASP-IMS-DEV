@@ -25,8 +25,11 @@
     </div>
 
     <!-- SEARCH BAR -->
-    <div style="margin-bottom: 10px;">
-      <input type="text" id="flyerSearchBox" onkeyup="ReportsManager.filterFlyerItems()" placeholder="🔍 Search by REF or Description..." style="width: 100%; padding: 8px; font-size: 0.85rem; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;">
+    <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+      <input type="text" id="flyerSearchBox" onkeyup="ReportsManager.filterFlyerItems()" placeholder="🔍 Search by REF or Description..." style="flex: 1; padding: 8px; font-size: 0.85rem; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box;">
+      <label style="font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #0277bd; white-space: nowrap; background: #e3f2fd; padding: 6px 10px; border-radius: 4px; border: 1px solid #bfe0fb;">
+        <input type="checkbox" id="chkShowSelectedFlyer" onchange="ReportsManager.filterFlyerItems()" style="vertical-align: middle;"> Show Selected Only
+      </label>
     </div>
 
     <!-- ROWS CONTAINER (Only one!) -->

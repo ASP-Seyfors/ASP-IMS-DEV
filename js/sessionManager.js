@@ -1365,7 +1365,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                desc: "Navigate to vendor website for item description.", 
                category: "General", 
                shopifyCategory: "Medical Supplies", 
-               status: "INACTIVE",
+               status: "ACTIVE",
                parentRef: pRef, uomMult: uMult, shelf: ""
            });
        }
@@ -1386,7 +1386,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
                        desc: "Navigate to vendor website for item description.", 
                        category: "General", 
                        shopifyCategory: "Medical Supplies", 
-                       status: "INACTIVE",
+                       status: "ACTIVE",
                        parentRef: "", uomMult: 1, shelf: ""
                    });
                }

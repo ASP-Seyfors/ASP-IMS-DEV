@@ -846,24 +846,28 @@ const ReportsManager = {
     if (!container) return;
     
     let rows = container.getElementsByClassName('flyer-item-row');
+    let showSelectedOnly = document.getElementById('chkShowSelectedFlyer') && document.getElementById('chkShowSelectedFlyer').checked;
     let visibleCount = 0;
 
     for (let i = 0; i < rows.length; i++) {
         let refInput = rows[i].querySelector('.rep-ref');
         let descInput = rows[i].querySelector('.rep-desc');
+        let chk = rows[i].querySelector('.flyer-chk');
         
         let refText = refInput ? refInput.value.toUpperCase() : "";
         let descText = descInput ? descInput.value.toUpperCase() : "";
         
-        if (refText.includes(filter) || descText.includes(filter)) {
-            rows[i].style.display = "flex"; // Must be 'flex', not 'block'
+        let matchesSearch = refText.includes(filter) || descText.includes(filter);
+        let matchesSelected = !showSelectedOnly || (chk && chk.checked);
+        
+        if (matchesSearch && matchesSelected) {
+            rows[i].style.display = "flex"; 
             visibleCount++;
         } else {
             rows[i].style.display = "none";
         }
     }
 
-    // Safety check to prevent the modal from collapsing into a tiny sliver if there are no matches
     container.style.minHeight = visibleCount === 0 ? "50px" : "auto";
   },
 
