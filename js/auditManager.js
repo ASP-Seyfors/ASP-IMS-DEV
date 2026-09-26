@@ -156,7 +156,9 @@ const AuditManager = {
       group.scans.forEach(scan => {
         let statusIcon = scan.actionTag === 'Reserved' ? '🚩' : (scan.actionTag === 'Pack & Ship' ? '🖐️' : '📦');
         let noteHtml = scan.itemNote ? `<div style="font-size:0.8rem; color:#d32f2f; margin-top:6px;"><em>Note: ${scan.itemNote}</em></div>` : '';
-        let tagHtml = isTagWorkflow ? `<label style="font-weight:bold; font-size:0.8rem; margin-left:6px;">Tag:</label><input type="text" id="editTag_${scan.originalIndex}" value="${scan.customerTag || ''}" style="flex:1; padding:4px; text-transform:uppercase;">` : `<input type="hidden" id="editTag_${scan.originalIndex}" value="">`;
+        
+        // ✨ FIX: Preserves the hidden tag value
+        let tagHtml = isTagWorkflow ? `<label style="font-weight:bold; font-size:0.8rem; margin-left:6px;">Tag:</label><input type="text" id="editTag_${scan.originalIndex}" value="${scan.customerTag || ''}" style="flex:1; padding:4px; text-transform:uppercase;">` : `<input type="hidden" id="editTag_${scan.originalIndex}" value="${scan.customerTag || ''}">`;
 
         // ✨ FIX: Replaced background:#f5f5f5 and border:#e0e0e0 with CSS Variables!
         content.innerHTML += `
@@ -828,8 +830,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
   generateInternalSalesReport(cust) {
     if (!cust) return;
     
-    // Read the limit selection from the modal radio buttons
-    let limitRadio = document.querySelector('input[name="internalReportScope"]:checked');
+    // Read the limit selection from the main reports screen
+    let limitRadio = document.querySelector('#screenReports input[name="internalReportScope"]:checked');
     let limit = limitRadio ? limitRadio.value : '10';
 
     let incDesc = document.getElementById('chkIntDesc') ? document.getElementById('chkIntDesc').checked : true;
@@ -914,7 +916,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     }
     
     let modal = document.getElementById('internalReportOptionsModal');
-    if (modal) modal.remove();
+    if (modal) modal.style.display = 'none'; // Changed from modal.remove()
   },
 
   // ==========================================================================
@@ -1020,6 +1022,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
     // 2. Inject Data and Bind Buttons
     document.getElementById('reportItemRowsContainer').innerHTML = rowsHtml.length > 0 ? rowsHtml : '<div style="text-align:center; padding:10px; color:#777;">No items currently available in stock.</div>';
+    
+    // ✨ FIX: Pointed to AuditManager instead of ReportsManager
     document.getElementById('btnExportStockReportPdf').onclick = () => AuditManager.exportCustomerStockReportPDF(cust);
     document.getElementById('btnExportStockReportEmail').onclick = () => AuditManager.draftEmailFlyer(cust);
 
@@ -1052,9 +1056,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let container = document.getElementById('reportItemRowsContainer');
     let rows = container.querySelectorAll('.flyer-item-row');
     
-    let html = `<div id="flyerCanvasTarget" style="font-family: Arial, sans-serif; font-size: 14px; width: 700px; padding: 20px; background-color: #ffffff; color: #333333;">`;
+    let html = `<div style="font-family: Arial, sans-serif; font-size: 14px; width: 700px; padding: 20px; background-color: #ffffff; color: #333333;">`;
     
-    if (flyerNote) { html += `<div style="white-space: pre-wrap; margin-bottom: 15px; font-size: 13px;">${flyerNote}</div>`; }
+    if (flyerNote) { 
+        html += `<div style="white-space: pre-wrap; margin-bottom: 15px; font-size: 13px;">${flyerNote}</div>`; 
+    }
 
     html += `<table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 13px; margin-top: 15px; margin-bottom: 15px;">
       <thead>
@@ -1069,11 +1075,24 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       
     rows.forEach(r => {
       let chk = r.querySelector('.flyer-chk');
-      if (chk && !chk.checked) return;
+      if (chk && chk.checked === false) return;
 
-      let ref = r.querySelector('.rep-ref').value.trim(); let desc = r.querySelector('.rep-desc').value.trim();
-      let qty = r.querySelector('.rep-qty').value.trim(); let price = r.querySelector('.rep-price').value.trim();
-      let formattedPrice = price ? (price.startsWith('$') || isNaN(parseFloat(price.replace(/[^0-9.-]+/g,""))) ? price : '$' + price) : 'Call for Price';
+      let ref = r.querySelector('.rep-ref').value.trim(); 
+      let desc = r.querySelector('.rep-desc').value.trim();
+      let qty = r.querySelector('.rep-qty').value.trim(); 
+      let price = r.querySelector('.rep-price').value.trim();
+      
+      let formattedPrice = 'Call for Price';
+      if (price) {
+          let numPrice = parseFloat(price.replace(/[^0-9.-]+/g, ""));
+          if (price.startsWith('$')) {
+              formattedPrice = price;
+          } else if (isNaN(numPrice)) {
+              formattedPrice = price;
+          } else {
+              formattedPrice = '$' + price;
+          }
+      }
 
       if (ref) {
         html += `<tr style="background-color: #ffffff;">
@@ -1087,23 +1106,18 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     
     html += `</tbody></table></div>`;
       
-    let tempDiv = document.createElement('div'); tempDiv.innerHTML = html;
-    tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.top = '-9999px';
-    document.body.appendChild(tempDiv);
-    
-    let target = document.getElementById('flyerCanvasTarget');
-    if (typeof html2canvas !== 'undefined') {
-      html2canvas(target, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-        canvas.toBlob(blob => {
-          try {
-            navigator.clipboard.write([new window.ClipboardItem({'image/png': blob})]).then(() => {
-              UIManager.showCustomAlert("Success", "✅ The flyer has been copied to your clipboard as a picture. You can now safely paste it into your email draft.");
-            });
-          } catch (e) { UIManager.showCustomAlert("Notice", "Clipboard image copy not fully supported by this browser. Falling back to HTML."); }
-        }, 'image/png');
-        document.body.removeChild(tempDiv);
+    try {
+      // Write the HTML directly to the clipboard
+      const clipboardItem = new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob(["ASP Custom Flyer"], { type: "text/plain" })
       });
-    } else { document.body.removeChild(tempDiv); UIManager.showCustomAlert("Loading", "Image rendering library is loading. Please try again in a few seconds."); }
+      navigator.clipboard.write([clipboardItem]).then(() => {
+          UIManager.showCustomAlert("Success", "✅ Flyer copied to clipboard! You can now paste it directly into your email draft.");
+      });
+    } catch (e) { 
+      UIManager.showCustomAlert("Error", "Clipboard copy not supported by this browser. Please use the PDF export instead."); 
+    }
   },
 
   exportCustomerStockReportPDF(cust) {
@@ -1177,10 +1191,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let safeTitle = filename.replace(/\./g, '\u2024');
       win.document.title = safeTitle; 
       win.focus(); 
-      setTimeout(() => win.print(), UIManager.printTimeout); // Increased timeout
+      setTimeout(() => win.print(), UIManager.printTimeout); 
     }
 
-    document.getElementById('stockReportEditorModal').remove();
+    // ✨ FIX: Hide the modal instead of destroying it
+    document.getElementById('stockReportEditorModal').style.display = 'none';
   },
 
   getHistoricalCustomerData(cust, limit = '10') {

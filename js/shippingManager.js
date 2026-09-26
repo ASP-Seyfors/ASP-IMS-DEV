@@ -165,6 +165,10 @@ const ShippingManager = {
         if (btn) { btn.innerHTML = "⏳ Contacting UPS API..."; btn.disabled = true; }
 
         try {
+            // ✨ ADD THESE TWO MISSING LINES TO DEFINE THE VARIABLES
+            let serviceType = document.getElementById('shipServiceType').value;
+            let isResidential = document.querySelector('input[name="shipAddressType"]:checked').value === 'residential';
+
             // Attempt backend UPS call (ready for tomorrow's testing)
             let payload = {
                 action: "CREATE_UPS_SHIPMENT",
@@ -180,8 +184,8 @@ const ShippingManager = {
                     city: document.getElementById('shipAddressCity').value.trim(),
                     state: document.getElementById('shipAddressState').value.trim(),
                     zip: document.getElementById('shipAddressZip').value.trim(),
-                    serviceType: serviceType,
-                    isResidential: isResidential
+                    serviceType: serviceType,     // Now this will work
+                    isResidential: isResidential  // Now this will work
                 }
             };
 
@@ -274,6 +278,13 @@ const ShippingManager = {
             } else {
                 safeSet('shipAddress1', addr);
             }
+        } else {
+            // ✨ THE FIX: Explicitly clear the fields if the new customer has no saved address!
+            safeSet('shipAddress1', '');
+            safeSet('shipAddress2', '');
+            safeSet('shipAddressCity', '');
+            safeSet('shipAddressState', '');
+            safeSet('shipAddressZip', '');
         }
     },
 
@@ -456,7 +467,16 @@ const ShippingManager = {
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
-            let data = await res.json();
+            
+            // ✨ FIX: Parse as text first to prevent HTML errors from crashing the app
+            let text = await res.text();
+            let data;
+            try { 
+                data = JSON.parse(text); 
+            } catch(e) { 
+                throw new Error("Google Server busy. Please try logging the tracking number again."); 
+            }
+            
             if (data.status === "success") {
                 this.skipAndComplete(); 
             } else {

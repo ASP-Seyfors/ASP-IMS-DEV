@@ -374,7 +374,10 @@ const SessionManager = {
 
     // 1. Fetch Manual Orders from the Feeder URL (Safely)
     try {
-      let manualRes = await fetch(this.getActiveFeederUrl());
+      // ✨ ADDED: Cache-buster (?t=...) prevents Google from returning stale data
+      let feederUrl = this.getActiveFeederUrl();
+      let joiner = feederUrl.includes('?') ? '&' : '?';
+      let manualRes = await fetch(`${feederUrl}${joiner}t=${Date.now()}`);
       let manualText = await manualRes.text();
       if (manualText.trim().startsWith('{')) {
           manualData = JSON.parse(manualText);
@@ -383,7 +386,8 @@ const SessionManager = {
 
     // 2. Fetch QBO Invoices from the Database URL (Safely)
     try {
-      let qboRes = await fetch(`${this.getActiveArchiveUrl()}?action=GET_QBO_FEED`);
+      // ✨ ADDED: Cache-buster (&t=...) guarantees we pull the newest QBO invoices
+      let qboRes = await fetch(`${this.getActiveArchiveUrl()}?action=GET_QBO_FEED&t=${Date.now()}`);
       let qboText = await qboRes.text();
       if (qboText.trim().startsWith('{')) {
           qboData = JSON.parse(qboText);
@@ -574,8 +578,10 @@ const SessionManager = {
 
     let destRow = document.getElementById('rowItemDestination');
     let tagRow = document.getElementById('rowCustomerTag');
-    if (destRow) destRow.style.display = 'none';
-    if (tagRow) tagRow.style.display = 'none';
+    
+    // ✨ FIX: Allow Destination toggle during Stocktake so users can tag Reserved bins
+    if (destRow) destRow.style.display = 'flex';
+    if (tagRow) tagRow.style.display = 'none'; // Only shows if they click 'Reserved'
     
     this.currentItemAction = 'Inventory';
     ScannerManager.resetScanLinesAndFields();
@@ -709,10 +715,26 @@ const SessionManager = {
         let isPreloaded = false; // ✨ NEW: Tracking flag
 
         if (preloadedAllocations.length > 0) {
-            this.expectedManifest = preloadedAllocations;
+            if (this.expectedManifest && this.expectedManifest.length > 0) {
+                // Merge the Allocations INTO the QBO Manifest
+                preloadedAllocations.forEach(pa => {
+                    let existing = this.expectedManifest.find(e => e.ref === pa.ref);
+                    if (existing) {
+                        existing.isReserved = true;
+                        existing.customerTag = pa.customerTag;
+                        existing.reservedQty = pa.reservedQty;
+                        existing.allocations = pa.allocations;
+                        if (pa.expectedQty > existing.expectedQty) existing.expectedQty = pa.expectedQty;
+                    } else {
+                        this.expectedManifest.push(pa);
+                    }
+                });
+            } else {
+                this.expectedManifest = preloadedAllocations;
+            }
             isPreloaded = true;
         } else if (this.expectedManifest && this.expectedManifest.length > 0) {
-            isPreloaded = true; // Set to true if it came from the QBO Staged Order feed
+            isPreloaded = true; 
         }
 
         if (this.expectedManifest && this.expectedManifest.length > 0) {
@@ -1396,7 +1418,9 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     }
 
     let effectiveTag = this.currentItemAction;
-    if (!this.currentWorkflowType.includes('Receiving & Reserving')) {
+    
+    // ✨ THE FIX: Whitelist Stocktake so it retains your manual Inventory/Reserved toggle choice
+    if (!this.currentWorkflowType.includes('Receiving & Reserving') && !this.currentWorkflowType.includes('Stocktake')) {
       if (this.currentWorkflowType.includes('Reserving')) effectiveTag = 'Reserved';
       else if (this.currentWorkflowType.includes('Packing')) effectiveTag = 'Pack & Ship';
       else if (this.currentWorkflowType.includes('Un-Reserve')) effectiveTag = 'Un-Reserve';
@@ -1416,12 +1440,18 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       finalOrderNum = iNote;
     }
 
-    let cTagCombined = finalCustomerTag + (finalOrderNum ? ` - ${finalOrderNum}` : '');
+   let cTagCombined = finalCustomerTag + (finalOrderNum ? ` - ${finalOrderNum}` : '');
     let bypassOverpackWarning = ignoreOverpack || !this.isManifestEnabled;
+
+    // ✨ THE FIX: Tally what has already been scanned this session to prevent over-reserving!
+    let alreadyScannedQty = this.scannedObjects
+        .filter(i => i.ref === ref && i.actionTag === effectiveTag)
+        .reduce((acc, curr) => acc + curr.qty, 0);
 
     try {
       let currentAllocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
-      InventoryEngine.validateAvailability(ref, qty, effectiveTag, DatabaseManager.db, cTagCombined, currentAllocations, bypassOverpackWarning, this.currentWorkflowType);
+      // Add the alreadyScannedQty to the requested qty for an accurate validation
+      InventoryEngine.validateAvailability(ref, qty + alreadyScannedQty, effectiveTag, DatabaseManager.db, cTagCombined, currentAllocations, bypassOverpackWarning, this.currentWorkflowType);
     } catch (error) {
       if (error.message.startsWith('OVERPACK_WARNING:')) {
         let friendlyMsg = `You just scanned an item that isn't on the original reserve list or exceeds the expected quantity for this customer.\n\nDo you want to pull this from general inventory and add it to their shipment anyway?`;
@@ -1514,14 +1544,18 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     return `https://www.google.com/search?q=${encodeURIComponent(mfr + ' ' + ref)}`;
   },
 
-  // ✨ NEW: Ask Apps Script to scrape the Ethicon Website
   async autoFetchEthicon(ref, index) {
     let btn = document.getElementById(`btnEthiconFetch_${index}`);
     if (btn) { btn.textContent = "⏳ Fetching..."; btn.disabled = true; }
     
     try {
-      let res = await fetch(`${this.getActiveArchiveUrl()}?action=FETCH_ETHICON&ref=${encodeURIComponent(ref)}`);
-      let data = await res.json();
+      // ✨ FIX: Changed "this" to SessionManager
+      let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=FETCH_ETHICON&ref=${encodeURIComponent(ref)}`);
+      let text = await res.text();
+      let data;
+      
+      // ✨ FIX: Catch Google HTML Rate Limit pages safely
+      try { data = JSON.parse(text); } catch(e) { throw new Error("Google Server busy. Try again in 5 seconds."); }
       
       if (data.status === "success" && data.desc) {
          let input = document.getElementById(`advDesc_${index}`);
@@ -1685,7 +1719,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       if (typeof UIManager !== 'undefined' && UIManager.toggleSessionNote) UIManager.toggleSessionNote();
 
       const chkPreload = document.getElementById('chkPreloadManifest');
-      if (chkPreload) chkPreload.checked = false;
+      if (chkPreload) { chkPreload.checked = false; chkPreload.dispatchEvent(new Event('change')); }
 
       document.getElementById('screenScanning').style.display = 'none';
       document.getElementById('screenReview').style.display = 'none';
@@ -1750,15 +1784,74 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
         let currentAllocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
 
-        this.scannedObjects.forEach(item => {
-          if (this.currentWorkflowType.includes('Packing') && this.isManifestEnabled) {
-             let manifestItem = this.expectedManifest.find(m => m.ref === item.ref.toUpperCase());
-             if (manifestItem && manifestItem.allocations && manifestItem.allocations.length > 0) { 
-                 item.customerTag = manifestItem.allocations[0].customerTag; 
-             }
-          }
-        });
+        // ✨ THE FIX: Skip this manual loop during Stocktakes, because commitStocktake already perfectly built the array! 
+        // This stops completeSession from stacking duplicate entries on top of the Stocktake ones.
+        if (!this.currentWorkflowType.includes('Stocktake')) {
+            this.scannedObjects.forEach(item => {
+              // Inherit the tag from the manifest if doing a Pick & Pack
+              if (this.currentWorkflowType.includes('Packing') && this.isManifestEnabled) {
+                 let manifestItem = this.expectedManifest.find(m => m.ref === item.ref.toUpperCase());
+                 if (manifestItem && manifestItem.allocations && manifestItem.allocations.length > 0) { 
+                     item.customerTag = manifestItem.allocations[0].customerTag; 
+                 }
+              }
 
+              if (item.actionTag === 'Reserved' && item.customerTag) {
+                  let tag = item.customerTag.split(' - ')[0].trim().toUpperCase();
+                  let ref = item.ref.toUpperCase();
+                  
+                  if (!currentAllocations[tag]) currentAllocations[tag] = {};
+                  if (!currentAllocations[tag][ref]) currentAllocations[tag][ref] = { qty: 0, details: [] };
+                  
+                  let cleanLot = (item.lot === 'NO_LOT' || item.lot === 'N/A' || item.lot === 'NA') ? '' : item.lot;
+                  let cleanExp = (item.exp === 'NO_EXP' || item.exp === 'N/A' || item.exp === 'NA') ? '' : item.exp;
+                  if (cleanExp.includes('T')) cleanExp = cleanExp.split('T')[0];
+                  
+                  currentAllocations[tag][ref].qty += item.qty;
+                  currentAllocations[tag][ref].details.push({
+                      lot: cleanLot,
+                      exp: cleanExp,
+                      qty: item.qty,
+                      orderNum: item.orderNum || '',
+                      sessionId: item.sessionId || this.sessionId
+                  });
+              } else if (item.actionTag === 'Pack & Ship' && item.customerTag) {
+                  let tag = item.customerTag.split(' - ')[0].trim().toUpperCase();
+                  let ref = item.ref.toUpperCase();
+                  
+                  if (currentAllocations[tag] && currentAllocations[tag][ref]) {
+                      let itemData = currentAllocations[tag][ref];
+                      
+                      if (itemData.details && itemData.details.length > 0) {
+                          let cleanLot = (item.lot === 'NO_LOT' || item.lot === 'N/A' || item.lot === 'NA') ? '' : item.lot;
+                          let cleanExp = (item.exp === 'NO_EXP' || item.exp === 'N/A' || item.exp === 'NA') ? '' : item.exp;
+                          if (cleanExp.includes('T')) cleanExp = cleanExp.split('T')[0];
+                          
+                          let detMatch = itemData.details.find(d => d.lot === cleanLot && d.exp === cleanExp);
+                          if (detMatch) {
+                              detMatch.qty -= item.qty;
+                              if (detMatch.qty <= 0) itemData.details = itemData.details.filter(d => d !== detMatch);
+                          } else if (itemData.details[0]) {
+                              itemData.details[0].qty -= item.qty;
+                              if (itemData.details[0].qty <= 0) itemData.details.shift();
+                          }
+                      }
+                      
+                      if (typeof itemData === 'object') {
+                          itemData.qty -= item.qty;
+                          if (itemData.qty <= 0) delete currentAllocations[tag][ref];
+                      } else {
+                          currentAllocations[tag][ref] -= item.qty;
+                          if (currentAllocations[tag][ref] <= 0) delete currentAllocations[tag][ref];
+                      }
+                      
+                      if (Object.keys(currentAllocations[tag]).length === 0) delete currentAllocations[tag];
+                  }
+              }
+            });
+        }
+
+        // Execute DB updates separately
         if (this.pendingNewItems && this.pendingNewItems.length > 0) {
           this.pendingNewItems.forEach(newItem => { 
             let exists = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === (newItem.ref || newItem.sku || '').toUpperCase()); 
@@ -1766,8 +1859,17 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
           });
         }
 
-        let ledgerResult = InventoryEngine.commitLedgerMath(this.scannedObjects, DatabaseManager.db, currentAllocations, this.currentWorkflowType);
-        localStorage.setItem('asp_allocations', JSON.stringify(ledgerResult.updatedAllocations));
+        let ledgerResult;
+        if (this.currentWorkflowType.includes('Stocktake')) {
+            ledgerResult = { updatedDb: DatabaseManager.db };
+        } else {
+            // ✨ THE FIX: Create a Dummy Clone to block the engine from duplicating the allocations array!
+            let dummyAllocationsForEngine = JSON.parse(JSON.stringify(currentAllocations));
+            ledgerResult = InventoryEngine.commitLedgerMath(this.scannedObjects, DatabaseManager.db, dummyAllocationsForEngine, this.currentWorkflowType);
+        }
+
+        // We explicitly use our manually crafted Allocations object here to guarantee the payload is formatted safely for Google!
+        localStorage.setItem('asp_allocations', JSON.stringify(currentAllocations));
 
         if (this.pendingFieldUpdates && this.pendingFieldUpdates.length > 0) {
           this.pendingFieldUpdates.forEach(update => { 
@@ -1777,6 +1879,20 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         }
         
         DatabaseManager.db = ledgerResult.updatedDb;
+        
+        // ✨ THE FIX: Define Shopify sync list early and flag them as TRUE in the database
+        let refsToSync = [];
+        if (this.currentWorkflowType === 'Full Stocktake') {
+            refsToSync = DatabaseManager.db.map(i => i.sku || i.ref);
+        } else {
+            refsToSync = this.scannedObjects.map(scan => scan.ref);
+        }
+        
+        refsToSync.forEach(ref => {
+            let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === (ref || '').toUpperCase());
+            if (dbItem) dbItem.syncedShopify = "TRUE";
+        });
+        
         localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
 
         let dbPayload = null;
@@ -1814,8 +1930,6 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
             networkTasks.push(this.pushQboWriteBack(completedSessionObj));
         }
 
-        // ✨ NEW: Call the centralized Shopify Payload Builder
-        let refsToSync = this.scannedObjects.map(scan => scan.ref);
         let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
         
         if (shopifyUpdatePayload.length > 0 && archiveUrl) {
@@ -1859,7 +1973,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         if (typeof UIManager !== 'undefined' && UIManager.toggleSessionNote) UIManager.toggleSessionNote();
 
         const chkPreload = document.getElementById('chkPreloadManifest');
-        if (chkPreload) chkPreload.checked = false;
+        if (chkPreload) { chkPreload.checked = false; chkPreload.dispatchEvent(new Event('change')); }
         
         this.isSessionActive = false; this.isManifestEnabled = false;
         localStorage.setItem('asp_session_is_active', 'false'); localStorage.setItem('asp_manifest_enabled', 'false');
@@ -1910,6 +2024,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     let varianceData = [];
     let netFinancialImpact = 0;
 
+    // 1. Calculate Variance for ALL items (Existing and Brand New)
     DatabaseManager.db.forEach(dbItem => {
       let sku = (dbItem.sku || dbItem.ref || '').toUpperCase();
       let expected = dbItem.onHand || 0;
@@ -1928,11 +2043,29 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       }
     });
 
+    // Check for Brand New REFs that aren't in the DB yet
+    Object.keys(scannedTotals).forEach(sku => {
+      let dbMatch = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === sku.toUpperCase());
+      if (!dbMatch) {
+        let counted = scannedTotals[sku];
+        let scanObj = this.scannedObjects.find(i => i.ref.toUpperCase() === sku.toUpperCase());
+        
+        let costVal = scanObj ? parseFloat(String(scanObj.price || "0").replace(/[^0-9.-]+/g,"")) || 0 : 0;
+        let financialVar = counted * costVal;
+        netFinancialImpact += financialVar;
+        
+        varianceData.push({ ref: sku, desc: scanObj ? scanObj.desc : "New Item", mfr: scanObj ? scanObj.mfr : "N/A", expected: 0, counted: counted, variance: counted, financialImpact: financialVar });
+      }
+    });
+
+    // 2. Clear Database Totals
     if (this.currentWorkflowType === 'Full Stocktake') {
       DatabaseManager.db.forEach(dbItem => {
         dbItem.onHand = 0;
-        dbItem.reservedQty = 0; 
+        dbItem.reservedQty = 0; // ✨ FIX: Wipe reserved totals so they can be accurately rebuilt
       });
+      // ✨ FIX: Wipe the active allocations memory so it can be rebuilt from the physical scan
+      localStorage.setItem('asp_allocations', JSON.stringify({}));
     } else {
       Object.keys(scannedTotals).forEach(ref => {
         let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref);
@@ -1940,12 +2073,52 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       });
     }
 
+    // 3. Apply Scanned Totals
     Object.keys(scannedTotals).forEach(ref => {
       let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref);
       if (dbItem) {
         dbItem.onHand = (dbItem.onHand || 0) + scannedTotals[ref];
       }
     });
+
+    // 4. ✨ FIX: Process new Reservations made during the Stocktake
+    let currentAllocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
+    let madeReservations = false;
+    
+    this.scannedObjects.forEach(item => {
+        if (item.actionTag === 'Reserved' && item.customerTag) {
+            let tag = item.customerTag.split(' - ')[0].trim().toUpperCase();
+            let ref = item.ref.toUpperCase();
+            
+            if (!currentAllocations[tag]) currentAllocations[tag] = {};
+            if (!currentAllocations[tag][ref]) currentAllocations[tag][ref] = { qty: 0, details: [] };
+            
+            // ✨ FIX: Format NO_LOT and NO_EXP as clean blanks to match standard entries
+            let cleanLot = (item.lot === 'NO_LOT' || item.lot === 'N/A' || item.lot === 'NA') ? '' : item.lot;
+            let cleanExp = (item.exp === 'NO_EXP' || item.exp === 'N/A' || item.exp === 'NA') ? '' : item.exp;
+            if (cleanExp.includes('T')) cleanExp = cleanExp.split('T')[0];
+            
+            currentAllocations[tag][ref].qty += item.qty;
+            currentAllocations[tag][ref].details.push({
+                lot: cleanLot,
+                exp: cleanExp,
+                qty: item.qty,
+                orderNum: item.orderNum || '',
+                sessionId: item.sessionId || this.sessionId
+            });
+            
+            let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref);
+            if (dbItem) dbItem.reservedQty = (dbItem.reservedQty || 0) + item.qty;
+            
+            madeReservations = true;
+        }
+    });
+
+    if (madeReservations) {
+        localStorage.setItem('asp_allocations', JSON.stringify(currentAllocations));
+        // ✨ FIX: Removed this.syncAllocationsToCloud() to prevent duplicate simultaneous API calls 
+        // since completeSession() is about to fire and handle the cloud push safely!
+    }
 
     localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
     alert("Stocktake successfully committed to the master database!");
@@ -1974,8 +2147,9 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     document.getElementById('sessionNoteInput').value = ""; 
     document.getElementById('chkSessionNote').checked = false;
     if (typeof UIManager !== 'undefined' && UIManager.toggleSessionNote) UIManager.toggleSessionNote();
+    
     const chkPreload = document.getElementById('chkPreloadManifest');
-    if (chkPreload) chkPreload.checked = false;
+    if (chkPreload) { chkPreload.checked = false; chkPreload.dispatchEvent(new Event('change')); }
 
     document.getElementById('screenSummary').style.display = 'none';
     document.getElementById('screenSetup').style.display = 'block';
@@ -2093,7 +2267,11 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
 
     // Create the new Reversal Payload for the Audit Log
     let revScannedObjects = targetSession.scannedObjects.map(item => {
-        return { ...item, qty: -(item.qty), itemNote: `REVERSAL of ${targetSession.id}` };
+        return { 
+           ...item, 
+           qty: -(item.qty), 
+           itemNote: item.itemNote ? `[REVERSAL] ${item.itemNote}` : `REVERSAL of ${targetSession.id}` 
+        };
     });
 
     let revSession = {
@@ -2512,24 +2690,24 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
   async pushQboWriteBack(sessionObj) {
     if (!this.getActiveFeederUrl() || this.getActiveFeederUrl().includes("YOUR_")) return; 
     
-    if (!sessionObj.workflowType.includes('Packing') || !sessionObj.orderNum) return;
+    // Removed the "Packing" restriction so it works for Incoming Shipments too
+    if (!sessionObj.orderNum) return;
     
-    let payload = {
-      action: "QBO_WRITEBACK",
-      payload: sessionObj
-    };
-
+    // 1. Update internal QBO_Feed (Archive URL)
     try {
-      // ✨ THE FIX: Target the Archive URL (Database Script) where QBO_Engine actually lives!
       await fetch(this.getActiveArchiveUrl(), { 
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
+        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: "QBO_WRITEBACK", payload: sessionObj })
       });
-    } catch (err) {
-      console.warn("Background QBO Write-back failed:", err);
-    }
+    } catch (err) {}
+
+    // 2. Update external DEMO ORDERS Feed (Feeder URL)
+    try {
+      await fetch(this.getActiveFeederUrl(), { 
+        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: "COMPLETE_SESSION", sessionName: sessionObj.sessionName, orderNum: sessionObj.orderNum })
+      });
+    } catch (err) {}
   },
 
   bindOrderInputListener() {

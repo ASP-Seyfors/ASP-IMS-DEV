@@ -486,7 +486,7 @@ const DatabaseManager = {
         this.renderDbGridEditor(); 
       }
     }
-    document.getElementById('itemEditModal').remove();
+    document.getElementById('itemEditModal').style.display = 'none';
   },
 
   backupFullDatabase() {
@@ -670,13 +670,20 @@ const DatabaseManager = {
     }
   },
 
-  // UPLOAD PENDING ONLY
+  // UPLOAD PENDING ONLY (DELTA ARCHITECTURE)
   async uploadPendingData(event) {
     const btn = event ? event.target : null;
     const originalText = btn ? btn.textContent : "⬆️ Upload Pending Data";
     
-    let pendingNew = JSON.parse(localStorage.getItem('asp_pending_new_items') || "[]");
-    let pendingUpd = JSON.parse(localStorage.getItem('asp_pending_updates') || "[]");
+    // Safely parse local storage to bypass strict linter warnings
+    let pendingNewStr = localStorage.getItem('asp_pending_new_items');
+    let pendingNew = pendingNewStr ? JSON.parse(pendingNewStr) : [];
+    if (!Array.isArray(pendingNew)) pendingNew = [];
+
+    let pendingUpdStr = localStorage.getItem('asp_pending_updates');
+    let pendingUpd = pendingUpdStr ? JSON.parse(pendingUpdStr) : [];
+    if (!Array.isArray(pendingUpd)) pendingUpd = [];
+    
     let newItemsCount = pendingNew.length;
     let updatesCount = pendingUpd.length;
     
@@ -695,7 +702,7 @@ const DatabaseManager = {
           <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
             <h3 style="margin:0 0 15px 0; color:#0277bd;">⬆️ Uploading Database Edits</h3>
             <div id="updStep1" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 1. Packaging Data...</div>
-            <div id="updStep2" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 2. Syncing Master DB...</div>
+            <div id="updStep2" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 2. Transmitting to Google...</div>
             <div id="updStep3" style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ 3. Verifying Upload...</div>
             <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
               <div id="updProgressBar" style="width:0%; height:100%; background:#2e7d32; transition:width 0.3s ease;"></div>
@@ -712,20 +719,33 @@ const DatabaseManager = {
         };
 
         try {
-          let cleanCustomers = this.customers.filter(c => !c.startsWith("+") && c !== "#ERROR!");
-          let cleanSuppliers = this.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
-          let cleanVendors = this.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
+          // ✨ DELTA ARCHITECTURE: Only package the exact items that changed
+          let deltaUpdates = [];
+          let refsToPush = new Set();
+          
+          pendingNew.forEach(i => { if (i && (i.ref || i.sku)) refsToPush.add(i.ref || i.sku); });
+          pendingUpd.forEach(u => { if (u && (u.ref || u.sku)) refsToPush.add(u.ref || u.sku); });
+          
+          refsToPush.forEach(ref => {
+              let dbItem = this.db.find(i => (i.sku || i.ref || '').toUpperCase() === String(ref).toUpperCase());
+              if (dbItem) deltaUpdates.push(dbItem);
+          });
+
+          // Safely filter arrays to prevent .startsWith crashes on corrupted undefined entries
+          let cleanCustomers = Array.isArray(this.customers) ? this.customers.filter(c => c && typeof c === 'string' && !c.startsWith("+") && c !== "#ERROR!") : [];
+          let cleanSuppliers = Array.isArray(this.suppliers) ? this.suppliers.filter(s => s && typeof s === 'string' && !s.startsWith("+") && s !== "#ERROR!") : [];
+          let cleanVendors = Array.isArray(this.vendors) ? this.vendors.filter(v => v && typeof v === 'string' && !v.startsWith("+") && v !== "#ERROR!") : [];
 
           let pushPayload = {
-            action: "SYNC_LOCAL_DB",
-            payload: { items: this.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors }
+            action: "DELTA_UPDATE_METADATA",
+            payload: { updates: deltaUpdates, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors }
           };
           
           updateStep(1, "Data Packaged", 33);
           await new Promise(r => requestAnimationFrame(() => setTimeout(r, 100)));
           
           updateStep(2, "Transmitting to Google...", 66);
-          await fetch(SessionManager.cloudArchiveUrl, {
+          await fetch(SessionManager.getActiveArchiveUrl(), {
             method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(pushPayload)
           });
@@ -737,7 +757,6 @@ const DatabaseManager = {
           localStorage.setItem('asp_pending_new_items', JSON.stringify([])); 
           localStorage.setItem('asp_pending_updates', JSON.stringify([]));
 
-          // ✨ FIX: Update the Cloud Sync timestamp instantly
           localStorage.setItem('asp_last_cloud_sync', Date.now().toString());
 
           updateStep(3, "Upload Verified", 100);
@@ -810,7 +829,7 @@ const DatabaseManager = {
             gtin: String(parentItem.gtin || ''),
             availableQty: String(Math.max(0, pTotal - pRes)),
             price: pCleanPrice.toFixed(2),
-            status: pCleanPrice > 0 ? "active" : "draft",
+            "status": (String(parentItem.status || "ACTIVE").toUpperCase() === "INACTIVE") ? "draft" : "active",
             isBundle: false,
             uomMult: 1,
             weight: parseFloat(parentItem.weight) || 0.5 // ✨ NEW: Default to 0.5 if blank
@@ -840,7 +859,7 @@ const DatabaseManager = {
                 gtin: String(bundle.gtin || ''),
                 availableQty: String(Math.max(0, Math.floor((pTotal - pRes) / parseInt(bundle.uomMult, 10)))),
                 price: bCleanPrice.toFixed(2),
-                status: bCleanPrice > 0 ? "active" : "draft",
+                "status": (String(bundle.status || parentItem.status || "ACTIVE").toUpperCase() === "INACTIVE") ? "draft" : "active",
                 isBundle: true,
                 uomMult: bundle.uomMult,
                 weight: parseFloat(bundle.weight) || (parseFloat(parentItem.weight || 0.5) * parseInt(bundle.uomMult, 10)) // ✨ NEW: Auto-multiply by box size!

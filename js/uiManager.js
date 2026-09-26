@@ -430,17 +430,39 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   },
 
   changeAppTheme(themeName) {
-    document.body.classList.remove('theme-sage', 'theme-gold', 'theme-slate');
+    document.body.classList.remove('theme-sage', 'theme-gold', 'theme-slate', 'theme-twilight');
     document.body.classList.add(`theme-${themeName}`);
     localStorage.setItem('asp_app_theme', themeName);
     let sel = document.getElementById('themeSelect');
     if (sel) sel.value = themeName;
+    this.transmitUserPrefsToCloud(); // ✨ NEW
   },
 
   changeFontSize(sizeVal) {
     document.body.classList.remove('font-small', 'font-medium', 'font-large');
     document.body.classList.add(`font-${sizeVal}`);
     localStorage.setItem('asp_font_size', sizeVal);
+    let sel = document.getElementById('fontSizeSelect');
+    if (sel) sel.value = sizeVal;
+    this.transmitUserPrefsToCloud(); // ✨ NEW
+  },
+
+  // ✨ NEW: Silently syncs preferences to the DB without interrupting the user
+  transmitUserPrefsToCloud() {
+    let email = (typeof AuthManager !== 'undefined' && AuthManager.currentUser) ? AuthManager.currentUser.email : null;
+    if (!email) return;
+
+    let theme = localStorage.getItem('asp_app_theme') || 'twilight';
+    let font = localStorage.getItem('asp_font_size') || 'large';
+
+    let payload = { action: "SAVE_USER_PREFS", payload: { email: email, theme: theme, font: font } };
+    
+    if (typeof SessionManager !== 'undefined' && SessionManager.getActiveArchiveUrl()) {
+        fetch(SessionManager.getActiveArchiveUrl(), { 
+            method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload) 
+        }).catch(e => console.warn("Background pref sync failed."));
+    }
   },
 
   loadFontPreference() {
@@ -546,7 +568,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     if (document.getElementById('actBtnInv')) document.getElementById('actBtnInv').className = 'action-btn' + (act === 'Inventory' ? ' selected-inv' : '');
     if (document.getElementById('actBtnRes')) document.getElementById('actBtnRes').className = 'action-btn' + (act === 'Reserved' ? ' selected-res' : '');
     let tagRow = document.getElementById('rowCustomerTag');
-    if (tagRow && SessionManager.currentWorkflowType.includes('Receiving & Reserving')) tagRow.style.display = (act === 'Reserved') ? 'flex' : 'none';
+    
+    // ✨ FIX: Allow the tag row to appear during Stocktakes so reservations can be logged
+    let wType = SessionManager.currentWorkflowType.toUpperCase();
+    if (tagRow && (wType.includes('RECEIVING') || wType.includes('STOCKTAKE'))) {
+        tagRow.style.display = (act === 'Reserved') ? 'flex' : 'none';
+    }
   },
 
   hideAllConfirmButtons() {
