@@ -20,8 +20,8 @@ const ShippingManager = {
         let safeSet = (id, val) => { let el = document.getElementById(id); if (el) el.value = val || ''; };
         
         // Populate core rules
-        safeSet('shipCustName', baseName);
-        safeSet('shipAddressCompany', rules.formalCompany || baseName); // ✨ Prioritizes the Formal FedEx Name
+        safeSet('shipCustName', rules.contactId || baseName);
+        safeSet('shipAddressCompany', rules.formalCompany || baseName); 
         safeSet('shipAccountNum', rules.account);
         safeSet('shipInstructions', rules.notes);
         safeSet('shipAddressContact', rules.contactName);
@@ -34,42 +34,12 @@ const ShippingManager = {
             if (opt) carrierSel.value = opt.value;
         }
 
-        // ✨ SMART ADDRESS PARSER
-        // Parses a single string from the DB (e.g. "4914 Flora Ave, Holiday, FL 34690")
-        if (rules.address) {
-            let addr = rules.address.trim();
-            
-            // Extract Zip (5 digits)
-            let zipMatch = addr.match(/\b\d{5}\b/);
-            if (zipMatch) safeSet('shipAddressZip', zipMatch[0]);
-            
-            // Extract State (2 uppercase letters)
-            let stateMatch = addr.match(/\b([A-Z]{2})\b/g);
-            if (stateMatch && stateMatch.length > 0) {
-                safeSet('shipAddressState', stateMatch[stateMatch.length - 1]);
-            }
-
-            // Split by comma to isolate Street and City
-            let parts = addr.split(',');
-            if (parts.length >= 2) {
-                // The first chunk is the Street
-                safeSet('shipAddress1', parts[0].trim());
-                
-                // The second chunk contains the City (strip out state/zip if they are in the same chunk)
-                let cityStr = parts[1].replace(/\b\d{5}\b/g, '').replace(/\b([A-Z]{2})\b/g, '').trim();
-                safeSet('shipAddressCity', cityStr);
-            } else {
-                // Fallback if no commas were used in the Google Sheet
-                safeSet('shipAddress1', addr);
-            }
-        } else {
-            // Clear fields if no address is found in the database
-            safeSet('shipAddress1', '');
-            safeSet('shipAddress2', '');
-            safeSet('shipAddressCity', '');
-            safeSet('shipAddressState', '');
-            safeSet('shipAddressZip', '');
-        }
+        // Direct Explicit Address Mapping
+        safeSet('shipAddress1', rules.address1);
+        safeSet('shipAddress2', rules.address2);
+        safeSet('shipAddressCity', rules.city);
+        safeSet('shipAddressState', rules.state);
+        safeSet('shipAddressZip', rules.zip);
     },
 
     updateCarrierUI() {
@@ -102,7 +72,7 @@ const ShippingManager = {
             if (serviceType === 'FEDEX_GROUND' && isResidential) serviceType = 'GROUND_HOME_DELIVERY';
 
             let payload = {
-                action: "CREATE_SHIPMENT",
+                action: "CREATE_SHIPMENT", // (Or CREATE_UPS_SHIPMENT)
                 payload: {
                     customerName: document.getElementById('shipAddressCompany').value.trim(),
                     contactName: document.getElementById('shipAddressContact').value.trim(),
@@ -116,7 +86,8 @@ const ShippingManager = {
                     state: document.getElementById('shipAddressState').value.trim(),
                     zip: document.getElementById('shipAddressZip').value.trim(),
                     serviceType: serviceType,
-                    isResidential: isResidential
+                    isResidential: isResidential,
+                    account: document.getElementById('shipAccountNum').value.trim() // ✨ Added!
                 }
             };
 
@@ -184,8 +155,9 @@ const ShippingManager = {
                     city: document.getElementById('shipAddressCity').value.trim(),
                     state: document.getElementById('shipAddressState').value.trim(),
                     zip: document.getElementById('shipAddressZip').value.trim(),
-                    serviceType: serviceType,     // Now this will work
-                    isResidential: isResidential  // Now this will work
+                    serviceType: serviceType,
+                    isResidential: isResidential,
+                    account: document.getElementById('shipAccountNum').value.trim() // ✨ Added!
                 }
             };
 
@@ -248,8 +220,8 @@ const ShippingManager = {
         
         let safeSet = (id, val) => { let el = document.getElementById(id); if (el) el.value = val || ''; };
         
-        safeSet('shipCustName', customerName);
-        safeSet('shipAddressCompany', customerName);
+        safeSet('shipCustName', rules.contactId || customerName);
+        safeSet('shipAddressCompany', rules.formalCompany || customerName);
         safeSet('shipAccountNum', rules.account);
         safeSet('shipInstructions', rules.notes);
         safeSet('shipAddressContact', rules.contactName);
@@ -262,30 +234,12 @@ const ShippingManager = {
             if (opt) carrierSel.value = opt.value;
         }
 
-        if (rules.address) {
-            let addr = rules.address.trim();
-            let zipMatch = addr.match(/\b\d{5}\b/);
-            if (zipMatch) safeSet('shipAddressZip', zipMatch[0]);
-            
-            let stateMatch = addr.match(/\b([A-Z]{2})\b/g);
-            if (stateMatch && stateMatch.length > 0) safeSet('shipAddressState', stateMatch[stateMatch.length - 1]);
-
-            let parts = addr.split(',');
-            if (parts.length >= 2) {
-                safeSet('shipAddress1', parts[0].trim());
-                safeSet('shipAddress2', ''); // Clear line 2
-                safeSet('shipAddressCity', parts[1].replace(/\b\d{5}\b/g, '').replace(/\b([A-Z]{2})\b/g, '').trim());
-            } else {
-                safeSet('shipAddress1', addr);
-            }
-        } else {
-            // ✨ THE FIX: Explicitly clear the fields if the new customer has no saved address!
-            safeSet('shipAddress1', '');
-            safeSet('shipAddress2', '');
-            safeSet('shipAddressCity', '');
-            safeSet('shipAddressState', '');
-            safeSet('shipAddressZip', '');
-        }
+        // Direct Explicit Address Mapping
+        safeSet('shipAddress1', rules.address1);
+        safeSet('shipAddress2', rules.address2);
+        safeSet('shipAddressCity', rules.city);
+        safeSet('shipAddressState', rules.state);
+        safeSet('shipAddressZip', rules.zip);
     },
 
     async saveAddressBookEntry() {
@@ -305,11 +259,17 @@ const ShippingManager = {
         let formattedAddress = `${combinedStreet}, ${city}, ${state} ${zip}`;
 
         let newRules = {
-            formalCompany: document.getElementById('shipAddressCompany').value.trim(), // ✨ The long FedEx Name
+            formalCompany: document.getElementById('shipAddressCompany').value.trim(), 
             contactName: document.getElementById('shipAddressContact').value.trim(),
+            contactId: custName, // The short ID
             email: "", 
             phone: "", 
-            address: formattedAddress,
+            address1: document.getElementById('shipAddress1').value.trim(),
+            address2: document.getElementById('shipAddress2').value.trim(),
+            city: document.getElementById('shipAddressCity').value.trim(),
+            state: document.getElementById('shipAddressState').value.trim(),
+            zip: document.getElementById('shipAddressZip').value.trim(),
+            country: "US", // Default
             method: document.getElementById('shipCarrier').value,
             account: document.getElementById('shipAccountNum').value.trim(),
             notes: document.getElementById('shipInstructions').value.trim()
