@@ -19,27 +19,31 @@ const ShippingManager = {
         
         let safeSet = (id, val) => { let el = document.getElementById(id); if (el) el.value = val || ''; };
         
-        // Populate core rules
+        // Strict mapping with fallback to blank '' strings
         safeSet('shipCustName', rules.contactId || baseName);
         safeSet('shipAddressCompany', rules.formalCompany || baseName); 
-        safeSet('shipAccountNum', rules.account);
-        safeSet('shipInstructions', rules.notes);
-        safeSet('shipAddressContact', rules.contactName);
-        safeSet('shipAddressEmail', rules.email);
-        safeSet('shipAddressPhone', rules.phone);
+        safeSet('shipAccountNum', rules.account || '');
+        safeSet('shipInstructions', rules.notes || '');
+        safeSet('shipAddressContact', rules.contactName || '');
+        safeSet('shipAddressEmail', rules.email || '');
+        safeSet('shipAddressPhone', rules.phone || '');
         
         let carrierSel = document.getElementById('shipCarrier');
-        if (rules.method && carrierSel) {
-            let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
-            if (opt) carrierSel.value = opt.value;
+        if (carrierSel) {
+            if (rules.method) {
+                let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
+                if (opt) carrierSel.value = opt.value;
+            } else {
+                carrierSel.selectedIndex = 0; // Reset to default FedEx if no rule
+            }
+            this.updateCarrierUI(); 
         }
 
-        // Direct Explicit Address Mapping
-        safeSet('shipAddress1', rules.address1);
-        safeSet('shipAddress2', rules.address2);
-        safeSet('shipAddressCity', rules.city);
-        safeSet('shipAddressState', rules.state);
-        safeSet('shipAddressZip', rules.zip);
+        safeSet('shipAddress1', rules.address1 || '');
+        safeSet('shipAddress2', rules.address2 || '');
+        safeSet('shipAddressCity', rules.city || '');
+        safeSet('shipAddressState', rules.state || '');
+        safeSet('shipAddressZip', rules.zip || '');
     },
 
     updateCarrierUI() {
@@ -215,95 +219,121 @@ const ShippingManager = {
     },
 
     loadFromAddressBook(customerName) {
-        if (!customerName) return;
-        let rules = DatabaseManager.shippingRules[customerName.toUpperCase()] || {};
-        
         let safeSet = (id, val) => { let el = document.getElementById(id); if (el) el.value = val || ''; };
+
+        // If they click the "-- Load Saved Address --" header, instantly wipe everything
+        if (!customerName) {
+            safeSet('shipCustName', ''); safeSet('shipAddressCompany', ''); safeSet('shipAccountNum', '');
+            safeSet('shipInstructions', ''); safeSet('shipAddressContact', ''); safeSet('shipAddressEmail', '');
+            safeSet('shipAddressPhone', ''); safeSet('shipAddress1', ''); safeSet('shipAddress2', '');
+            safeSet('shipAddressCity', ''); safeSet('shipAddressState', ''); safeSet('shipAddressZip', '');
+            let carrierSel = document.getElementById('shipCarrier');
+            if (carrierSel) { carrierSel.selectedIndex = 0; this.updateCarrierUI(); }
+            return;
+        }
+
+        let rules = DatabaseManager.shippingRules[customerName.toUpperCase()] || {};
         
         safeSet('shipCustName', rules.contactId || customerName);
         safeSet('shipAddressCompany', rules.formalCompany || customerName);
-        safeSet('shipAccountNum', rules.account);
-        safeSet('shipInstructions', rules.notes);
-        safeSet('shipAddressContact', rules.contactName);
-        safeSet('shipAddressEmail', rules.email);
-        safeSet('shipAddressPhone', rules.phone);
+        safeSet('shipAccountNum', rules.account || '');
+        safeSet('shipInstructions', rules.notes || '');
+        safeSet('shipAddressContact', rules.contactName || '');
+        safeSet('shipAddressEmail', rules.email || '');
+        safeSet('shipAddressPhone', rules.phone || '');
         
         let carrierSel = document.getElementById('shipCarrier');
-        if (rules.method && carrierSel) {
-            let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
-            if (opt) carrierSel.value = opt.value;
+        if (carrierSel) {
+            if (rules.method) {
+                let opt = Array.from(carrierSel.options).find(o => o.value.toUpperCase() === rules.method.toUpperCase());
+                if (opt) carrierSel.value = opt.value;
+            } else {
+                carrierSel.selectedIndex = 0;
+            }
+            this.updateCarrierUI(); 
         }
 
-        // Direct Explicit Address Mapping
-        safeSet('shipAddress1', rules.address1);
-        safeSet('shipAddress2', rules.address2);
-        safeSet('shipAddressCity', rules.city);
-        safeSet('shipAddressState', rules.state);
-        safeSet('shipAddressZip', rules.zip);
+        safeSet('shipAddress1', rules.address1 || '');
+        safeSet('shipAddress2', rules.address2 || '');
+        safeSet('shipAddressCity', rules.city || '');
+        safeSet('shipAddressState', rules.state || '');
+        safeSet('shipAddressZip', rules.zip || '');
     },
 
     async saveAddressBookEntry() {
-        let btn = document.getElementById('btnSaveAddress');
-        let origText = btn.innerHTML;
-        btn.innerHTML = "⏳ Saving...";
-        btn.disabled = true;
-
         let custName = document.getElementById('shipCustName').value.trim() || document.getElementById('shipAddressCompany').value.trim();
-        let street1 = document.getElementById('shipAddress1').value.trim();
-        let street2 = document.getElementById('shipAddress2').value.trim();
-        let city = document.getElementById('shipAddressCity').value.trim();
-        let state = document.getElementById('shipAddressState').value.trim();
-        let zip = document.getElementById('shipAddressZip').value.trim();
-        
-        let combinedStreet = street2 ? `${street1} ${street2}` : street1;
-        let formattedAddress = `${combinedStreet}, ${city}, ${state} ${zip}`;
+        if (!custName) {
+            UIManager.showCustomAlert("Error", "Please provide a Customer ID/Name.");
+            return;
+        }
 
-        let newRules = {
-            formalCompany: document.getElementById('shipAddressCompany').value.trim(), 
-            contactName: document.getElementById('shipAddressContact').value.trim(),
-            contactId: custName, // The short ID
-            email: "", 
-            phone: "", 
-            address1: document.getElementById('shipAddress1').value.trim(),
-            address2: document.getElementById('shipAddress2').value.trim(),
-            city: document.getElementById('shipAddressCity').value.trim(),
-            state: document.getElementById('shipAddressState').value.trim(),
-            zip: document.getElementById('shipAddressZip').value.trim(),
-            country: "US", // Default
-            method: document.getElementById('shipCarrier').value,
-            account: document.getElementById('shipAccountNum').value.trim(),
-            notes: document.getElementById('shipInstructions').value.trim()
-        };
+        // Check if we already have this customer on file
+        let existingRule = DatabaseManager.shippingRules[custName.toUpperCase()];
 
-        let payload = {
-            action: "SAVE_SHIPPING_INFO",
-            payload: {
-                customerName: custName, // The short ID to link them
-                ...newRules
+        // Wrap the actual save logic in an executable callback
+        const executeSave = async () => {
+            let btn = document.getElementById('btnSaveAddress');
+            let origText = btn.innerHTML;
+            btn.innerHTML = "⏳ Saving...";
+            btn.disabled = true;
+
+            let newRules = {
+                formalCompany: document.getElementById('shipAddressCompany').value.trim(), 
+                contactName: document.getElementById('shipAddressContact').value.trim(),
+                contactId: custName, // The short ID
+                email: document.getElementById('shipAddressEmail') ? document.getElementById('shipAddressEmail').value.trim() : "", 
+                phone: document.getElementById('shipAddressPhone') ? document.getElementById('shipAddressPhone').value.trim() : "", 
+                address1: document.getElementById('shipAddress1').value.trim(),
+                address2: document.getElementById('shipAddress2').value.trim(),
+                city: document.getElementById('shipAddressCity').value.trim(),
+                state: document.getElementById('shipAddressState').value.trim(),
+                zip: document.getElementById('shipAddressZip').value.trim(),
+                country: "US", // Default
+                method: document.getElementById('shipCarrier').value,
+                account: document.getElementById('shipAccountNum').value.trim(),
+                notes: document.getElementById('shipInstructions').value.trim()
+            };
+
+            let payload = {
+                action: "SAVE_SHIPPING_INFO",
+                payload: {
+                    customerName: custName, 
+                    ...newRules
+                }
+            };
+
+            try {
+                let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                let data = await res.json();
+                
+                if (data.status === "success") {
+                    DatabaseManager.shippingRules[custName.toUpperCase()] = newRules;
+                    this.populateAddressDropdown();
+                    UIManager.showCustomAlert("Success", "✅ Address book updated successfully!");
+                } else {
+                    alert("Database Error: " + data.message);
+                }
+            } catch (err) {
+                alert("Network Error: " + err.message);
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
             }
         };
 
-        try {
-            let res = await fetch(SessionManager.getActiveArchiveUrl(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            let data = await res.json();
-            
-            if (data.status === "success") {
-                // Update local memory so it's instantly available without a full refresh
-                DatabaseManager.shippingRules[custName.toUpperCase()] = newRules;
-                this.populateAddressDropdown();
-                UIManager.showCustomAlert("Success", "✅ Address book updated successfully!");
-            } else {
-                alert("Database Error: " + data.message);
-            }
-        } catch (err) {
-            alert("Network Error: " + err.message);
-        } finally {
-            btn.innerHTML = origText;
-            btn.disabled = false;
+        // Trigger the guard if data already exists
+        if (existingRule) {
+            UIManager.showCustomConfirm(
+                "Overwrite Shipping Info?", 
+                `You already have shipping information saved for <b>${custName}</b>.<br><br>Are you sure you want to overwrite it with the current data?`, 
+                executeSave
+            );
+        } else {
+            executeSave();
         }
     },
 
@@ -386,7 +416,32 @@ const ShippingManager = {
             </div>`);
     },
     
-    skipAndComplete() {
+    skipAndComplete(isLoggedElsewhere = false) {
+        // ✨ NEW: If clicked via the UI "Skip" button, auto-log it to Outgoing with blank tracking fields!
+        if (isLoggedElsewhere !== true) {
+            let payload = {
+                action: "LOG_MANUAL_TRACKING",
+                payload: {
+                    customerName: document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim(),
+                    orderNum: SessionManager.currentOrderNum || "",
+                    carrier: document.getElementById('shipCarrier') ? document.getElementById('shipCarrier').value : "Manual",
+                    trackingNumber: "", // ✨ Left deliberately blank so you can fill it in on the Google Sheet later
+                    totalWeight: document.getElementById('shipWeight').value || "",
+                    dimL: document.getElementById('shipDimL').value || "",
+                    dimW: document.getElementById('shipDimW').value || "",
+                    dimH: document.getElementById('shipDimH').value || ""
+                }
+            };
+            try {
+                // Fire without awaiting so it doesn't freeze or slow down the skip UI
+                fetch(SessionManager.getActiveArchiveUrl(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+            } catch(e) {}
+        }
+
         let modal = document.getElementById('shipmentManagerModal');
         if (modal) modal.style.display = 'none';
 
@@ -395,7 +450,7 @@ const ShippingManager = {
         let btn2 = document.getElementById('btnGenerateLabel');
         if (btn2) { btn2.innerHTML = `<i data-lucide="printer"></i> Purchase FedEx Label`; btn2.disabled = false; }
 
-        // ✨ FIXED: Pass (true, true) to bypass the shipping intercept
+        // Bypass the shipping intercept and finish the local scanning math
         if (typeof SessionManager !== 'undefined') SessionManager.completeSession(true, true);
     },
 
