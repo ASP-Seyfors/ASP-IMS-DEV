@@ -440,4 +440,11 @@ window.sendDeploymentBlast = sendDeploymentBlast;
 window.sendPreDeploymentBlast = sendPreDeploymentBlast;
 window.exportAppsScriptFiles = exportAppsScriptFiles; 
 
+// Active Shipments Edit
+window.openShipmentEditor = (type, rowIdx, dataStr) => openShipmentEditor(type, rowIdx, dataStr);
+window.saveShipmentEdit = () => saveShipmentEdit();
+
+// Address Book Editor
+window.openAddressBookEditor = () => ReportsManager.openAddressBookEditor();
+
 window.forceAppUpdate = forceAppUpdate;

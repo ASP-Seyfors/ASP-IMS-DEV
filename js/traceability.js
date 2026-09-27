@@ -61,13 +61,19 @@ async function openActiveShipmentsHub() {
 }
 
 function openShipmentEditor(type, rowIdx, dataStr) {
-    let data = JSON.parse(decodeURIComponent(dataStr));
+    let data = {};
+    try {
+        // Attempt to parse the encoded string, fallback to empty object if it fails
+        data = JSON.parse(decodeURIComponent(dataStr));
+    } catch(e) {
+        data = {};
+    }
     
-    document.getElementById('shipEditTitle').innerText = `Edit ${type} Shipment`;
+    document.getElementById('shipEditTitle').innerText = rowIdx === 'NEW' ? `Add New ${type} Shipment` : `Edit ${type} Shipment`;
     document.getElementById('shipEditType').value = type;
     document.getElementById('shipEditRowIdx').value = rowIdx;
     
-    document.getElementById('shipEditDate').value = data.date || '';
+    document.getElementById('shipEditDate').value = data.date || new Date().toLocaleDateString();
     document.getElementById('shipEditStatus').value = data.status || 'Pending';
     document.getElementById('shipEditPartner').value = data.partner || '';
     document.getElementById('shipEditPo').value = data.po || '';
@@ -93,12 +99,14 @@ async function saveShipmentEdit() {
     let origText = btn.innerHTML;
     btn.innerHTML = "⏳ Saving..."; btn.disabled = true;
 
+    let rowIdxVal = document.getElementById('shipEditRowIdx').value;
+
     let payload = {
         action: "UPDATE_SHIPMENT_ENTRY",
         payload: {
             type: document.getElementById('shipEditType').value,
-            rowIdx: document.getElementById('shipEditRowIdx').value,
-            isNew: false, // We are editing an existing row
+            rowIdx: rowIdxVal,
+            isNew: (rowIdxVal === 'NEW'), // Tells the backend to append a new row instead of updating
             date: document.getElementById('shipEditDate').value,
             status: document.getElementById('shipEditStatus').value,
             partner: document.getElementById('shipEditPartner').value,
@@ -122,7 +130,7 @@ async function saveShipmentEdit() {
         if (result.status === "success") {
             alert("Shipment updated successfully!");
             document.getElementById('shipmentEditModal').style.display = 'none';
-            openActiveShipmentsHub(); // Refresh the list
+            openActiveShipmentsHub(); 
         } else {
             alert("Database Error: " + result.message);
         }
