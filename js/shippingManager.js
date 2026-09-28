@@ -44,6 +44,7 @@ const ShippingManager = {
         safeSet('shipAddressCity', rules.city || '');
         safeSet('shipAddressState', rules.state || '');
         safeSet('shipAddressZip', rules.zip || '');
+        safeSet('shipAddressCountry', rules.country || 'US'); // ✨ NEW
     },
 
     updateCarrierUI() {
@@ -89,9 +90,10 @@ const ShippingManager = {
                     city: document.getElementById('shipAddressCity').value.trim(),
                     state: document.getElementById('shipAddressState').value.trim(),
                     zip: document.getElementById('shipAddressZip').value.trim(),
+                    country: document.getElementById('shipAddressCountry').value.trim(), // ✨ NEW
                     serviceType: serviceType,
                     isResidential: isResidential,
-                    account: document.getElementById('shipAccountNum').value.trim() // ✨ Added!
+                    account: document.getElementById('shipAccountNum').value.trim()
                 }
             };
 
@@ -113,7 +115,7 @@ const ShippingManager = {
                 let printWindow = window.open(blobUrl, "_blank");
                 if (!printWindow) alert("Pop-up blocked! Please allow pop-ups to view your shipping label.");
                 
-                this.skipAndComplete();
+                this.skipAndComplete(true);
             } else {
                 throw new Error(data.message || "FedEx API rejected the request.");
             }
@@ -159,9 +161,10 @@ const ShippingManager = {
                     city: document.getElementById('shipAddressCity').value.trim(),
                     state: document.getElementById('shipAddressState').value.trim(),
                     zip: document.getElementById('shipAddressZip').value.trim(),
+                    country: document.getElementById('shipAddressCountry').value.trim(), // ✨ NEW
                     serviceType: serviceType,
                     isResidential: isResidential,
-                    account: document.getElementById('shipAccountNum').value.trim() // ✨ Added!
+                    account: document.getElementById('shipAccountNum').value.trim()
                 }
             };
 
@@ -174,7 +177,7 @@ const ShippingManager = {
             let data = await res.json();
             if (data.status === "success") {
                 // If backend succeeds tomorrow, handle label print
-                this.skipAndComplete();
+                this.skipAndComplete(true);
             } else {
                 throw new Error(data.message || "UPS Sandbox token syncing.");
             }
@@ -227,6 +230,7 @@ const ShippingManager = {
             safeSet('shipInstructions', ''); safeSet('shipAddressContact', ''); safeSet('shipAddressEmail', '');
             safeSet('shipAddressPhone', ''); safeSet('shipAddress1', ''); safeSet('shipAddress2', '');
             safeSet('shipAddressCity', ''); safeSet('shipAddressState', ''); safeSet('shipAddressZip', '');
+        safeSet('shipAddressCountry', '');
             let carrierSel = document.getElementById('shipCarrier');
             if (carrierSel) { carrierSel.selectedIndex = 0; this.updateCarrierUI(); }
             return;
@@ -258,6 +262,7 @@ const ShippingManager = {
         safeSet('shipAddressCity', rules.city || '');
         safeSet('shipAddressState', rules.state || '');
         safeSet('shipAddressZip', rules.zip || '');
+        safeSet('shipAddressCountry', rules.country || 'US'); // ✨ NEW
     },
 
     async saveAddressBookEntry() {
@@ -502,5 +507,109 @@ const ShippingManager = {
         } finally {
             if (btn) { btn.innerText = origText; btn.disabled = false; }
         }
-    }    
+    },
+    
+    async openIncomingModal() {
+        let modal = document.getElementById('incomingShipmentModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'incomingShipmentModal';
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:none; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
+            modal.innerHTML = `
+              <div style="background:#fff; border-radius:8px; width:100%; max-width:550px; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.6); max-height:85vh;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #f57f17; padding:15px 20px; flex-shrink:0;">
+                  <h2 style="margin:0; color:#f57f17; font-size:1.3rem;">📥 Verify Incoming Shipments</h2>
+                  <button onclick="ShippingManager.skipIncomingShipments()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#333;">&times;</button>
+                </div>
+                <div style="padding:15px 20px; font-size:0.95rem; color:#555; background:#fff3e0; border-bottom:1px solid #ffcc80;">
+                    Check any shipments below that arrived in this delivery. This will automatically mark them as "Delivered" and "Quality Checked" in your Google Sheet.
+                </div>
+                <div id="incomingShipmentList" style="padding:15px 20px; overflow-y:auto; flex-grow:1; display:flex; flex-direction:column; gap:8px;">
+                </div>
+                <div style="padding:15px 20px; border-top:1px solid #eee; display:flex; gap:10px; flex-shrink:0;">
+                  <button onclick="ShippingManager.skipIncomingShipments()" style="background:#757575; color:#fff; flex:1; padding:12px; border-radius:4px; border:none; cursor:pointer; font-weight:bold;">Skip</button>
+                  <button id="btnConfirmIncoming" onclick="ShippingManager.confirmIncomingShipments()" style="background:#f57f17; color:#fff; flex:2; padding:12px; border-radius:4px; border:none; cursor:pointer; font-weight:bold;">Verify Checked Items</button>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        let list = document.getElementById('incomingShipmentList');
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:#0277bd;">⏳ Loading pending incoming shipments...</div>';
+        modal.style.display = 'flex';
+        
+        try {
+            let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_PENDING_SHIPMENTS`);
+            let data = await res.json();
+            
+            if (!data.incoming || data.incoming.length === 0) {
+               modal.style.display = 'none';
+               // If no shipments exist, silently jump past this step
+               SessionManager.completeSession(true, true, true);
+               return;
+            }
+            
+            let html = '';
+            data.incoming.forEach(s => {
+                let dStr = s.date ? new Date(s.date).toLocaleDateString() : 'Unknown Date';
+                html += `
+                <label style="display:flex; align-items:flex-start; gap:12px; padding:12px; border:1px solid #ddd; border-radius:6px; cursor:pointer; background:#f9f9f9; transition: background 0.2s;">
+                    <input type="checkbox" class="incoming-chk" value="${s.rowIdx}" style="margin-top:2px; width:20px; height:20px; cursor:pointer;">
+                    <div style="flex:1;">
+                       <strong style="color:#0277bd; font-size:1.05rem;">${s.partner}</strong> <span style="color:#777; font-size:0.8rem; float:right;">${dStr}</span><br>
+                       <span style="color:#333; font-size:0.9rem; font-weight:bold;">PO/Invoice: ${s.po || 'N/A'}</span><br>
+                       <span style="color:#555; font-size:0.85rem;">Carrier: ${s.carrier || 'N/A'} | Tracking: ${s.tracking || 'N/A'}</span>
+                    </div>
+                </label>
+                `;
+            });
+            list.innerHTML = html;
+        } catch (err) {
+            list.innerHTML = '<div style="color:#c62828; text-align:center; padding:20px;">Failed to load shipments.</div>';
+        }
+    },
+
+    skipIncomingShipments() {
+        let modal = document.getElementById('incomingShipmentModal');
+        if (modal) modal.style.display = 'none';
+        SessionManager.completeSession(true, true, true);
+    },
+
+    async confirmIncomingShipments() {
+        let checkboxes = document.querySelectorAll('.incoming-chk:checked');
+        let rowIndexes = Array.from(checkboxes).map(c => c.value);
+        
+        if (rowIndexes.length === 0) {
+            this.skipIncomingShipments();
+            return;
+        }
+        
+        let btn = document.getElementById('btnConfirmIncoming');
+        let orig = btn.innerText;
+        btn.innerText = "⏳ Saving..."; btn.disabled = true;
+        
+        let sessionNotes = document.getElementById('sessionNoteInput') ? document.getElementById('sessionNoteInput').value.trim() : "";
+        
+        try {
+            await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST',
+                headers: {'Content-Type': 'text/plain;charset=utf-8'},
+                body: JSON.stringify({
+                    action: "MARK_INCOMING_DELIVERED",
+                    payload: {
+                        rowIndexes: rowIndexes,
+                        notes: sessionNotes
+                    }
+                })
+            });
+        } catch (e) {
+            console.warn("Failed to mark incoming delivered", e);
+        }
+        
+        document.getElementById('incomingShipmentModal').style.display = 'none';
+        btn.innerText = orig; btn.disabled = false;
+        
+        SessionManager.completeSession(true, true, true);
+    }
 };
