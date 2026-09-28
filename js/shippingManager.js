@@ -498,7 +498,7 @@ const ShippingManager = {
             }
             
             if (data.status === "success") {
-                this.skipAndComplete(); 
+                this.skipAndComplete(true); 
             } else {
                 alert("Database Error: " + data.message);
             }
