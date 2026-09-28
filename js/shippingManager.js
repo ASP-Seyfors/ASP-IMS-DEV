@@ -643,14 +643,14 @@ const ShippingManager = {
             data.incoming.forEach(s => {
                 let dStr = s.date ? new Date(s.date).toLocaleDateString() : 'Unknown Date';
                 
-                // ✨ FIX: Swapped hardcoded hex colors for dynamic CSS variables inside the label cards
+                // ✨ FIX: Used a transparent background tint so the cards naturally adapt to Light/Dark mode backgrounds
                 html += `
-                <label style="display:flex; align-items:flex-start; gap:12px; padding:12px; border:1px solid var(--border-color, #ddd); border-radius:6px; cursor:pointer; background:var(--surface-color, #f9f9f9); transition: background 0.2s;">
+                <label style="display:flex; align-items:flex-start; gap:12px; padding:12px; border:1px solid var(--border-color, #ccc); border-radius:6px; cursor:pointer; background:rgba(128, 128, 128, 0.08); transition: background 0.2s;">
                     <input type="checkbox" class="incoming-chk" value="${s.rowIdx}" style="margin-top:2px; width:20px; height:20px; cursor:pointer;">
                     <div style="flex:1;">
-                       <strong style="color:var(--primary-color, #03a9f4); font-size:1.05rem;">${s.partner}</strong> <span style="color:var(--text-muted, #777); font-size:0.8rem; float:right;">${dStr}</span><br>
+                       <strong style="color:var(--primary-color, #0277bd); font-size:1.05rem;">${s.partner}</strong> <span style="color:var(--text-muted, #777); font-size:0.8rem; float:right;">${dStr}</span><br>
                        <span style="color:var(--text-main, #333); font-size:0.9rem; font-weight:bold;">PO/Invoice: ${s.po || 'N/A'}</span><br>
-                       <span style="color:var(--text-muted, #555); font-size:0.85rem;">Carrier: ${s.carrier || 'N/A'} | Tracking: ${s.tracking || 'N/A'}</span>
+                       <span style="color:var(--text-muted, #777); font-size:0.85rem;">Carrier: ${s.carrier || 'N/A'} | Tracking: ${s.tracking || 'N/A'}</span>
                     </div>
                 </label>
                 `;
