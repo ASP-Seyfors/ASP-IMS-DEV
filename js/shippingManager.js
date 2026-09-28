@@ -48,6 +48,7 @@ const ShippingManager = {
     },
 
     updateCarrierUI() {
+        this.resetRateDisplay(); // ✨ Added Reset
         let carrier = document.getElementById('shipCarrier').value.toUpperCase();
         let btn = document.getElementById('btnGenerateLabel');
         if (!btn) return;
@@ -64,6 +65,91 @@ const ShippingManager = {
             btn.style.color = "#fff";
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();
+    },
+
+    resetRateDisplay() {
+        let rateDisplay = document.getElementById('shipRateDisplay');
+        let btnCalc = document.getElementById('btnCalculateRate');
+        let btnBuy = document.getElementById('btnGenerateLabel');
+        if (rateDisplay) rateDisplay.style.display = 'none';
+        if (btnBuy) btnBuy.style.display = 'none';
+        if (btnCalc) btnCalc.style.display = 'flex';
+    },
+
+    async calculateFedExRate() {
+        let btn = document.getElementById('btnCalculateRate');
+        let origText = btn.innerHTML;
+        let rateDisplay = document.getElementById('shipRateDisplay');
+        let msgEl = document.getElementById('shipValidationMsg');
+        let rateEl = document.getElementById('shipRateAmount');
+        let buyBtn = document.getElementById('btnGenerateLabel');
+        
+        btn.innerHTML = "⏳ Validating & Quoting...";
+        btn.disabled = true;
+        rateDisplay.style.display = 'none';
+        buyBtn.style.display = 'none';
+
+        let serviceType = document.getElementById('shipServiceType').value;
+        let isResidential = document.querySelector('input[name="shipAddressType"]:checked').value === 'residential';
+        
+        let payloadData = {
+            street: document.getElementById('shipAddress1').value.trim(),
+            street2: document.getElementById('shipAddress2').value.trim(),
+            city: document.getElementById('shipAddressCity').value.trim(),
+            state: document.getElementById('shipAddressState').value.trim(),
+            zip: document.getElementById('shipAddressZip').value.trim(),
+            country: document.getElementById('shipAddressCountry').value.trim() || "US",
+            serviceType: serviceType,
+            isResidential: isResidential,
+            account: document.getElementById('shipAccountNum').value.trim(),
+            totalWeight: document.getElementById('shipWeight').value,
+            dimL: document.getElementById('shipDimL').value || 12,
+            dimW: document.getElementById('shipDimW').value || 6,
+            dimH: document.getElementById('shipDimH').value || 6
+        };
+
+        try {
+            // 1. Validate Address
+            let valRes = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "VALIDATE_ADDRESS", payload: payloadData })
+            });
+            let valData = await valRes.json();
+            
+            if (valData.status !== "success" || !valData.isValid) {
+                alert("Address Validation Failed! Please double check the Street, City, State, and Zip.\n\nFedEx Note: " + (valData.cleansedAddress || "Invalid Address"));
+                btn.innerHTML = origText; btn.disabled = false;
+                return;
+            }
+            
+            // Auto-check residential radio if FedEx detected it was a house
+            if (valData.isResidential) {
+                document.querySelector('input[name="shipAddressType"][value="residential"]').checked = true;
+                payloadData.isResidential = true;
+            }
+
+            // 2. Get Rate Quote
+            let rateRes = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "GET_FEDEX_RATE", payload: payloadData })
+            });
+            let rateData = await rateRes.json();
+
+            if (rateData.status === "success") {
+                msgEl.innerText = valData.isResidential ? "✅ Validated Residential Address" : "✅ Validated Commercial Address";
+                rateEl.innerText = "$" + parseFloat(rateData.netCharge || 0).toFixed(2);
+                
+                rateDisplay.style.display = 'flex';
+                btn.style.display = 'none'; // Hide calc button
+                buyBtn.style.display = 'flex'; // Show buy button
+            } else {
+                alert("Rate Quote Failed: " + rateData.message);
+            }
+        } catch (err) {
+            alert("Network Error: " + err.message);
+        } finally {
+            if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+        }
     },
 
     async generateFedExLabel() {
@@ -394,6 +480,7 @@ const ShippingManager = {
     },
 
     handleBoxSizeChange() {
+        this.resetRateDisplay(); // ✨ Added Reset
         let val = document.getElementById('shipBoxSize').value;
         if (val === 'XS') { document.getElementById('shipDimL').value = 8; document.getElementById('shipDimW').value = 8; document.getElementById('shipDimH').value = 8; }
         else if (val === 'S') { document.getElementById('shipDimL').value = 12; document.getElementById('shipDimW').value = 6; document.getElementById('shipDimH').value = 6; }

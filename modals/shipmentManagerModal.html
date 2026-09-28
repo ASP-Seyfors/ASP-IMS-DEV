@@ -144,9 +144,22 @@
           </div>
 
           <div style="background:#e8f5e9; border:1px solid #81c784; border-radius:6px; padding:15px; display:flex; flex-direction:column; gap:10px; flex-grow:1; justify-content:center;">
-            <button id="btnGenerateLabel" onclick="ShippingManager.generateFedExLabel()" style="background:#2e7d32; color:#fff; width:100%; font-size:1.1rem; font-weight:bold; padding:12px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-              <i data-lucide="printer" style="width:20px; height:20px;"></i> Purchase FedEx Label
+            
+            <!-- ✨ NEW: Rate & Validation Display Area -->
+            <div id="shipRateDisplay" style="display:none; background:#fff; border:1px solid #81c784; padding:10px; border-radius:4px; text-align:center; flex-direction:column; gap:6px;">
+                <div id="shipValidationMsg" style="font-size:0.85rem; font-weight:bold; color:#0277bd;"></div>
+                <div style="font-size:1.4rem; font-weight:bold; color:#2e7d32;" id="shipRateAmount"></div>
+            </div>
+
+            <button id="btnCalculateRate" onclick="ShippingManager.calculateFedExRate()" style="background:#0277bd; color:#fff; width:100%; font-size:1.1rem; font-weight:bold; padding:12px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+              <i data-lucide="calculator" style="width:20px; height:20px;"></i> Calculate Shipping
             </button>
+
+            <!-- ✨ UPDATED: Hidden by default until rate is calculated -->
+            <button id="btnGenerateLabel" onclick="ShippingManager.generateFedExLabel()" style="display:none; background:#2e7d32; color:#fff; width:100%; font-size:1.1rem; font-weight:bold; padding:12px; border-radius:6px; border:none; cursor:pointer; align-items:center; justify-content:center; gap:8px;">
+              <i data-lucide="printer" style="width:20px; height:20px;"></i> Confirm & Buy Label
+            </button>
+            
             <div style="display:flex; gap:10px;">
               <button id="btnLogTrackingOnly" onclick="ShippingManager.logManualTracking()" style="background:#0277bd; color:#fff; flex:1; font-size:0.9rem; padding:10px; border-radius:6px; border:none; cursor:pointer;">
                 Log Tracking Only
