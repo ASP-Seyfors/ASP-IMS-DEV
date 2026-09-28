@@ -114,10 +114,9 @@ const ShippingManager = {
 
             if (valData.status !== "success" || !valData.isValid) {
                 UIManager.showCustomAlert("Address Validation Failed", "FedEx rejected this address. Please double-check the Street, City, State, and Zip.<br><br><b>FedEx Note:</b> " + (valData.cleansedAddress || "No match found."), true);
-                return;
+                return; // Safely exits, but FINALLY block below will re-enable the button!
             }
 
-            // Optional: Auto-flip the residential radio button if FedEx corrected us!
             if (valData.isResidential !== isResidential) {
                 document.querySelector(`input[name="shipAddressType"][value="${valData.isResidential ? 'residential' : 'commercial'}"]`).checked = true;
                 isResidential = valData.isResidential;
@@ -146,13 +145,10 @@ const ShippingManager = {
             let rateData = await rateRes.json();
 
             if (rateData.status === "success") {
-                // UI Transition: Hide Calculate button, Show Price Box
                 btn.style.display = 'none';
                 priceBox.style.display = 'flex';
-                
                 costText.innerText = "$" + parseFloat(rateData.netCharge).toFixed(2);
                 valBadge.innerHTML = `<i data-lucide="check-circle" style="width:14px; height:14px; vertical-align:text-bottom;"></i> Validated ${isResidential ? "Residential" : "Commercial"} Address`;
-                
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } else {
                 UIManager.showCustomAlert("Rate Quote Failed", rateData.message, true);
@@ -161,8 +157,11 @@ const ShippingManager = {
         } catch (err) {
             UIManager.showCustomAlert("Connection Error", err.message, true);
         } finally {
-            btn.innerHTML = origHtml;
-            btn.disabled = false;
+            // ✨ GUARANTEE: This always runs, ensuring the button never freezes permanently
+            if (btn) {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
         }
     },
 
