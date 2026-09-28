@@ -67,6 +67,105 @@ const ShippingManager = {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     },
 
+    // ✨ NEW: Resets the UI so the user is forced to click "Calculate" again if they change a setting
+    resetQuoteUI() {
+        let calcBtn = document.getElementById('btnCalculateRate');
+        let priceBox = document.getElementById('shipPriceDisplay');
+        if (calcBtn && priceBox) {
+            calcBtn.style.display = 'flex';
+            calcBtn.innerHTML = `<i data-lucide="calculator" style="width:20px; height:20px;"></i> Recalculate Rate`;
+            priceBox.style.display = 'none';
+        }
+    },
+
+    // ✨ NEW: The Master Rate Calculator Function
+    async calculateShippingRate() {
+        let btn = document.getElementById('btnCalculateRate');
+        let priceBox = document.getElementById('shipPriceDisplay');
+        let costText = document.getElementById('shipEstimatedCost');
+        let valBadge = document.getElementById('shipValidationBadge');
+        
+        let origHtml = btn.innerHTML;
+        btn.innerHTML = "⏳ Validating & Quoting...";
+        btn.disabled = true;
+
+        try {
+            let isResidential = document.querySelector('input[name="shipAddressType"]:checked').value === 'residential';
+            let serviceType = document.getElementById('shipServiceType').value;
+
+            // STEP 1: Validate Address
+            let valPayload = {
+                action: "VALIDATE_ADDRESS",
+                payload: {
+                    street: document.getElementById('shipAddress1').value.trim(),
+                    street2: document.getElementById('shipAddress2').value.trim(),
+                    city: document.getElementById('shipAddressCity').value.trim(),
+                    state: document.getElementById('shipAddressState').value.trim(),
+                    zip: document.getElementById('shipAddressZip').value.trim(),
+                    country: document.getElementById('shipAddressCountry').value.trim() || "US"
+                }
+            };
+
+            let valRes = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(valPayload)
+            });
+            let valData = await valRes.json();
+
+            if (valData.status !== "success" || !valData.isValid) {
+                UIManager.showCustomAlert("Address Validation Failed", "FedEx rejected this address. Please double-check the Street, City, State, and Zip.<br><br><b>FedEx Note:</b> " + (valData.cleansedAddress || "No match found."), true);
+                return;
+            }
+
+            // Optional: Auto-flip the residential radio button if FedEx corrected us!
+            if (valData.isResidential !== isResidential) {
+                document.querySelector(`input[name="shipAddressType"][value="${valData.isResidential ? 'residential' : 'commercial'}"]`).checked = true;
+                isResidential = valData.isResidential;
+            }
+
+            // STEP 2: Fetch Live Rate Quote
+            let quotePayload = {
+                action: "GET_FEDEX_RATE",
+                payload: {
+                    zip: document.getElementById('shipAddressZip').value.trim(),
+                    country: document.getElementById('shipAddressCountry').value.trim() || "US",
+                    serviceType: serviceType,
+                    isResidential: isResidential,
+                    account: document.getElementById('shipAccountNum').value.trim(),
+                    totalWeight: document.getElementById('shipWeight').value,
+                    dimL: document.getElementById('shipDimL').value || 12,
+                    dimW: document.getElementById('shipDimW').value || 6,
+                    dimH: document.getElementById('shipDimH').value || 6
+                }
+            };
+
+            let rateRes = await fetch(SessionManager.getActiveArchiveUrl(), {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(quotePayload)
+            });
+            let rateData = await rateRes.json();
+
+            if (rateData.status === "success") {
+                // UI Transition: Hide Calculate button, Show Price Box
+                btn.style.display = 'none';
+                priceBox.style.display = 'flex';
+                
+                costText.innerText = "$" + parseFloat(rateData.netCharge).toFixed(2);
+                valBadge.innerHTML = `<i data-lucide="check-circle" style="width:14px; height:14px; vertical-align:text-bottom;"></i> Validated ${isResidential ? "Residential" : "Commercial"} Address`;
+                
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } else {
+                UIManager.showCustomAlert("Rate Quote Failed", rateData.message, true);
+            }
+
+        } catch (err) {
+            UIManager.showCustomAlert("Connection Error", err.message, true);
+        } finally {
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+        }
+    },
+
     resetRateDisplay() {
         let rateDisplay = document.getElementById('shipRateDisplay');
         let btnCalc = document.getElementById('btnCalculateRate');
