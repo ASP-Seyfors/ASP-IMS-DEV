@@ -63,23 +63,38 @@ async function openActiveShipmentsHub() {
 function openShipmentEditor(type, rowIdx, dataStr) {
     let data = {};
     try {
-        // Attempt to parse the encoded string, fallback to empty object if it fails
         data = JSON.parse(decodeURIComponent(dataStr));
     } catch(e) {
         data = {};
     }
+
+    // ✨ NEW: Helper to convert messy ISO dates into simple MM/DD/YYYY
+    const cleanDate = (val) => {
+        if (!val) return '';
+        let d = new Date(val);
+        if (isNaN(d)) return val;
+        // Parse UTC properly so timestamps like "04:00:00.000Z" don't shift the day backward in US timezones
+        if (val.toString().includes('T')) {
+            return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
+        }
+        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    };
     
     document.getElementById('shipEditTitle').innerText = rowIdx === 'NEW' ? `Add New ${type} Shipment` : `Edit ${type} Shipment`;
     document.getElementById('shipEditType').value = type;
     document.getElementById('shipEditRowIdx').value = rowIdx;
     
-    document.getElementById('shipEditDate').value = data.date || new Date().toLocaleDateString();
+    let todayStr = `${new Date().getMonth() + 1}/${new Date().getDate()}/${new Date().getFullYear()}`;
+    
+    // Inject the clean dates into the form inputs
+    document.getElementById('shipEditDate').value = data.date ? cleanDate(data.date) : todayStr;
+    document.getElementById('shipEditEta').value = data.eta ? cleanDate(data.eta) : '';
+    
     document.getElementById('shipEditStatus').value = data.status || 'Pending';
     document.getElementById('shipEditPartner').value = data.partner || '';
     document.getElementById('shipEditPo').value = data.po || '';
     document.getElementById('shipEditCarrier').value = data.carrier || '';
     document.getElementById('shipEditTracking').value = data.tracking || '';
-    document.getElementById('shipEditEta').value = data.eta || '';
     document.getElementById('shipEditNotes').value = data.notes || '';
     
     let extraRow = document.getElementById('shipEditOutboundExtra');
