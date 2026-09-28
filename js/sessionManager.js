@@ -573,6 +573,7 @@ const SessionManager = {
     this.updateManifestProgressUI();
     
     if (typeof UIManager !== 'undefined' && UIManager.closeStocktakeModal) UIManager.closeStocktakeModal();
+    if (typeof UIManager !== 'undefined') UIManager.lockCheatCodes(); // ✨ Added
     document.getElementById('screenSetup').style.display = 'none';
     document.getElementById('screenScanning').style.display = 'block';
 
@@ -706,6 +707,7 @@ const SessionManager = {
 
       this.updateHeaderBanners();
 
+      if (typeof UIManager !== 'undefined') UIManager.lockCheatCodes(); // ✨ Added
       document.getElementById('screenSetup').style.display = 'none';
 
       if (this.isManifestEnabled) {
