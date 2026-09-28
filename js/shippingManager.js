@@ -602,18 +602,20 @@ const ShippingManager = {
             modal = document.createElement('div');
             modal.id = 'incomingShipmentModal';
             modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:none; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
+            
+            // ✨ FIX: Swapped hardcoded hex colors for dynamic CSS variables
             modal.innerHTML = `
-              <div style="background:#fff; border-radius:8px; width:100%; max-width:550px; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.6); max-height:85vh;">
+              <div style="background:var(--card-bg, #ffffff); border-radius:8px; width:100%; max-width:550px; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.6); max-height:85vh;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #f57f17; padding:15px 20px; flex-shrink:0;">
                   <h2 style="margin:0; color:#f57f17; font-size:1.3rem;">📥 Verify Incoming Shipments</h2>
-                  <button onclick="ShippingManager.skipIncomingShipments()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#333;">&times;</button>
+                  <button onclick="ShippingManager.skipIncomingShipments()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main, #333);">&times;</button>
                 </div>
-                <div style="padding:15px 20px; font-size:0.95rem; color:#555; background:#fff3e0; border-bottom:1px solid #ffcc80;">
+                <div style="padding:15px 20px; font-size:0.95rem; color:var(--text-main, #555); background:rgba(245, 127, 23, 0.1); border-bottom:1px solid var(--border-color, #ffcc80);">
                     Check any shipments below that arrived in this delivery. This will automatically mark them as "Delivered" and "Quality Checked" in your Google Sheet.
                 </div>
                 <div id="incomingShipmentList" style="padding:15px 20px; overflow-y:auto; flex-grow:1; display:flex; flex-direction:column; gap:8px;">
                 </div>
-                <div style="padding:15px 20px; border-top:1px solid #eee; display:flex; gap:10px; flex-shrink:0;">
+                <div style="padding:15px 20px; border-top:1px solid var(--border-color, #eee); display:flex; gap:10px; flex-shrink:0;">
                   <button onclick="ShippingManager.skipIncomingShipments()" style="background:#757575; color:#fff; flex:1; padding:12px; border-radius:4px; border:none; cursor:pointer; font-weight:bold;">Skip</button>
                   <button id="btnConfirmIncoming" onclick="ShippingManager.confirmIncomingShipments()" style="background:#f57f17; color:#fff; flex:2; padding:12px; border-radius:4px; border:none; cursor:pointer; font-weight:bold;">Verify Checked Items</button>
                 </div>
@@ -623,7 +625,7 @@ const ShippingManager = {
         }
         
         let list = document.getElementById('incomingShipmentList');
-        list.innerHTML = '<div style="text-align:center; padding:20px; color:#0277bd;">⏳ Loading pending incoming shipments...</div>';
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-main, #0277bd);">⏳ Loading pending incoming shipments...</div>';
         modal.style.display = 'flex';
         
         try {
@@ -640,13 +642,15 @@ const ShippingManager = {
             let html = '';
             data.incoming.forEach(s => {
                 let dStr = s.date ? new Date(s.date).toLocaleDateString() : 'Unknown Date';
+                
+                // ✨ FIX: Swapped hardcoded hex colors for dynamic CSS variables inside the label cards
                 html += `
-                <label style="display:flex; align-items:flex-start; gap:12px; padding:12px; border:1px solid #ddd; border-radius:6px; cursor:pointer; background:#f9f9f9; transition: background 0.2s;">
+                <label style="display:flex; align-items:flex-start; gap:12px; padding:12px; border:1px solid var(--border-color, #ddd); border-radius:6px; cursor:pointer; background:var(--surface-color, #f9f9f9); transition: background 0.2s;">
                     <input type="checkbox" class="incoming-chk" value="${s.rowIdx}" style="margin-top:2px; width:20px; height:20px; cursor:pointer;">
                     <div style="flex:1;">
-                       <strong style="color:#0277bd; font-size:1.05rem;">${s.partner}</strong> <span style="color:#777; font-size:0.8rem; float:right;">${dStr}</span><br>
-                       <span style="color:#333; font-size:0.9rem; font-weight:bold;">PO/Invoice: ${s.po || 'N/A'}</span><br>
-                       <span style="color:#555; font-size:0.85rem;">Carrier: ${s.carrier || 'N/A'} | Tracking: ${s.tracking || 'N/A'}</span>
+                       <strong style="color:var(--primary-color, #03a9f4); font-size:1.05rem;">${s.partner}</strong> <span style="color:var(--text-muted, #777); font-size:0.8rem; float:right;">${dStr}</span><br>
+                       <span style="color:var(--text-main, #333); font-size:0.9rem; font-weight:bold;">PO/Invoice: ${s.po || 'N/A'}</span><br>
+                       <span style="color:var(--text-muted, #555); font-size:0.85rem;">Carrier: ${s.carrier || 'N/A'} | Tracking: ${s.tracking || 'N/A'}</span>
                     </div>
                 </label>
                 `;
