@@ -91,6 +91,10 @@ const ReportsManager = {
 
     let rules = DatabaseManager.shippingRules || {};
     let keys = Object.keys(rules).sort();
+    
+    // ✨ NEW: Inject the calculated count into the HTML span
+    let countEl = document.getElementById('abContactCount');
+    if (countEl) countEl.innerText = keys.length;
 
     if (keys.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding:20px; color:#777; background:#fff; border-radius:4px; border:1px solid #ccc;">No contacts found in Address Book.</div>';

@@ -447,4 +447,8 @@ window.saveShipmentEdit = () => saveShipmentEdit();
 // Address Book Editor
 window.openAddressBookEditor = () => ReportsManager.openAddressBookEditor();
 
+window.openActiveShipmentsHub = () => openActiveShipmentsHub();
+window.openShipmentEditor = (type, rowIdx, dataStr) => openShipmentEditor(type, rowIdx, dataStr);
+window.saveShipmentEdit = () => saveShipmentEdit();
+
 window.forceAppUpdate = forceAppUpdate;

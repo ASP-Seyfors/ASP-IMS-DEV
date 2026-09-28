@@ -17,7 +17,7 @@
             <input type="text" id="abContactId" class="form-input" placeholder="Contact ID (System Key)*" style="font-weight:bold; border-color:#0277bd;">
             <input type="text" id="abCompany" class="form-input" placeholder="Formal Company Name">
             <input type="text" id="abContactName" class="form-input" placeholder="Contact Person">
-            <input type="email" id="abEmail" class="form-input" placeholder="Email Address">
+            <input type="text" id="abEmail" class="form-input" placeholder="Email Address">
             <input type="text" id="abPhone" class="form-input" placeholder="Phone Number">
             <div style="display:flex; gap:8px;">
                 <select id="abMethod" class="form-input" style="flex:1;">
@@ -47,7 +47,7 @@
       </div>
 
       <!-- Live Roster Grid -->
-      <h4 style="margin:0 0 10px 0; color:#333;">Saved Contacts (${Object.keys(DatabaseManager.shippingRules).length})</h4>
+      <h4 style="margin:0 0 10px 0; color:#333;">Saved Contacts (<span id="abContactCount">0</span>)</h4>
       <div id="addressBookGrid" style="display:flex; flex-direction:column; gap:8px;">
           <!-- JS will inject cards here -->
       </div>
