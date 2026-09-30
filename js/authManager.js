@@ -409,44 +409,43 @@ const AuthManager = {
     this.logout(true); 
   },
 
-  logout(force = false) {
-    // Only ask for confirmation if this is a manual logout
+  // ✨ FIX: Made function async, awaited the transmission, and moved it BEFORE the memory wipe
+  async logout(force = false) {
     if (!force && !confirm("Are you sure you want to log out?")) return;
     
-    // Stop the timer and remove listeners only after we know we are logging out
     this.stopIdleTimer();
     
+    // 1. Send the Inactive ping to Google while we still know who the user is
+    await this.transmitUserStatus('Inactive');
+    
+    // 2. NOW wipe the memory safely
     this.currentUser = null;
     this.isGuest = false;
     
-    // Clear Authentication Tokens
     localStorage.removeItem('asp_auth_session');
     sessionStorage.removeItem('asp_auth_session');
-    
-    // ✨ FIX: Wipe ALL temporary session flags so the next login forces a massive hard-sync
     sessionStorage.removeItem('asp_allocations_verified');
     sessionStorage.removeItem('asp_has_auto_synced');
-    
     localStorage.removeItem('asp_allocations');
     localStorage.removeItem('asp_remote_analytics');
     
-    this.transmitUserStatus('Inactive'); // ✨ INJECTED HERE
     window.location.reload();
   },
 
+  // ✨ FIX: Return the fetch promise so the logout function above can 'await' it
   transmitUserStatus(status) {
     let email = this.currentUser ? this.currentUser.email : null;
-    if (!email) return;
+    if (!email) return Promise.resolve();
 
     let payload = { action: "UPDATE_USER_STATUS", payload: { email: email, status: status } };
     
-    // Using keepalive: true ensures the request finishes even if the browser window is actively closing
     if (typeof SessionManager !== 'undefined' && SessionManager.getActiveArchiveUrl()) {
-        fetch(SessionManager.getActiveArchiveUrl(), { 
+        return fetch(SessionManager.getActiveArchiveUrl(), { 
             method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload) 
         }).catch(e => console.warn("Background status sync failed."));
     }
+    return Promise.resolve();
   },
 
   parseJwt(token) {
