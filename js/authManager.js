@@ -418,6 +418,9 @@ const AuthManager = {
     // 1. Send the Inactive ping to Google while we still know who the user is
     await this.transmitUserStatus('Inactive');
     
+    // ✨ NEW: 300ms buffer guarantees the network handoff finishes before the thread is killed
+    await new Promise(r => setTimeout(r, 300));
+    
     // 2. NOW wipe the memory safely
     this.currentUser = null;
     this.isGuest = false;
@@ -432,15 +435,17 @@ const AuthManager = {
     window.location.reload();
   },
 
-  // ✨ FIX: Return the fetch promise so the logout function above can 'await' it
-  transmitUserStatus(status) {
+  async transmitUserStatus(status) {
     let email = this.currentUser ? this.currentUser.email : null;
     if (!email) return Promise.resolve();
 
     let payload = { action: "UPDATE_USER_STATUS", payload: { email: email, status: status } };
     
     if (typeof SessionManager !== 'undefined' && SessionManager.getActiveArchiveUrl()) {
-        return fetch(SessionManager.getActiveArchiveUrl(), { 
+        // ✨ NEW: Cache-buster (?t=...) forces a fresh network request every time
+        let targetUrl = `${SessionManager.getActiveArchiveUrl()}?t=${Date.now()}`;
+        
+        return fetch(targetUrl, { 
             method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload) 
         }).catch(e => console.warn("Background status sync failed."));
