@@ -74,8 +74,11 @@
         navigator.serviceWorker.register('./sw.js').then(reg => {
           console.log('Service Worker registered.');
           
-          // Force an immediate check for updates on every load
-          reg.update();
+          // ✨ THE FIX: Only check for updates aggressively if the user is fully logged in.
+          // This prevents the app from reloading in the background while the Google Auth popup is open.
+          if (sessionStorage.getItem('asp_auth_session')) {
+              reg.update();
+          }
 
           // Triggered when a new Service Worker is found on the server
           reg.onupdatefound = () => {
