@@ -816,7 +816,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     };
 
     try {
-      let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.cloudArchiveUrl : "https://script.google.com/macros/s/AKfycby-jGbxOlkmMDQwDN5x1FHae6OTNlVD4ZsBDWiLzotdp2ALs0JGYe_RYvSoXMDD7EqQeg/exec";
+      let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.cloudArchiveUrl : ENV_CONFIG.CLOUD_ARCHIVE_URL;
       
       await fetch(activeUrl, {
         method: 'POST',

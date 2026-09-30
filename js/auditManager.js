@@ -1998,6 +1998,12 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
       filtered.sort((a, b) => (a.ref || a.sku || '').localeCompare(b.ref || b.sku || ''));
 
+      // ✨ NEW: Dynamically construct the Shopify Image URL based on the current environment
+      let repoName = "ASP-IMS";
+      if (window.location.href.toUpperCase().includes("ASP-IMS-DEV")) repoName = "ASP-IMS-DEV";
+      else if (window.location.href.toUpperCase().includes("ASP-IMS-DEMO")) repoName = "ASP-IMS-DEMO";
+      let shopifyImgUrl = `https://asp-seyfors.github.io/${repoName}/${ENV_CONFIG.LOGO_URL}`;
+
       filtered.forEach(item => {
         let ref = String(item.ref || item.sku || '').replace(/"/g, '""');
         let desc = String(item.desc || '').replace(/[\r\n]+/g, ' ').replace(/"/g, '""');
@@ -2065,7 +2071,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let row = [
           `"${handle}"`, `"${title}"`, `"${desc}"`, `"${vendor}"`, `"${cat}"`, `"${cat}"`, `"${published}"`, 
           `"${optName}"`, `"${optValue}"`, `"${ref}"`, `"shopify"`, `${avail}`, `"deny"`, `"manual"`, 
-          `"${cleanPrice.toFixed(2)}"`, `"${gtin}"`, `"https://asp-seyfors.github.io/ASP-IMS-DEV/ASP_Box_Web_RGB_DEV.png"`, `"${status}"`
+          `"${cleanPrice.toFixed(2)}"`, `"${gtin}"`, `"${shopifyImgUrl}"`, `"${status}"`
         ];
         csvContent += row.join(',') + '\n';
       });

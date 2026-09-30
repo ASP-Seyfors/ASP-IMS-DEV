@@ -1945,7 +1945,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         if (shopifyUpdatePayload.length > 0 && archiveUrl) {
             networkTasks.push(fetch(archiveUrl, { 
                 method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifyUpdatePayload }) 
+                body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: shopifyUpdatePayload }) 
             }).catch(e => console.warn("Shopify background sync failed")));
         }
 
@@ -2909,7 +2909,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
           if (shopifySyncPayload.length > 0) {
               networkTasks.push(fetch(this.getActiveArchiveUrl(), { 
                   method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                  body: JSON.stringify({ action: "SYNC_SHOPIFY_SANDBOX", payload: shopifySyncPayload }) 
+                  body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: shopifySyncPayload }) 
               }).catch(e => console.warn("Shopify background sync failed")));
           }
 
