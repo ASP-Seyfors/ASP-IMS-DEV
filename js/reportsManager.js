@@ -1025,7 +1025,6 @@ const ReportsManager = {
     container.style.minHeight = visibleCount === 0 ? "50px" : "auto";
   },
 
-  /*
   addBlankRowToReportEditor() {
     let container = document.getElementById('reportItemRowsContainer');
     let uniqueId = 'custom_row_' + Date.now();
@@ -1044,5 +1043,5 @@ const ReportsManager = {
     
     // afterbegin injects the custom row at the very top of the list so they don't have to scroll down to find it
     container.insertAdjacentHTML('afterbegin', html); 
-  }*/
+  }
 };

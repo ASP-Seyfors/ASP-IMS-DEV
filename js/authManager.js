@@ -40,6 +40,17 @@ const AuthManager = {
     } else {
       this.showLoginScreen();
     }
+
+    // Monitor when the app is minimized, closed, or brought back to the front
+    document.addEventListener('visibilitychange', () => {
+        if (this.currentUser && !this.isGuest) {
+            if (document.visibilityState === 'hidden') {
+                this.transmitUserStatus('Inactive');
+            } else if (document.visibilityState === 'visible') {
+                this.transmitUserStatus('Active');
+            }
+        }
+    });
   },
 
   showLoginScreen() {
@@ -335,6 +346,7 @@ const AuthManager = {
     }
     
     this.startIdleTimer();
+    this.transmitUserStatus('Active'); // ✨ INJECTED HERE
   },
 
   /**
@@ -418,7 +430,23 @@ const AuthManager = {
     localStorage.removeItem('asp_allocations');
     localStorage.removeItem('asp_remote_analytics');
     
+    this.transmitUserStatus('Inactive'); // ✨ INJECTED HERE
     window.location.reload();
+  },
+
+  transmitUserStatus(status) {
+    let email = this.currentUser ? this.currentUser.email : null;
+    if (!email) return;
+
+    let payload = { action: "UPDATE_USER_STATUS", payload: { email: email, status: status } };
+    
+    // Using keepalive: true ensures the request finishes even if the browser window is actively closing
+    if (typeof SessionManager !== 'undefined' && SessionManager.getActiveArchiveUrl()) {
+        fetch(SessionManager.getActiveArchiveUrl(), { 
+            method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload) 
+        }).catch(e => console.warn("Background status sync failed."));
+    }
   },
 
   parseJwt(token) {
