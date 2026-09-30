@@ -243,15 +243,6 @@ async function exportAppsScriptFiles(event) {
 }
 
 window.onload = async () => { 
-  // ✨ FIX: Suppress the native Chrome "Update Available" banner
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
-        console.log("Update detected, suppressing native banner.");
-      }
-    });
-  }
-
   // 1. Fetch and inject all HTML components FIRST
   if (typeof ComponentManager !== 'undefined') {
     await ComponentManager.loadAllScreens();
