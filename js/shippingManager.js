@@ -72,15 +72,31 @@ const ShippingManager = {
         let calcBtn = document.getElementById('btnCalculateRate');
         let priceBox = document.getElementById('shipPriceDisplay');
         let buyBtn = document.getElementById('btnGenerateLabel');
+        let accountInput = document.getElementById('shipAccountNum');
         
+        let isNA = false;
+        if (accountInput) {
+            let acctVal = accountInput.value.trim().toUpperCase();
+            if (acctVal === "N/A" || acctVal === "NA" || acctVal === "") isNA = true;
+        }
+
         if (calcBtn && priceBox) {
             calcBtn.style.display = 'flex';
-            calcBtn.disabled = false; // ✨ Guaranteed to un-freeze the button
-            calcBtn.innerHTML = `<i data-lucide="calculator" style="width:20px; height:20px;"></i> Recalculate Rate`;
+            calcBtn.disabled = isNA;
+            
+            // ✨ THE FIX: Dynamically lock the button if Account is N/A
+            if (isNA) {
+                calcBtn.innerHTML = `<i data-lucide="lock" style="width:20px; height:20px;"></i> Account N/A - Quoting Disabled`;
+                calcBtn.style.backgroundColor = "#757575";
+                calcBtn.style.cursor = "not-allowed";
+            } else {
+                calcBtn.innerHTML = `<i data-lucide="calculator" style="width:20px; height:20px;"></i> Recalculate Rate`;
+                calcBtn.style.backgroundColor = "#0277bd";
+                calcBtn.style.cursor = "pointer";
+            }
             priceBox.style.display = 'none';
         }
         
-        // ✨ THE FIX: Force the Purchase button to return when the UI resets
         if (buyBtn) {
             buyBtn.style.display = 'flex'; 
         }
@@ -586,7 +602,9 @@ const ShippingManager = {
 
     async logManualTracking() {
         let trackingNum = prompt("Please paste the pre-provided tracking number:");
-        if (!trackingNum || trackingNum.trim() === "") return;
+        
+        // ✨ THE FIX: Explicitly catch the Cancel button (null) and Empty strings
+        if (trackingNum === null || trackingNum.trim() === "") return;
 
         let btn = document.getElementById('btnLogTrackingOnly');
         let origText = btn.innerText;
@@ -613,7 +631,6 @@ const ShippingManager = {
                 body: JSON.stringify(payload)
             });
             
-            // ✨ FIX: Parse as text first to prevent HTML errors from crashing the app
             let text = await res.text();
             let data;
             try { 
@@ -625,10 +642,10 @@ const ShippingManager = {
             if (data.status === "success") {
                 this.skipAndComplete(true); 
             } else {
-                alert("Database Error: " + data.message);
+                UIManager.showCustomAlert("Database Error", data.message, true);
             }
         } catch (err) {
-            alert("Network Error: " + err.message);
+            UIManager.showCustomAlert("Network Error", err.message, true);
         } finally {
             if (btn) { btn.innerText = origText; btn.disabled = false; }
         }
