@@ -2298,6 +2298,28 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         
         logMsg(`[MATH] Processing ${sess.workflowType}: ${sess.sessionName} (${sess.dateStr})`, '#ffb74d');
 
+        // ✨ THE FIX 1: Inject any New Items or Bundles created during this historical session BEFORE running the math!
+        if (sess.pendingNewItems && sess.pendingNewItems.length > 0) {
+            sess.pendingNewItems.forEach(newItem => {
+                let exists = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === (newItem.ref || newItem.sku || '').toUpperCase());
+                if (!exists) {
+                    DatabaseManager.db.push(newItem);
+                    logMsg(`    + Injected newly created item/bundle: ${newItem.ref}`);
+                }
+            });
+        }
+        
+        // ✨ THE FIX 2: Apply any field updates (GTINs, Mfrs) made during this session
+        if (sess.pendingUpdates && sess.pendingUpdates.length > 0) {
+            sess.pendingUpdates.forEach(upd => {
+                let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === (upd.ref || '').toUpperCase());
+                if (dbItem && upd.field) {
+                    dbItem[upd.field] = upd.newValue;
+                    logMsg(`    + Applied field update to: ${upd.ref}`);
+                }
+            });
+        }
+
         // ==========================================
         // LEGACY DATA TRANSFORMER
         // ==========================================
@@ -2415,7 +2437,10 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         await fetch(SessionManager.getActiveArchiveUrl(), { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(dbPayload) });
         
         logMsg(`Pushing customer allocations to Google Sheets...`, '#64b5f6');
-        SessionManager.syncAllocationsToCloud();
+        
+        // ✨ THE FIX 3: Force the circuit breaker open since we are authoritatively rebuilding memory from scratch
+        sessionStorage.setItem('asp_allocations_verified', 'true');
+        await SessionManager.syncAllocationsToCloud(); // ✨ Added 'await'
       }
 
       updateProgress(`Restore Complete!`, 100);
