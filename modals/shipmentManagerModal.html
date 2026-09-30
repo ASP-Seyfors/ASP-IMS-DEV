@@ -65,8 +65,11 @@
             </div>
             <div style="margin-bottom: 10px;">
               <label style="font-size:0.8rem; font-weight:bold; color: var(--text-main);">Account Number</label>
-              <!-- ✨ FIX: Added resetQuoteUI to Account Number -->
               <input type="text" id="shipAccountNum" class="form-input" placeholder="e.g. 208469018" oninput="ShippingManager.resetQuoteUI()">
+              <label style="font-size:0.8rem; font-weight:bold; color:#0277bd; display:flex; align-items:center; gap:6px; margin-top:8px; cursor:pointer;">
+                <input type="checkbox" id="chkUseCompanyAccount" onchange="ShippingManager.handleCompanyAccountToggle()" style="width:16px; height:16px; cursor:pointer;">
+                Use ASP Company Account
+              </label>
             </div>
             <div>
               <label style="font-size:0.8rem; font-weight:bold; color: var(--text-main);">Special Instructions</label>
@@ -153,7 +156,7 @@
           <div id="shipQuoteContainer" style="background:var(--surface-color, #f9f9f9); border:1px solid var(--border-color, #ccc); border-radius:6px; padding:15px; display:flex; flex-direction:column; gap:10px; flex-grow:1; justify-content:center;">
             
             <!-- The Initial Calculate Button -->
-            <button id="btnCalculateRate" onclick="ShippingManager.calculateShippingRate()" style="background:#0277bd; color:#fff; width:100%; font-size:1.1rem; font-weight:bold; padding:12px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <button id="btnCalculateRate" onclick="ShippingManager.checkUnsavedChanges(() => ShippingManager.calculateShippingRate())" style="background:#0277bd; color:#fff; width:100%; font-size:1.1rem; font-weight:bold; padding:12px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
               <i data-lucide="calculator" style="width:20px; height:20px;"></i> Calculate Rate
             </button>
 
@@ -172,10 +175,10 @@
 
             <!-- The Manual Fallback Buttons -->
             <div style="display:flex; gap:10px; margin-top:5px;">
-              <button id="btnLogTrackingOnly" onclick="ShippingManager.logManualTracking()" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:10px; border-radius:6px; border:none; cursor:pointer;">
+              <button id="btnLogTrackingOnly" onclick="ShippingManager.checkUnsavedChanges(() => ShippingManager.logManualTracking())" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:10px; border-radius:6px; border:none; cursor:pointer;">
                 Log Tracking Only
               </button>
-              <button onclick="ShippingManager.skipAndComplete()" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:10px; border-radius:6px; border:none; cursor:pointer;">
+              <button onclick="ShippingManager.checkUnsavedChanges(() => ShippingManager.skipAndComplete())" style="background:#757575; color:#fff; flex:1; font-size:0.9rem; padding:10px; border-radius:6px; border:none; cursor:pointer;">
                 Skip
               </button>
             </div>

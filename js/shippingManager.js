@@ -5,12 +5,118 @@
  *              manages the final FedEx/UPS shipping intercept.
  * ======================================================================= */
 const ShippingManager = {
+    currentLoadedAddressState: "", 
+
     openModal() {
         this.populateCustomerLogistics();
         this.recalculateBoxMath();
         this.populateAddressDropdown();
-        this.updateCarrierUI(); // ✨ Set correct button state on load
+        this.updateCarrierUI(); 
         document.getElementById('shipmentManagerModal').style.display = 'flex';
+    },
+    
+    // ✨ PASTE THESE 4 NEW FUNCTIONS HERE:
+    captureAddressState() {
+        let state = [
+            document.getElementById('shipAddressCompany').value.trim(),
+            document.getElementById('shipAddressContact').value.trim(),
+            document.getElementById('shipAddressEmail') ? document.getElementById('shipAddressEmail').value.trim() : "",
+            document.getElementById('shipAddressPhone') ? document.getElementById('shipAddressPhone').value.trim() : "",
+            document.getElementById('shipAddress1').value.trim(),
+            document.getElementById('shipAddress2').value.trim(),
+            document.getElementById('shipAddressCity').value.trim(),
+            document.getElementById('shipAddressState').value.trim(),
+            document.getElementById('shipAddressZip').value.trim(),
+            document.getElementById('shipAddressCountry') ? document.getElementById('shipAddressCountry').value.trim() : "US",
+            document.getElementById('shipCarrier').value,
+            document.getElementById('shipAccountNum').value.trim(),
+            document.getElementById('shipInstructions').value.trim()
+        ].join('|');
+        this.currentLoadedAddressState = state;
+    },
+
+    hasAddressChanged() {
+        let currentState = [
+            document.getElementById('shipAddressCompany').value.trim(),
+            document.getElementById('shipAddressContact').value.trim(),
+            document.getElementById('shipAddressEmail') ? document.getElementById('shipAddressEmail').value.trim() : "",
+            document.getElementById('shipAddressPhone') ? document.getElementById('shipAddressPhone').value.trim() : "",
+            document.getElementById('shipAddress1').value.trim(),
+            document.getElementById('shipAddress2').value.trim(),
+            document.getElementById('shipAddressCity').value.trim(),
+            document.getElementById('shipAddressState').value.trim(),
+            document.getElementById('shipAddressZip').value.trim(),
+            document.getElementById('shipAddressCountry') ? document.getElementById('shipAddressCountry').value.trim() : "US",
+            document.getElementById('shipCarrier').value,
+            document.getElementById('shipAccountNum').value.trim(),
+            document.getElementById('shipInstructions').value.trim()
+        ].join('|');
+        return this.currentLoadedAddressState !== currentState;
+    },
+
+    async checkUnsavedChanges(continueCallback) {
+        if (!this.hasAddressChanged()) {
+            continueCallback();
+            return;
+        }
+
+        let overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
+        overlay.innerHTML = `
+          <div style="background:#fff; border-radius:8px; width:100%; max-width:420px; padding:20px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+            <h3 style="color:#0277bd; margin-top:0;">💾 Unsaved Address Changes</h3>
+            <p style="color:#555; font-size:0.95rem; margin-bottom:20px;">You modified the shipping or account details for this customer. Do you want to save these changes to the Address Book?</p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <button id="btnSaveAndCont" style="background:#2e7d32; color:#fff; border:none; padding:12px; border-radius:4px; font-weight:bold; cursor:pointer;">Save to Address Book & Continue</button>
+              <button id="btnSkipAndCont" style="background:#f57f17; color:#fff; border:none; padding:10px; border-radius:4px; font-weight:bold; cursor:pointer;">Skip Saving (Just Continue)</button>
+              <button id="btnCancelCont" style="background:#757575; color:#fff; border:none; padding:10px; border-radius:4px; cursor:pointer;">Cancel</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        document.getElementById('btnSaveAndCont').onclick = async () => {
+            document.body.removeChild(overlay);
+            await this.saveAddressBookEntry(true); 
+            this.captureAddressState(); 
+            continueCallback();
+        };
+        document.getElementById('btnSkipAndCont').onclick = () => {
+            document.body.removeChild(overlay);
+            this.captureAddressState(); 
+            continueCallback();
+        };
+        document.getElementById('btnCancelCont').onclick = () => {
+            document.body.removeChild(overlay);
+        };
+    },
+
+    handleCompanyAccountToggle() {
+        let chk = document.getElementById('chkUseCompanyAccount');
+        let acctInput = document.getElementById('shipAccountNum');
+        let currentVal = acctInput.value.trim().toUpperCase();
+
+        if (chk.checked) {
+            if (currentVal && currentVal !== "N/A" && currentVal !== "NA" && currentVal !== "ASP_ACCNT") {
+                if (!confirm(`An account number (${currentVal}) is already entered.\n\nAre you sure you want to override this and use the ASP Company Account to purchase the label?`)) {
+                    chk.checked = false;
+                    return;
+                }
+            }
+            acctInput.value = "ASP_ACCNT";
+            acctInput.readOnly = true;
+            acctInput.style.backgroundColor = "#e3f2fd"; 
+            acctInput.style.color = "#0277bd";
+            acctInput.style.fontWeight = "bold";
+        } else {
+            if (currentVal === "ASP_ACCNT") {
+                acctInput.value = "";
+            }
+            acctInput.readOnly = false;
+            acctInput.style.backgroundColor = "";
+            acctInput.style.color = "";
+            acctInput.style.fontWeight = "";
+        }
+        this.resetQuoteUI();
     },
 
     async populateCustomerLogistics() {
@@ -22,7 +128,27 @@ const ShippingManager = {
         // Strict mapping with fallback to blank '' strings
         safeSet('shipCustName', rules.contactId || baseName);
         safeSet('shipAddressCompany', rules.formalCompany || baseName); 
-        safeSet('shipAccountNum', rules.account || '');
+        
+        let acctVal = rules.account || '';
+        safeSet('shipAccountNum', acctVal);
+        let chkCo = document.getElementById('chkUseCompanyAccount');
+        let acctInput = document.getElementById('shipAccountNum');
+        if (chkCo && acctInput) {
+            if (acctVal.toUpperCase() === 'ASP_ACCNT') {
+                chkCo.checked = true;
+                acctInput.readOnly = true;
+                acctInput.style.backgroundColor = "#e3f2fd";
+                acctInput.style.color = "#0277bd";
+                acctInput.style.fontWeight = "bold";
+            } else {
+                chkCo.checked = false;
+                acctInput.readOnly = false;
+                acctInput.style.backgroundColor = "";
+                acctInput.style.color = "";
+                acctInput.style.fontWeight = "";
+            }
+        }
+
         safeSet('shipInstructions', rules.notes || '');
         safeSet('shipAddressContact', rules.contactName || '');
         safeSet('shipAddressEmail', rules.email || '');
@@ -44,7 +170,9 @@ const ShippingManager = {
         safeSet('shipAddressCity', rules.city || '');
         safeSet('shipAddressState', rules.state || '');
         safeSet('shipAddressZip', rules.zip || '');
-        safeSet('shipAddressCountry', rules.country || 'US'); // ✨ NEW
+        safeSet('shipAddressCountry', rules.country || 'US'); 
+
+        this.captureAddressState();
     },
 
     updateCarrierUI() {
@@ -55,12 +183,12 @@ const ShippingManager = {
 
         if (carrier.includes('UPS')) {
             btn.innerHTML = `<i data-lucide="printer"></i> Purchase UPS Label`;
-            btn.onclick = () => ShippingManager.generateUPSLabel();
+            btn.onclick = () => ShippingManager.checkUnsavedChanges(() => ShippingManager.generateUPSLabel());
             btn.style.backgroundColor = "#ffb300"; 
             btn.style.color = "#000";
         } else {
             btn.innerHTML = `<i data-lucide="printer"></i> Purchase FedEx Label`;
-            btn.onclick = () => ShippingManager.generateFedExLabel();
+            btn.onclick = () => ShippingManager.checkUnsavedChanges(() => ShippingManager.generateFedExLabel());
             btn.style.backgroundColor = "#2e7d32"; 
             btn.style.color = "#fff";
         }
@@ -370,9 +498,22 @@ const ShippingManager = {
             safeSet('shipInstructions', ''); safeSet('shipAddressContact', ''); safeSet('shipAddressEmail', '');
             safeSet('shipAddressPhone', ''); safeSet('shipAddress1', ''); safeSet('shipAddress2', '');
             safeSet('shipAddressCity', ''); safeSet('shipAddressState', ''); safeSet('shipAddressZip', '');
-        safeSet('shipAddressCountry', '');
+            safeSet('shipAddressCountry', '');
+            
+            let chkCo = document.getElementById('chkUseCompanyAccount');
+            let acctInput = document.getElementById('shipAccountNum');
+            if (chkCo) chkCo.checked = false;
+            if (acctInput) {
+                acctInput.readOnly = false;
+                acctInput.style.backgroundColor = "";
+                acctInput.style.color = "";
+                acctInput.style.fontWeight = "";
+            }
+
             let carrierSel = document.getElementById('shipCarrier');
             if (carrierSel) { carrierSel.selectedIndex = 0; this.updateCarrierUI(); }
+            
+            this.captureAddressState();
             return;
         }
 
@@ -380,7 +521,27 @@ const ShippingManager = {
         
         safeSet('shipCustName', rules.contactId || customerName);
         safeSet('shipAddressCompany', rules.formalCompany || customerName);
-        safeSet('shipAccountNum', rules.account || '');
+        
+        let acctVal = rules.account || '';
+        safeSet('shipAccountNum', acctVal);
+        let chkCo = document.getElementById('chkUseCompanyAccount');
+        let acctInput = document.getElementById('shipAccountNum');
+        if (chkCo && acctInput) {
+            if (acctVal.toUpperCase() === 'ASP_ACCNT') {
+                chkCo.checked = true;
+                acctInput.readOnly = true;
+                acctInput.style.backgroundColor = "#e3f2fd";
+                acctInput.style.color = "#0277bd";
+                acctInput.style.fontWeight = "bold";
+            } else {
+                chkCo.checked = false;
+                acctInput.readOnly = false;
+                acctInput.style.backgroundColor = "";
+                acctInput.style.color = "";
+                acctInput.style.fontWeight = "";
+            }
+        }
+
         safeSet('shipInstructions', rules.notes || '');
         safeSet('shipAddressContact', rules.contactName || '');
         safeSet('shipAddressEmail', rules.email || '');
@@ -402,20 +563,20 @@ const ShippingManager = {
         safeSet('shipAddressCity', rules.city || '');
         safeSet('shipAddressState', rules.state || '');
         safeSet('shipAddressZip', rules.zip || '');
-        safeSet('shipAddressCountry', rules.country || 'US'); // ✨ NEW
+        safeSet('shipAddressCountry', rules.country || 'US'); 
+
+        this.captureAddressState();
     },
 
-    async saveAddressBookEntry() {
+    async saveAddressBookEntry(silent = false) {
         let custName = document.getElementById('shipCustName').value.trim() || document.getElementById('shipAddressCompany').value.trim();
         if (!custName) {
-            UIManager.showCustomAlert("Error", "Please provide a Customer ID/Name.");
+            if (!silent) UIManager.showCustomAlert("Error", "Please provide a Customer ID/Name.");
             return;
         }
 
-        // Check if we already have this customer on file
         let existingRule = DatabaseManager.shippingRules[custName.toUpperCase()];
 
-        // Wrap the actual save logic in an executable callback
         const executeSave = async () => {
             let btn = document.getElementById('btnSaveAddress');
             let origText = btn.innerHTML;
@@ -425,7 +586,7 @@ const ShippingManager = {
             let newRules = {
                 formalCompany: document.getElementById('shipAddressCompany').value.trim(), 
                 contactName: document.getElementById('shipAddressContact').value.trim(),
-                contactId: custName, // The short ID
+                contactId: custName, 
                 email: document.getElementById('shipAddressEmail') ? document.getElementById('shipAddressEmail').value.trim() : "", 
                 phone: document.getElementById('shipAddressPhone') ? document.getElementById('shipAddressPhone').value.trim() : "", 
                 address1: document.getElementById('shipAddress1').value.trim(),
@@ -433,7 +594,7 @@ const ShippingManager = {
                 city: document.getElementById('shipAddressCity').value.trim(),
                 state: document.getElementById('shipAddressState').value.trim(),
                 zip: document.getElementById('shipAddressZip').value.trim(),
-                country: "US", // Default
+                country: document.getElementById('shipAddressCountry').value.trim() || "US",
                 method: document.getElementById('shipCarrier').value,
                 account: document.getElementById('shipAccountNum').value.trim(),
                 notes: document.getElementById('shipInstructions').value.trim()
@@ -458,20 +619,20 @@ const ShippingManager = {
                 if (data.status === "success") {
                     DatabaseManager.shippingRules[custName.toUpperCase()] = newRules;
                     this.populateAddressDropdown();
-                    UIManager.showCustomAlert("Success", "✅ Address book updated successfully!");
+                    this.captureAddressState(); // ✨ INJECTED: Update baseline after saving
+                    if (!silent) UIManager.showCustomAlert("Success", "✅ Address book updated successfully!");
                 } else {
-                    alert("Database Error: " + data.message);
+                    if (!silent) alert("Database Error: " + data.message);
                 }
             } catch (err) {
-                alert("Network Error: " + err.message);
+                if (!silent) alert("Network Error: " + err.message);
             } finally {
                 btn.innerHTML = origText;
                 btn.disabled = false;
             }
         };
 
-        // Trigger the guard if data already exists
-        if (existingRule) {
+        if (existingRule && !silent) {
             UIManager.showCustomConfirm(
                 "Overwrite Shipping Info?", 
                 `You already have shipping information saved for <b>${custName}</b>.<br><br>Are you sure you want to overwrite it with the current data?`, 
