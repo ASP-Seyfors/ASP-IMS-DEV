@@ -1,11 +1,11 @@
 {
-  "name": "ASP IMS (DEV) v6.0.5",
+  "name": "ASP IMS (DEV) v6.0.6",
   "short_name": "ASP DEV",
   "description": "Allied Surgical Products Development Sandbox",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#e65100",
-  "theme_color": "#e65100",
+  "background_color": "#cf0452",
+  "theme_color": "#cf0452",
   "icons": [
     {
       "src": "ASP_Icon_192_DEV.png",
