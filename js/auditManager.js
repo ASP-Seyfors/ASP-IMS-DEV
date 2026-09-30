@@ -2416,6 +2416,13 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
               logMsg(`    = REF: ${ref} explicitly set to ${dbItem.onHand}`);
             }
           });
+          
+          // ✨ THE FIX: We must hand the payload to the engine so it can rebuild the Stocktake allocations!
+          logMsg(`  - Rebuilding Stocktake allocations via Ledger Engine...`, '#fff');
+          let result = InventoryEngine.commitLedgerMath(transformedScans, DatabaseManager.db, activeAllocations, sess.workflowType);
+          DatabaseManager.db = result.updatedDb;
+          activeAllocations = result.updatedAllocations;
+          
         } else {
           logMsg(`  - Committing standard ledger adjustments (${transformedScans.length} lines)...`, '#fff');
           let result = InventoryEngine.commitLedgerMath(transformedScans, DatabaseManager.db, activeAllocations, sess.workflowType);
