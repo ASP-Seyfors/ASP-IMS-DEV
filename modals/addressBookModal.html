@@ -48,10 +48,14 @@
 
       <!-- Live Roster Grid -->
       <h4 style="margin:0 0 10px 0; color:#333;">Saved Contacts (<span id="abContactCount">0</span>)</h4>
-      <div id="addressBookGrid" style="display:flex; flex-direction:column; gap:8px;">
+      <div id="addressBookGrid" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
           <!-- JS will inject cards here -->
       </div>
       
+      <div style="border-top: 1px solid #ccc; padding-top: 15px; text-align: right;">
+          <button class="btn-action btn-cancel btn-auto" style="margin:0;" onclick="document.getElementById('addressBookModal').style.display='none'">Close Address Book</button>
+      </div>
+
     </div>
   </div>
 </div>
