@@ -444,3 +444,29 @@ window.exportAppsScriptFiles = exportAppsScriptFiles;
 window.openAddressBookEditor = () => ReportsManager.openAddressBookEditor();
 
 window.forceAppUpdate = forceAppUpdate;
+
+// --- AUTO-LOGOUT ON WINDOW CLOSE ---
+window.addEventListener('beforeunload', () => {
+    if (typeof AuthManager !== 'undefined' && AuthManager.currentUser && AuthManager.currentUser.email) {
+        let payload = {
+            action: "UPDATE_USER_STATUS",
+            payload: {
+                email: AuthManager.currentUser.email,
+                status: "Offline"
+            }
+        };
+        
+        let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.getActiveArchiveUrl() : ENV_CONFIG.CLOUD_ARCHIVE_URL;
+        
+        if (activeUrl) {
+            // keepalive: true forces the browser to finish sending this fetch request in the background even as the tab is closing
+            fetch(activeUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                keepalive: true, 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).catch(e => {});
+        }
+    }
+});
