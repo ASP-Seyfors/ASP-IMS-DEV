@@ -360,6 +360,9 @@ window.masterSystemSync = async (event) => {
       </div>`;
   }
 };
+window.openEthiconMonitorModal = openEthiconMonitorModal;
+window.subscribeToEthiconMonitor = subscribeToEthiconMonitor;
+
 window.changeAppTheme = (val) => UIManager.changeAppTheme(val);
 window.toggleSessionType = () => UIManager.toggleSessionType();
 window.togglePreloadFeed = () => UIManager.togglePreloadFeed();

@@ -155,3 +155,70 @@ async function saveShipmentEdit() {
         btn.innerHTML = origText; btn.disabled = false;
     }
 }
+
+function openEthiconMonitorModal() {
+    let modal = document.getElementById('ethiconMonitorModal');
+    let subList = document.getElementById('ethiconSubList');
+    
+    // Auto-fill the email if known
+    let userProfile = JSON.parse(localStorage.getItem('asp_user_profile')) || {};
+    let emailInput = document.getElementById('ethiconMonitorEmail');
+    if (emailInput && !emailInput.value && userProfile.email) {
+        emailInput.value = userProfile.email;
+    }
+
+    subList.innerHTML = "<i>Loading subscribers...</i>";
+    modal.style.display = "flex";
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Fetch active subscribers for this specific report
+    fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`)
+      .then(r => r.json())
+      .then(data => {
+          if (data.status === "success") {
+              let ethiconSubs = data.subs.filter(s => s.categories === "ETHICON_MONITOR" && s.status === "ACTIVE");
+              if (ethiconSubs.length === 0) {
+                  subList.innerHTML = "<i>No active subscribers.</i>";
+              } else {
+                  subList.innerHTML = ethiconSubs.map(s => `<div>• ${s.email}</div>`).join('');
+              }
+          }
+      }).catch(e => subList.innerHTML = "<i>Error loading list.</i>");
+}
+
+async function subscribeToEthiconMonitor() {
+    let email = document.getElementById('ethiconMonitorEmail').value.trim();
+    if (!email || !email.includes('@')) {
+        alert("Please enter a valid email address.");
+        return;
+    }
+    
+    let btn = document.getElementById('btnSubscribeEthicon');
+    let orig = btn.innerText;
+    btn.innerText = "⏳ Saving..."; btn.disabled = true;
+
+    let userProfile = JSON.parse(localStorage.getItem('asp_user_profile')) || {};
+    let name = userProfile.name || email.split('@')[0];
+
+    try {
+        let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: "UPDATE_SUBSCRIBER",
+                payload: { name: name, email: email, freq: "Monthly", status: "ACTIVE", categories: "ETHICON_MONITOR" }
+            })
+        });
+        
+        let data = await res.json();
+        if (data.status === "success") {
+            alert("Successfully subscribed to the Ethicon Monitor!");
+            openEthiconMonitorModal(); // Refresh the list
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch(err) {
+        alert("Network Error: " + err.message);
+    } finally {
+        btn.innerText = orig; btn.disabled = false;
+    }
+}
