@@ -103,13 +103,15 @@
     
     <div style="padding:20px; font-size:0.95rem; color:var(--text-main, #555);">
       
-      <!-- CACHED ARCHIVE UI -->
+      <!-- LIVE SEARCH UI -->
       <div style="margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #0277bd; padding-bottom:8px; margin-bottom:10px;">
-          <h4 style="margin:0; color:#0277bd;">Discontinued Item Archive</h4>
-          <span style="font-size:0.75rem; color:var(--text-muted);">Data refreshes automatically on the 1st of the month.</span>
+        <h4 style="margin:0 0 10px 0; color:#0277bd;">Live Catalog Search</h4>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input type="text" id="ethiconSearchInput" class="form-input" placeholder="Search specific REF (e.g. CC41G)..." style="flex:1; text-transform:uppercase;">
+          <button onclick="window.runEthiconUiScan('SEARCH')" style="background:#0277bd; color:#fff; border:none; border-radius:4px; padding:0 15px; font-weight:bold; cursor:pointer;">Search</button>
+          <button onclick="window.runEthiconUiScan('FULL')" style="background:#f57f17; color:#fff; border:none; border-radius:4px; padding:0 15px; font-weight:bold; cursor:pointer; white-space:nowrap;">Scan Full Inventory</button>
         </div>
-        <div id="ethiconUiResults" style="max-height:250px; overflow-y:auto; font-size:0.85rem; color:var(--text-main); border:1px solid #eee; padding:10px; border-radius:4px; background:#f9f9f9;">
+        <div id="ethiconUiResults" style="max-height:200px; overflow-y:auto; font-size:0.85rem; color:var(--text-main); border:1px solid #eee; padding:10px; border-radius:4px; background:#f9f9f9;">
           <div style="text-align:center; color:#777; font-style:italic;">Loading archived data...</div>
         </div>
       </div>

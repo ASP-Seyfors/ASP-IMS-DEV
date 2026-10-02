@@ -360,8 +360,6 @@ window.masterSystemSync = async (event) => {
       </div>`;
   }
 };
-window.openEthiconMonitorModal = openEthiconMonitorModal;
-window.subscribeToEthiconMonitor = subscribeToEthiconMonitor;
 
 window.changeAppTheme = (val) => UIManager.changeAppTheme(val);
 window.toggleSessionType = () => UIManager.toggleSessionType();
@@ -388,6 +386,10 @@ window.openDevTools = () => UIManager.openDevTools();
 window.closeDevTools = () => UIManager.closeDevTools();
 window.toggleDebugConsole = () => UIManager.toggleDebugConsole();
 window.openDamagedBinViewerModal = () => UIManager.openDamagedBinViewerModal();
+
+window.openEthiconMonitorModal = openEthiconMonitorModal;
+window.subscribeToEthiconMonitor = subscribeToEthiconMonitor;
+window.runEthiconUiScan = runEthiconUiScan;
 
 window.handlePartnerSelect = (val, type) => DatabaseManager.handlePartnerSelect(val, type);
 window.runMasterLookup = () => DatabaseManager.runMasterLookup();
