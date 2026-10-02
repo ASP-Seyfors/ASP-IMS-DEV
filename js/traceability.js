@@ -176,7 +176,9 @@ function openEthiconMonitorModal() {
       .then(r => r.json())
       .then(data => {
           if (data.status === "success") {
-              let ethiconSubs = data.subs.filter(s => s.categories === "ETHICON_MONITOR" && s.status === "ACTIVE");
+              // ✨ FIX: Filter the UI list by the new Ethicon boolean flag
+              let ethiconSubs = data.subs.filter(s => s.ethicon === "TRUE");
+              
               if (ethiconSubs.length === 0) {
                   subList.innerHTML = "<i>No active subscribers.</i>";
               } else {
