@@ -1077,9 +1077,18 @@ async function runEthiconUiScan(mode) {
             
         data.data.forEach(hit => {
             let alts = hit.replacements.length > 0 ? hit.replacements.join(", ") : "<i style='color:#c62828;'>No Replacement</i>";
+            
+            // ✨ FIX: Clean the date string for Live Search
+            let cleanDate = hit.date || '';
+            if (cleanDate && cleanDate !== "Unknown Date") {
+                let d = new Date(cleanDate);
+                if (!isNaN(d.getTime())) cleanDate = d.toISOString().split('T')[0];
+            }
+            
             tableHtml += `<tr style="border-bottom:1px solid #ccc;">
                 <td style="padding:6px; font-weight:bold; color:#d32f2f;">${hit.ref}</td>
                 <td style="padding:6px; font-weight:bold; color:#2e7d32;">${alts}</td>
+                <td style="padding:6px; font-size:0.8rem; color:#555;">${cleanDate}</td>
             </tr>`;
         });
         tableHtml += `</table>`;
@@ -1138,10 +1147,17 @@ function openEthiconMonitorModal() {
               </tr>`;
               
           data.data.forEach(hit => {
+              // ✨ FIX: Clean the date string for the UI Modal
+              let cleanDate = hit.date || '';
+              if (cleanDate && cleanDate !== "Unknown Date") {
+                  let d = new Date(cleanDate);
+                  if (!isNaN(d.getTime())) cleanDate = d.toISOString().split('T')[0];
+              }
+              
               tableHtml += `<tr style="border-bottom:1px solid #ccc;">
                   <td style="padding:6px; font-weight:bold; color:#d32f2f;">${hit.ref}</td>
                   <td style="padding:6px; font-weight:bold; color:#2e7d32;">${hit.alts}</td>
-                  <td style="padding:6px; font-size:0.8rem; color:#555;">${hit.date || ''}</td>
+                  <td style="padding:6px; font-size:0.8rem; color:#555;">${cleanDate}</td>
               </tr>`;
           });
           tableHtml += `</table>`;

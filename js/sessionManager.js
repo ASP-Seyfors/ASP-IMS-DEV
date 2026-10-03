@@ -1644,43 +1644,51 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       
       if (rawDesc && rawDesc !== "Navigate to vendor website for item description.") {
         
-        let finalDesc = "";
-        let finalCategory = "General";
-        
         // Grab the Suture checkbox state dynamically
         let sutureChk = document.getElementById(`chkSuture_${index}`);
         let isSuture = sutureChk && sutureChk.checked;
-        let isAutoFetched = input.getAttribute('data-autofetched') === 'true'; // ✨ Check the flag
+        let isAutoFetched = input.getAttribute('data-autofetched') === 'true';
         
-        if (isSuture && isAutoFetched) {
-            // ONLY append the Box math if the AI Auto-Fetch actually worked
-            finalCategory = "Suture";
-            let lastChar = ref.slice(-1).toUpperCase();
-            let boxQtyStr = "";
-            let refBase = ref; 
+        let finalDesc = "";
+        let finalCategory = "Medical Supplies";
+        let pendingMatch = this.pendingNewItems.find(i => i.ref === ref);
+        if (pendingMatch) finalCategory = pendingMatch.category || "Medical Supplies";
+
+        if (isSuture) {
+            // ✨ BUG 3 FIX: Category becomes "Suture, [Truncated REF]"
+            let refBase = ref.slice(0, -1); 
+            finalCategory = `Suture, ${refBase}`;
             
-            if (lastChar === 'G') { boxQtyStr = "(BX/12)"; refBase = ref.slice(0, -1); }
-            else if (lastChar === 'T') { boxQtyStr = "(BX/24)"; refBase = ref.slice(0, -1); }
-            else if (lastChar === 'H') { boxQtyStr = "(BX/36)"; refBase = ref.slice(0, -1); }
-            
-            finalDesc = `${mfr} ${rawDesc} ${boxQtyStr} ${refBase}`.replace(/\s+/g, ' ').trim();
+            if (isAutoFetched) {
+                // ✨ BUG 2 FIX: Keep the box math, but append the FULL REF to the description
+                let boxQtyStr = "";
+                let lastChar = ref.slice(-1).toUpperCase();
+                if (mfr.toUpperCase().includes('ETHICON')) {
+                    if (lastChar === 'G') boxQtyStr = "(BX/12)";
+                    else if (lastChar === 'T') boxQtyStr = "(BX/24)";
+                    else if (lastChar === 'H') boxQtyStr = "(BX/36)";
+                }
+                
+                finalDesc = `${mfr} ${rawDesc} ${boxQtyStr} ${ref}`.replace(/\s+/g, ' ').trim();
+            } else {
+                // Manual Entry Suture
+                finalDesc = `${mfr} ${rawDesc} ${ref}`.replace(/\s+/g, ' ').trim();
+            }
         } else {
-            // If they typed it manually, just save what they typed
-            if (isSuture) finalCategory = "Suture"; 
+            // Standard Non-Suture Item
             finalDesc = `${mfr} ${rawDesc} ${ref}`.replace(/\s+/g, ' ').trim();
         }
         
         // Apply the new Desc and Category to the local cache memory
-        let pendingItem = this.pendingNewItems.find(i => i.ref === ref);
-        if (pendingItem) {
-            pendingItem.desc = finalDesc;
-            if (isSuture) pendingItem.category = finalCategory;
+        if (pendingMatch) {
+            pendingMatch.desc = finalDesc;
+            pendingMatch.category = finalCategory;
         }
 
         let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
         if (dbItem) {
             dbItem.desc = finalDesc;
-            if (isSuture) dbItem.category = finalCategory;
+            dbItem.category = finalCategory;
         }
 
         this.scannedObjects.forEach(scanned => {
@@ -1974,6 +1982,10 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
         this.pendingNewItems = []; this.pendingFieldUpdates = [];
         localStorage.setItem('asp_pending_new_items', JSON.stringify([])); 
         localStorage.setItem('asp_pending_updates', JSON.stringify([]));
+        
+        // ✨ WAREHOUSE BUG FIX: Wipe the active manifest so it doesn't accumulate on the next order!
+        this.expectedManifest = [];
+        localStorage.setItem('asp_active_manifest', JSON.stringify([]));
         
         let recList = document.getElementById('manifestReconcileList');
         let recCard = document.getElementById('manifestReconcileCard');
@@ -2787,7 +2799,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
               itemData.details.forEach((det) => {
                   if (det.qty > 0) {
                       html += `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee;">
+                        <div class="unreserve-item-row" style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee;">
                           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;">
                             <input type="checkbox" class="unreserve-chk" data-ref="${ref}" data-lot="${det.lot || ''}" data-exp="${det.exp || ''}" data-session="${det.sessionId || ''}" data-max="${det.qty}"> 
                             <div>
@@ -2849,9 +2861,14 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
               let sessionId = chk.getAttribute('data-session');
               let maxQty = parseInt(chk.getAttribute('data-max'), 10) || 0;
               
-              // Safely grab the desired quantity from the input box
-              let qtyInput = document.getElementById(`unresQty_${ref}_${sessionId}`);
+              // ✨ WAREHOUSE BUG FIX: Traverse the DOM relative to the checkbox to safely grab the exact number typed
+              let rowWrapper = chk.closest('.unreserve-item-row');
+              let qtyInput = rowWrapper ? rowWrapper.querySelector('input[type="number"]') : null;
               let unresQty = qtyInput ? parseInt(qtyInput.value, 10) : maxQty;
+              
+              // Prevent them from un-reserving more than what actually exists
+              if (isNaN(unresQty) || unresQty <= 0) return;
+              if (unresQty > maxQty) unresQty = maxQty;
               
               // Prevent them from un-reserving more than what actually exists
               if (isNaN(unresQty) || unresQty <= 0) return;
