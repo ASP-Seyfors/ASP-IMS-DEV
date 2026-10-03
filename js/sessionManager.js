@@ -1720,6 +1720,12 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       this.scannedObjects = []; this.expectedManifest = [];
       localStorage.setItem('asp_session_scanned_objects', JSON.stringify([])); localStorage.setItem('asp_active_manifest', JSON.stringify([]));
 
+      // ✨ THE FIX: Destroy all pending metadata so it doesn't haunt the next session!
+      this.pendingNewItems = []; 
+      this.pendingFieldUpdates = [];
+      localStorage.setItem('asp_pending_new_items', JSON.stringify([])); 
+      localStorage.setItem('asp_pending_updates', JSON.stringify([]));
+
       let recList = document.getElementById('manifestReconcileList');
       let recCard = document.getElementById('manifestReconcileCard');
       if (recList) recList.innerHTML = '';
@@ -1738,7 +1744,7 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       document.getElementById('screenSummary').style.display = 'none';
       document.getElementById('screenSetup').style.display = 'block';
 
-      this.currentItemAction = 'Inventory'; // FIX
+      this.currentItemAction = 'Inventory'; 
     });
   },
 
@@ -2436,6 +2442,17 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
     if (!confirm(`Delete scanned item run for REF: ${item.ref} (Lot: ${item.lot}, Qty: ${item.qty})?`)) return;
 
     this.scannedObjects.splice(index, 1);
+    
+    // ✨ THE FIX: If it was a new item, check if there are any other scans of it left. 
+    // If not, completely purge its metadata from the waiting room!
+    if (item.isNew) {
+        let stillExists = this.scannedObjects.some(i => i.ref === item.ref && i.isNew);
+        if (!stillExists) {
+            this.pendingNewItems = this.pendingNewItems.filter(i => i.ref !== item.ref);
+            localStorage.setItem('asp_pending_new_items', JSON.stringify(this.pendingNewItems));
+        }
+    }
+
     localStorage.setItem('asp_session_scanned_objects', JSON.stringify(this.scannedObjects));
     this.updateManifestProgressUI();
     this.saveToArchive('Pending');
