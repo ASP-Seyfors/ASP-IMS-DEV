@@ -137,10 +137,31 @@ const ReportsManager = {
       document.getElementById('abAddress1').value = data.address1 || '';
       document.getElementById('abAddress2').value = data.address2 || '';
       document.getElementById('abCity').value = data.city || '';
-      document.getElementById('abState').value = data.state || '';
       document.getElementById('abZip').value = data.zip || '';
       document.getElementById('abCountry').value = data.country || 'US';
       document.getElementById('abNotes').value = data.notes || '';
+      
+      // ✨ FIX: Auto-abbreviate the state when editing an old Address Book entry
+      let rawState = data.state || '';
+      let cleanState = rawState;
+      if (rawState.trim().length > 2) {
+          const stateMap = {
+            "ALABAMA":"AL", "ALASKA":"AK", "ARIZONA":"AZ", "ARKANSAS":"AR", "CALIFORNIA":"CA",
+            "COLORADO":"CO", "CONNECTICUT":"CT", "DELAWARE":"DE", "FLORIDA":"FL", "GEORGIA":"GA",
+            "HAWAII":"HI", "IDAHO":"ID", "ILLINOIS":"IL", "INDIANA":"IN", "IOWA":"IA",
+            "KANSAS":"KS", "KENTUCKY":"KY", "LOUISIANA":"LA", "MAINE":"ME", "MARYLAND":"MD",
+            "MASSACHUSETTS":"MA", "MICHIGAN":"MI", "MINNESOTA":"MN", "MISSISSIPPI":"MS", "MISSOURI":"MO",
+            "MONTANA":"MT", "NEBRASKA":"NE", "NEVADA":"NV", "NEW HAMPSHIRE":"NH", "NEW JERSEY":"NJ",
+            "NEW MEXICO":"NM", "NEW YORK":"NY", "NORTH CAROLINA":"NC", "NORTH DAKOTA":"ND", "OHIO":"OH",
+            "OKLAHOMA":"OK", "OREGON":"OR", "PENNSYLVANIA":"PA", "RHODE ISLAND":"RI", "SOUTH CAROLINA":"SC",
+            "SOUTH DAKOTA":"SD", "TENNESSEE":"TN", "TEXAS":"TX", "UTAH":"UT", "VERMONT":"VT",
+            "VIRGINIA":"VA", "WASHINGTON":"WA", "WEST VIRGINIA":"WV", "WISCONSIN":"WI", "WYOMING":"WY",
+            "DISTRICT OF COLUMBIA":"DC", "PUERTO RICO":"PR"
+          };
+          let upperState = rawState.trim().toUpperCase();
+          if (stateMap[upperState]) cleanState = stateMap[upperState];
+      }
+      document.getElementById('abState').value = cleanState;
       
       let methodSel = document.getElementById('abMethod');
       if (data.method) {

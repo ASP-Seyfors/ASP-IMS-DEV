@@ -172,6 +172,9 @@ const ShippingManager = {
         safeSet('shipAddressZip', rules.zip || '');
         safeSet('shipAddressCountry', rules.country || 'US'); 
 
+        // ✨ FIX: Force the UI to instantly abbreviate the state it just loaded
+        this.formatStateUI('shipAddressState');
+
         this.captureAddressState();
     },
 
@@ -564,6 +567,9 @@ const ShippingManager = {
         safeSet('shipAddressState', rules.state || '');
         safeSet('shipAddressZip', rules.zip || '');
         safeSet('shipAddressCountry', rules.country || 'US'); 
+
+        // ✨ FIX: Force the UI to instantly abbreviate the state it just loaded
+        this.formatStateUI('shipAddressState');
 
         this.captureAddressState();
     },
