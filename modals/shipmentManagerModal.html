@@ -55,11 +55,12 @@
                 <label style="font-size:0.8rem; font-weight:bold; color: var(--text-main);">Service Level</label>
                 <!-- ✨ FIX: Added resetQuoteUI to Service Level -->
                 <select id="shipServiceType" class="form-input" style="width:100%; box-sizing:border-box;" onchange="ShippingManager.resetQuoteUI()">
-                  <option value="FEDEX_GROUND">Ground</option>
-                  <option value="FEDEX_EXPRESS_SAVER">Express Saver (3 Day)</option>
-                  <option value="FEDEX_2_DAY">2Day Air</option>
-                  <option value="STANDARD_OVERNIGHT">Standard Overnight</option>
-                  <option value="PRIORITY_OVERNIGHT">Priority Overnight</option>
+                  <option value="FEDEX_GROUND">FedEx Ground</option>
+                  <option value="PRIORITY_OVERNIGHT">Priority Overnight (by 10:30 AM)</option>
+                  <option value="STANDARD_OVERNIGHT">Standard Overnight (by 8:00 PM)</option>
+                  <option value="FIRST_OVERNIGHT">First Overnight (by 8:00 AM)</option>
+                  <option value="FEDEX_2_DAY">FedEx 2Day</option>
+                  <option value="FEDEX_EXPRESS_SAVER">Express Saver (3 Days)</option>
                 </select>
               </div>
             </div>
