@@ -494,7 +494,7 @@ const ReportsManager = {
       let newlyAddedRefs = new Set();
       let totalRevenue = 0;
       
-      let testKeywords = ["TEST SUPPLIER", "ASP_INTERNAL", "ASP_TESTER", "ASP_TESTER2", "TESTER"];
+      var testKeywords = ["ASP TEST SUPPLIER", "ASP RECONCILE", "ASP SYSTEM ADMIN", "ASP TESTER", "ASP_INTERNAL"];
 
       filteredLogs.forEach(row => {
         let sessionName = row['Session / Reason'] || 'Unknown Session';

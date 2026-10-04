@@ -1623,13 +1623,48 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
             <button class="btn-small" style="background-color:#1976d2; color:#ffffff; padding: 4px 10px;" onclick="window.open('${searchUrl}', '_blank')">🔍 Manual Search</button>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:6px; background:#f5f5f5; padding:6px; border-radius:4px; border:1px solid #ccc;">
-          <span style="font-size:0.85rem; font-weight:bold; color:#555; white-space:nowrap;">${item.mfr}</span>
-          <input type="text" id="advDesc_${index}" class="adv-desc-input" data-ref="${item.ref}" data-mfr="${item.mfr}" placeholder="Paste website description here..." style="flex:1; padding:6px; border: 1px solid #ccc; border-radius: 4px;">
-          <span style="font-size:0.85rem; font-weight:bold; color:#555; white-space:nowrap;">${item.ref}</span>
+        <div style="display:flex; flex-direction:column; gap:6px; background:#f5f5f5; padding:6px; border-radius:4px; border:1px solid #ccc;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:0.85rem; font-weight:bold; color:#555; white-space:nowrap;">${item.mfr}</span>
+            <input type="text" id="advDesc_${index}" class="adv-desc-input" data-ref="${item.ref}" data-mfr="${item.mfr}" placeholder="Paste website description here..." style="flex:1; padding:6px; border: 1px solid #ccc; border-radius: 4px;">
+            <span style="font-size:0.85rem; font-weight:bold; color:#555; white-space:nowrap;">${item.ref}</span>
+          </div>
+          <!-- ✨ NEW CATEGORY DROPDOWN -->
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label style="font-size:0.8rem; font-weight:bold; color:#0277bd; min-width:70px;">Category:</label>
+            <select id="advCat_${index}" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:4px;">
+                <option value="Medical Supplies">Medical Supplies (General)</option>
+                <option value="Suture">Suture</option>
+                <option value="Endomechanical">Endomechanical</option>
+                <option value="Energy">Energy</option>
+                <option value="Mesh">Mesh</option>
+                <option value="Orthopedic">Orthopedic</option>
+                <option value="Wound Care">Wound Care</option>
+                <option value="Custom">+ Add Custom Category...</option>
+            </select>
+          </div>
         </div>
       `;
       list.appendChild(div);
+
+      // ✨ NEW: Add an event listener to handle the "Custom" option
+      let catSelect = document.getElementById(`advCat_${index}`);
+      if (catSelect) {
+          catSelect.addEventListener('change', function() {
+              if (this.value === 'Custom') {
+                  let customCat = prompt("Enter a custom category name:");
+                  if (customCat && customCat.trim() !== "") {
+                      let opt = document.createElement('option');
+                      opt.value = customCat.trim();
+                      opt.textContent = customCat.trim();
+                      this.insertBefore(opt, this.lastElementChild);
+                      this.value = customCat.trim();
+                  } else {
+                      this.selectedIndex = 0; // Reset to default if cancelled
+                  }
+              }
+          });
+      }
     });
   },
 
@@ -1644,13 +1679,16 @@ REF [Tab] Quantity [Tab] Lot [Tab] Exp`;
       
       if (rawDesc && rawDesc !== "Navigate to vendor website for item description.") {
         
-        // Grab the Suture checkbox state dynamically
         let sutureChk = document.getElementById(`chkSuture_${index}`);
         let isSuture = sutureChk && sutureChk.checked;
         let isAutoFetched = input.getAttribute('data-autofetched') === 'true';
         
+        // ✨ NEW: Grab the category selected by the user
+        let catSelect = document.getElementById(`advCat_${index}`);
+        let selectedCat = catSelect ? catSelect.value : "Medical Supplies";
+        
         let finalDesc = "";
-        let finalCategory = "Medical Supplies";
+        let finalCategory = selectedCat;
         let pendingMatch = this.pendingNewItems.find(i => i.ref === ref);
         if (pendingMatch) finalCategory = pendingMatch.category || "Medical Supplies";
 
