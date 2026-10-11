@@ -1096,7 +1096,6 @@ const SessionManager = {
         // ✨ NEW: Trigger Shopify Sync natively to Feeder App if applicable
         try {
             let refsToSync = [];
-            // ✨ FIX: If it is a Full Stocktake, we must sync the entire catalog because un-scanned items went to 0!
             if (this.currentWorkflowType === 'Full Stocktake') {
                 refsToSync = DatabaseManager.db.map(i => i.sku || i.ref);
             } else {
@@ -1105,11 +1104,24 @@ const SessionManager = {
             }
             
             let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
+            
             if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
-                fetch(ApiManager.getActiveArchiveUrl(), { 
-                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                    body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: shopifyUpdatePayload }) 
-                }).catch(e => console.warn("Shopify background sync failed"));
+                // ✨ FIX: Wrap the sync in an invisible background loop to prevent Google/Shopify timeouts
+                (async () => {
+                    let batchSize = 40; // Safe threshold for Apps Script execution limits
+                    for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
+                        let batch = shopifyUpdatePayload.slice(i, i + batchSize);
+                        try {
+                            await fetch(ApiManager.getActiveArchiveUrl(), { 
+                                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                                body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
+                            });
+                        } catch(e) { console.warn("Shopify batch sync failed:", e); }
+                        
+                        // Pause for 1.5 seconds between batches so Shopify doesn't reject the connection
+                        await new Promise(r => setTimeout(r, 1500));
+                    }
+                })();
             }
         } catch(e) {}
 
