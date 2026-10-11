@@ -457,7 +457,7 @@ const DatabaseManager = {
         let shopifyUpdatePayload = this.buildShopifyPayload([ref]);
 
         if (shopifyUpdatePayload.length > 0) {
-            fetch(SessionManager.getActiveArchiveUrl(), {
+            fetch(ApiManager.getActiveArchiveUrl(), {
                 method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: shopifyUpdatePayload })
             }).catch(e => console.warn("Shopify Database Editor update failed."));
@@ -612,7 +612,7 @@ const DatabaseManager = {
             document.getElementById('dlProgressBar').style.width = `${(page/totalPages)*90}%`;
         }
         
-        let res = await fetch(`${SessionManager.cloudArchiveUrl}?action=SYNC_DATABASE_CHUNKED&page=${page}&t=${Date.now()}`);
+        let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=SYNC_DATABASE_CHUNKED&page=${page}&t=${Date.now()}`);
         let text = await res.text();
         let data;
         
@@ -761,7 +761,7 @@ const DatabaseManager = {
           await new Promise(r => requestAnimationFrame(() => setTimeout(r, 100)));
           
           updateStep(2, "Transmitting to Google...", 66);
-          await fetch(SessionManager.getActiveArchiveUrl(), {
+          await fetch(ApiManager.getActiveArchiveUrl(), {
             method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(pushPayload)
           });

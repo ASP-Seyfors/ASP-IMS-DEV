@@ -203,7 +203,7 @@ const ReportsManager = {
       };
 
       try {
-          let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+          let res = await fetch(ApiManager.getActiveArchiveUrl(), {
               method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify({ action: "SAVE_SHIPPING_INFO", payload: payloadData })
           });
@@ -229,7 +229,7 @@ const ReportsManager = {
       if (!confirm(`Are you sure you want to permanently delete ${contactId} from the Address Book?`)) return;
 
       try {
-          let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+          let res = await fetch(ApiManager.getActiveArchiveUrl(), {
               method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify({ action: "DELETE_SHIPPING_INFO", payload: { contactId: contactId } })
           });
@@ -459,7 +459,7 @@ const ReportsManager = {
 
     try {
       // Fetch live ledger
-      let res = await fetch(`${SessionManager.cloudArchiveUrl}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=GET_AUDIT_LOG&t=${Date.now()}`);
       let text = await res.text();
       let responseData = JSON.parse(text);
 
@@ -691,7 +691,7 @@ const ReportsManager = {
 
     try {
       // ✨ FIX: Target the new blazing-fast EXP_TRACK endpoint!
-      let res = await fetch(`${SessionManager.cloudArchiveUrl}?action=GET_EXP_TRACK&t=${Date.now()}`);
+      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=GET_EXP_TRACK&t=${Date.now()}`);
       let text = await res.text();
       let responseData;
       
@@ -925,7 +925,7 @@ const ReportsManager = {
       container.innerHTML = '<p style="text-align:center; color:#0277bd;">Loading...</p>';
       try {
           // Use GET with URL parameters to bypass CORS restrictions
-          let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`);
+          let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`);
           let data = await res.json();
           
           if (data.status === "success" && data.subs && data.subs.length > 0) {
@@ -974,7 +974,7 @@ const ReportsManager = {
        
       let payload = { name: name, email: email, freq: freq, status: status, categories: categoryPref };
 
-      fetch(SessionManager.getActiveArchiveUrl(), {
+      fetch(ApiManager.getActiveArchiveUrl(), {
           method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: "UPDATE_SUBSCRIBER", payload: payload })
       }).then(() => {
@@ -1057,7 +1057,7 @@ async function runEthiconUiScan(mode) {
     resultsBox.innerHTML = `<div style="text-align:center; padding:20px; color:#0277bd;"><strong>⏳ Querying J&J MedTech Servers...</strong><br>This may take a moment depending on the number of items.</div>`;
     
     try {
-        let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=RUN_ETHICON_UI_SCAN${queryParam}`);
+        let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=RUN_ETHICON_UI_SCAN${queryParam}`);
         let data = await res.json();
         
         if (data.status !== "success") throw new Error(data.message || "API Error");
@@ -1116,7 +1116,7 @@ function openEthiconMonitorModal() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // 1. Fetch active subscribers
-    fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`)
+    fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`)
       .then(r => r.json())
       .then(data => {
           if (data.status === "success") {
@@ -1130,7 +1130,7 @@ function openEthiconMonitorModal() {
       }).catch(e => subList.innerHTML = "<i>Error loading list.</i>");
 
     // 2. Fetch the Cached Discontinued Archive
-    fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_ETHICON_ARCHIVE`)
+    fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_ETHICON_ARCHIVE`)
       .then(r => r.json())
       .then(data => {
           if (data.status !== "success" || data.data.length === 0) {
@@ -1180,7 +1180,7 @@ async function subscribeToEthiconMonitor() {
     let name = userProfile.name || email.split('@')[0];
 
     try {
-        let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+        let res = await fetch(ApiManager.getActiveArchiveUrl(), {
             method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
                 action: "UPDATE_SUBSCRIBER",

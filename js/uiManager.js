@@ -678,7 +678,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
 
     try {
       let localLastSync = parseInt(localStorage.getItem('asp_last_cloud_sync') || '0', 10);
-      let res = await fetch(`${SessionManager.cloudArchiveUrl}?action=CHECK_VERSION`);
+      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=CHECK_VERSION`);
       let data = await res.json();
 
       if (data && data.lastUpdated && data.lastUpdated > localLastSync) {
@@ -817,7 +817,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     };
 
     try {
-      let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.cloudArchiveUrl : ENV_CONFIG.CLOUD_ARCHIVE_URL;
+      let activeUrl = (typeof ApiManager !== 'undefined') ? ApiManager.cloudArchiveUrl : ENV_CONFIG.CLOUD_ARCHIVE_URL;
       
       await fetch(activeUrl, {
         method: 'POST',

@@ -89,7 +89,7 @@ async function sendDeploymentBlast() {
 
     try {
         // FIXED: Using the correct URL method (getActiveArchiveUrl)
-        let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+        let res = await fetch(ApiManager.getActiveArchiveUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
@@ -147,7 +147,7 @@ async function sendPreDeploymentBlast() {
     };
 
     try {
-        let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+        let res = await fetch(ApiManager.getActiveArchiveUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
@@ -220,7 +220,7 @@ async function exportAppsScriptFiles(event) {
     btn.disabled = true;
 
     try {
-        let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+        let res = await fetch(ApiManager.getActiveArchiveUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: "EXPORT_APPS_SCRIPT" })
@@ -465,7 +465,7 @@ window.addEventListener('visibilitychange', () => {
                 }
             };
             
-            let activeUrl = (typeof SessionManager !== 'undefined') ? SessionManager.getActiveArchiveUrl() : ENV_CONFIG.CLOUD_ARCHIVE_URL;
+            let activeUrl = (typeof ApiManager !== 'undefined') ? ApiManager.getActiveArchiveUrl() : ENV_CONFIG.CLOUD_ARCHIVE_URL;
             
             if (activeUrl) {
                 // sendBeacon guarantees the payload is transmitted even if the browser tab is instantly destroyed

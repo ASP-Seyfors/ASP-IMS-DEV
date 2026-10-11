@@ -60,7 +60,7 @@ const AuditManager = {
 
     try {
       // ✨ FIX: encodeURIComponent safely packages special characters (like # or spaces) for web travel
-      let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${encodeURIComponent(sessionId)}`);
+      let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${encodeURIComponent(sessionId)}`);
       let rawText = await res.text();
       
       // ✨ FIX: Intercept HTML error pages before JSON.parse crashes
@@ -202,7 +202,7 @@ const AuditManager = {
     document.getElementById('auditPreviewContent').innerHTML = '<div style="text-align:center; padding:20px; color:#0277bd; font-weight:bold;">⏳ Processing live ledger from the cloud... Please wait.</div>';
     
     try {
-      let res = await fetch(`${SessionManager.cloudArchiveUrl}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=GET_AUDIT_LOG&t=${Date.now()}`);
       let text = await res.text();
       let responseData = JSON.parse(text);
       if (responseData.status !== "success" || !responseData.data) throw new Error("Failed to load audit log.");
@@ -334,7 +334,7 @@ const AuditManager = {
     btn.disabled = true;
 
     try {
-      let res = await fetch(`${SessionManager.cloudArchiveUrl}?action=GET_BUG_REPORTS&t=${Date.now()}`);
+      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=GET_BUG_REPORTS&t=${Date.now()}`);
       let data = await res.json();
       
       if (data.status !== "success") throw new Error("Failed to fetch reports.");
@@ -1413,7 +1413,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
                 archive.push(sessionObj);
                 
                 // Push to ASP_SCANNER_DATABASE backend
-                await fetch(SessionManager.cloudArchiveUrl, {
+                await fetch(ApiManager.cloudArchiveUrl, {
                   method: 'POST',
                   mode: 'no-cors',
                   headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2107,7 +2107,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let cleanSuppliers = DatabaseManager.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
         let cleanVendors = DatabaseManager.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
 
-        fetch(SessionManager.getActiveArchiveUrl(), {
+        fetch(ApiManager.getActiveArchiveUrl(), {
           method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors }})
         }).catch(e => console.warn("Failed to push DB flags."));
@@ -2246,7 +2246,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
         while (!success && attempts < maxAttempts) {
           try {
-            let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${sLite.id}`);
+            let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${sLite.id}`);
             let rawText = (await res.text()).trim();
             
             // ✨ BULLETPROOF CHECK: If it doesn't start with { or [, it is an HTML error page
@@ -2439,10 +2439,10 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
       localStorage.setItem('asp_allocations', JSON.stringify(activeAllocations));
       
-      if (SessionManager.getActiveArchiveUrl()) {
+      if (ApiManager.getActiveArchiveUrl()) {
         logMsg(`Pushing database adjustments to Google Sheets...`, '#64b5f6');
         let dbPayload = { action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db } };
-        await fetch(SessionManager.getActiveArchiveUrl(), { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(dbPayload) });
+        await fetch(ApiManager.getActiveArchiveUrl(), { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(dbPayload) });
         
         logMsg(`Pushing customer allocations to Google Sheets...`, '#64b5f6');
         
@@ -2480,7 +2480,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     resultsContainer.innerHTML = '<div style="padding:15px; color:#0277bd; text-align:center;">⏳ Searching live cloud ledger...</div>';
 
     try {
-      let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+      let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`);
       let text = await res.text();
       let responseData = JSON.parse(text);
       
@@ -2544,7 +2544,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     resultsContainer.innerHTML = '<div style="padding:15px; color:#7b1fa2; font-weight:bold; text-align:center;">⏳ Waking up Cold Storage... Searching deep archive ledgers...</div>';
 
     try {
-      let res = await fetch(`${SessionManager.getActiveArchiveUrl()}?action=SEARCH_DEEP_ARCHIVE&lot=${encodeURIComponent(targetLot)}`);
+      let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=SEARCH_DEEP_ARCHIVE&lot=${encodeURIComponent(targetLot)}`);
       let responseData = await res.json();
       
       if (responseData.status !== "success" || !responseData.data) throw new Error(responseData.message || "Failed to parse deep archive.");
@@ -2745,7 +2745,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
           if (statusText) statusText.innerText = `Pushing Batch ${i + 1} of ${totalBatches}...`;
           
           try {
-              let response = await fetch(SessionManager.getActiveArchiveUrl(), {
+              let response = await fetch(ApiManager.getActiveArchiveUrl(), {
                   method: 'POST',
                   headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                   body: JSON.stringify({ action: 'SYNC_SHOPIFY', payload: payloadBatch })
@@ -2792,7 +2792,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         payload: payloadData
       };
 
-      let res = await fetch(SessionManager.getActiveArchiveUrl(), {
+      let res = await fetch(ApiManager.getActiveArchiveUrl(), {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
