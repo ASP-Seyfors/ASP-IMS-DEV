@@ -574,6 +574,18 @@ const SessionManager = {
     let btnMfr = document.getElementById('btnConfirmMfr');
     if (btnMfr) btnMfr.style.display = (this.currentMatchedItem && DatabaseManager.getItemVendor(this.currentMatchedItem).toLowerCase() !== vendor.toLowerCase()) ? 'inline-block' : 'none';
 
+    // ✨ NEW: Auto-Check the Bundle box if this item is a known bundle!
+    if (this.currentMatchedItem && this.currentMatchedItem.parentRef && parseInt(this.currentMatchedItem.uomMult, 10) > 1) {
+        let chkBundle = document.getElementById('chkIsBundle');
+        let rowBundleData = document.getElementById('rowBundleData');
+        if (chkBundle && rowBundleData) {
+            chkBundle.checked = true;
+            rowBundleData.style.display = 'flex';
+            document.getElementById('bundleParentRef').value = this.currentMatchedItem.parentRef;
+            document.getElementById('bundleMult').value = this.currentMatchedItem.uomMult;
+        }
+    }
+
     document.getElementById('screenScanning').style.display = 'none';
     document.getElementById('screenReview').style.display = 'block';
   },
@@ -1035,7 +1047,6 @@ const SessionManager = {
       try {
         updateStep(1, "Payload Built", 33);
         
-        // 1. Gather final UI inputs into scannedObjects array
         this.scannedObjects.forEach((item, index) => {
           let qtyEl = document.getElementById(`editQty_${index}`);
           let tagEl = document.getElementById(`editTag_${index}`);
@@ -1047,7 +1058,6 @@ const SessionManager = {
               if (newTag && this.currentWorkflowType.includes('Receiving')) item.actionTag = 'Reserved';
             }
           }
-          // Inherit the tag from the manifest if doing a Pick & Pack
           if (this.currentWorkflowType.includes('Packing') && this.isManifestEnabled) {
              let manifestItem = this.expectedManifest.find(m => m.ref === item.ref.toUpperCase());
              if (manifestItem && manifestItem.allocations && manifestItem.allocations.length > 0) { 
@@ -1056,7 +1066,6 @@ const SessionManager = {
           }
         });
 
-        // 2. Build the exact session object for the Cloud
         let sessionObj = {
           id: this.sessionId,
           status: "Completed",
@@ -1074,10 +1083,8 @@ const SessionManager = {
           lastUpdated: Date.now()
         };
 
-        // 3. Transmit payload and wait for server calculation
         updateStep(2, "Server Calculating...", 66);
         
-        // ✨ Removed 'no-cors' so the tablet physically waits for the backend to finish!
         let res = await fetch(ApiManager.getActiveArchiveUrl(), { 
             method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ action: "COMMIT_SESSION", payload: sessionObj })
@@ -1086,7 +1093,20 @@ const SessionManager = {
         let data = await res.json();
         if (data.status !== "success") throw new Error(data.message);
 
-        // 4. Cleanup Local Memory
+        // ✨ NEW: Trigger Shopify Sync natively to Feeder App if applicable
+        try {
+            let refsToSync = this.scannedObjects.map(scan => scan.ref);
+            this.pendingNewItems.forEach(item => { if (item.ref) refsToSync.push(item.ref); });
+            
+            let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
+            if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
+                fetch(ApiManager.getActiveArchiveUrl(), { 
+                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                    body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: shopifyUpdatePayload }) 
+                }).catch(e => console.warn("Shopify background sync failed"));
+            }
+        } catch(e) {}
+
         this.pendingNewItems = []; this.pendingFieldUpdates = [];
         localStorage.setItem('asp_pending_new_items', JSON.stringify([])); 
         localStorage.setItem('asp_pending_updates', JSON.stringify([]));
@@ -1095,12 +1115,10 @@ const SessionManager = {
         this.scannedObjects = [];
         localStorage.setItem('asp_session_scanned_objects', JSON.stringify([]));
         
-        // Remove from local archive if it was pending
         let localArchive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
         localArchive = localArchive.filter(s => s.id !== this.sessionId);
         localStorage.setItem('asp_session_archive', JSON.stringify(localArchive));
         
-        // Reset UI Components
         document.getElementById('sessionNoteInput').value = ""; document.getElementById('chkSessionNote').checked = false;
         document.getElementById('orderDetailsInput').value = ""; 
         if (typeof UIManager !== 'undefined' && UIManager.toggleSessionNote) UIManager.toggleSessionNote();
@@ -1111,14 +1129,12 @@ const SessionManager = {
         localStorage.setItem('asp_session_is_active', 'false'); localStorage.setItem('asp_manifest_enabled', 'false');
         this.currentItemAction = 'Inventory'; 
 
-        // Trigger QBO Writeback natively to Feeder App if applicable
         if (sessionObj.orderNum) { QboManager.pushQboWriteBack(sessionObj); }
 
         document.body.removeChild(overlay);
         document.getElementById('screenSummary').style.display = 'none';
         document.getElementById('screenSetup').style.display = 'block';
 
-        // 5. Download the Newly Calculated Database natively via the Master Sync!
         sessionStorage.setItem('asp_allocations_verified', 'true');
         if (typeof window.masterSystemSync === 'function') {
             await window.masterSystemSync(null); 
@@ -1419,6 +1435,248 @@ const SessionManager = {
   closeArchive() {
     document.getElementById('screenArchive').style.display = 'none';
     document.getElementById('screenSetup').style.display = 'block';
+  },
+
+  // Paste these directly below closeArchive()
+
+  renderArchiveList() {
+    const container = document.getElementById('archiveListContainer');
+    
+    let rawList = [];
+    if (this.currentArchiveTab === 'local') {
+      rawList = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
+    } else {
+      rawList = JSON.parse(localStorage.getItem('asp_cloud_directory')) || [];
+    }
+    
+    if (rawList.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding:20px; color:#555;">No ${this.currentArchiveTab} sessions found.</div>`;
+      return;
+    }
+
+    let filterVal = document.getElementById('archiveFilter').value;
+    let searchVal = document.getElementById('archiveSearchInput') ? document.getElementById('archiveSearchInput').value.trim().toLowerCase() : '';
+    let hideCancelled = document.getElementById('chkHideCancelled') ? document.getElementById('chkHideCancelled').checked : false;
+    let onlyActive = document.getElementById('chkOnlyActive') ? document.getElementById('chkOnlyActive').checked : false;
+    
+    let cutoff = 0;
+    if (filterVal === 'today') cutoff = Date.now() - (24 * 60 * 60 * 1000);
+    else if (filterVal === 'week') cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    else if (filterVal === 'month') cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    else cutoff = 0; 
+
+    let filtered = rawList.filter(s => {
+      if (cutoff > 0 && s.lastUpdated && s.lastUpdated < cutoff) return false;
+      if (hideCancelled && s.status === 'Cancelled') return false;
+      if (onlyActive && s.status !== 'Pending') return false; 
+      
+      if (searchVal) {
+          let searchTarget = `${s.sessionName} ${s.orderNum} ${s.dateStr} ${s.id}`.toLowerCase();
+          if (!searchTarget.includes(searchVal)) return false;
+      }
+      
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding:20px; color:#555;">No sessions found matching these filters.</div>`;
+      return;
+    }
+
+    let html = '';
+    filtered.forEach(s => {
+      let statusColor = s.status === 'Completed' ? '#2e7d32' : (s.status === 'Cancelled' ? '#d32f2f' : (s.status === 'Pending' ? '#0277bd' : '#f57f17'));
+      
+      let itemsPreview = '';
+      let isCloud = s.isCloud === true;
+
+      if (!isCloud && s.scannedObjects) {
+        itemsPreview = s.scannedObjects.map(item => `<li>${item.qty}x ${item.ref}</li>`).join('');
+        if(!itemsPreview) itemsPreview = '<li>No items scanned</li>';
+      } else {
+        itemsPreview = '<li style="color:#0277bd; font-style:italic;">Payload stored safely in Cloud Vault. Restore to view items.</li>';
+      }
+
+      let deleteBtnHtml = isCloud 
+        ? `<div style="font-size:0.8rem; color:#777; font-style:italic;">Locked (Cloud)</div>` 
+        : `<button class="btn-small btn-cancel btn-auto" onclick="SessionManager.deleteArchivedSession('${s.id}')">🗑️ Delete</button>`;
+
+      let restoreBtnHtml = isCloud
+        ? `<button class="btn-action btn-auto" style="margin:0; padding:6px 12px; background-color:#1565c0; color:#fff;" onclick="SessionManager.restoreArchivedSession('${s.id}', true)">☁️ Download & Restore</button>`
+        : `<button class="btn-action btn-save btn-auto" style="margin:0; padding:6px 12px;" onclick="SessionManager.restoreArchivedSession('${s.id}', false)">🔄 Restore Local</button>`;
+
+      html += `
+        <div class="audit-card" style="border-left: 5px solid ${statusColor};">
+          <div class="flex-between" style="margin-bottom: 6px;">
+            <strong style="color:#0277bd; font-size:1.05rem;">${s.sessionName}</strong>
+            <span class="badge-info" style="background-color:${statusColor}; color:#fff;">${s.status}</span>
+          </div>
+          
+          <details style="font-size: 0.85rem; color: #555; margin-bottom: 10px;">
+            <summary style="cursor:pointer; font-weight:bold; color:#333; margin-bottom:6px;">[+] View Details</summary>
+            <div style="padding-left: 12px; margin-top: 6px; border-left: 2px solid #eee;">
+              <div><strong>Date:</strong> ${s.dateStr} | <strong>User:</strong> ${s.userName}</div>
+              ${s.workflowType ? `<div><strong>Workflow:</strong> ${s.workflowType}</div>` : ''}
+              <div style="margin-top:6px;"><strong>Items:</strong></div>
+              <ul style="margin:4px 0 0 0; padding-left:16px; max-height:80px; overflow-y:auto;">
+                ${itemsPreview}
+              </ul>
+            </div>
+          </details>
+          
+          <div class="flex-between">
+            ${deleteBtnHtml}
+            ${restoreBtnHtml}
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  },
+
+  async restoreArchivedSession(id, isCloud = false) {
+    let confirmMsg = isCloud 
+      ? "Download and restore this session from the Cloud Vault?\n\nThis will override your current unsaved session if you have one active." 
+      : "Restore this local session?\n\nThis will override your current unsaved session if you have one active.";
+    
+    if (!confirm(confirmMsg)) return;
+    
+    let sessionData = null;
+
+    if (isCloud) {
+      try {
+        let dir = JSON.parse(localStorage.getItem('asp_cloud_directory')) || [];
+        let targetLite = dir.find(s => String(s.id) === String(id));
+        if (!targetLite) return;
+
+        let partsToFetch = [targetLite];
+        let baseName = targetLite.sessionName;
+
+        let match = targetLite.sessionName.match(/(.*?)\s*\(Part \d+ of \d+\)$/i);
+        if (match) {
+          baseName = match[1].trim();
+          partsToFetch = dir.filter(s => {
+              let smatch = s.sessionName.match(/(.*?)\s*\(Part \d+ of \d+\)$/i);
+              let sBase = smatch ? smatch[1].trim() : s.sessionName;
+              return sBase === baseName && s.dateStr === targetLite.dateStr;
+          }).sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        }
+
+        let overlay = document.createElement('div');
+        overlay.id = 'downloadOverlay';
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; color:#fff; font-size:1.2rem; font-weight:bold; flex-direction:column;';
+        overlay.innerHTML = `<div style="font-size:2rem; margin-bottom:10px;">☁️</div><div id="dlText">Downloading session payload...</div>`;
+        document.body.appendChild(overlay);
+
+        let combinedScans = [];
+        for (let i = 0; i < partsToFetch.length; i++) {
+          let partLite = partsToFetch[i];
+          let dlText = document.getElementById('dlText');
+          if (dlText && partsToFetch.length > 1) dlText.textContent = `Downloading part ${i+1} of ${partsToFetch.length}...`;
+
+          let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${partLite.id}`);
+          let partData = await res.json();
+          
+          if (!partData || partData.status === "error") {
+            document.body.removeChild(overlay);
+            alert("Failed to download payload: " + (partData ? partData.message : "Unknown error"));
+            return;
+          }
+          if (i === 0) sessionData = partData;
+          combinedScans = combinedScans.concat(partData.scannedObjects || []);
+        }
+        document.body.removeChild(overlay);
+
+        if (partsToFetch.length > 1) {
+          sessionData.scannedObjects = combinedScans;
+          sessionData.sessionName = baseName;
+          if (sessionData.workflowType === 'Selection Stocktake' && baseName.toUpperCase().includes('FULL-INV')) {
+             sessionData.workflowType = 'Full Stocktake';
+          }
+        }
+
+      } catch (err) {
+        let overlay = document.getElementById('downloadOverlay');
+        if (overlay) document.body.removeChild(overlay);
+        alert("Network error downloading session: " + err.message);
+        return;
+      }
+    } else {
+      let archive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
+      sessionData = archive.find(x => x.id === id);
+    }
+
+    if (!sessionData) {
+      alert("Session data could not be found.");
+      return;
+    }
+
+    this.sessionId = sessionData.id;
+    this.isSessionActive = true;
+    this.currentUserName = sessionData.userName;
+    this.currentSessionName = sessionData.sessionName;
+    this.currentOrderNum = sessionData.orderNum;
+    this.currentWorkflowType = sessionData.workflowType;
+    this.sessionDateStr = sessionData.dateStr;
+    this.sessionStartStr = sessionData.startStr;
+    
+    if (this.sessionStartStr === 'Historical Import') {
+      this.sessionStartStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    this.isManifestEnabled = sessionData.manifestEnabled;
+    this.expectedManifest = sessionData.expectedManifest || [];
+    this.scannedObjects = sessionData.scannedObjects || [];
+    this.pendingNewItems = sessionData.pendingNewItems || [];
+    this.pendingFieldUpdates = sessionData.pendingUpdates || [];
+
+    let destRow = document.getElementById('rowItemDestination');
+    let tagRow = document.getElementById('rowCustomerTag');
+
+    if (this.currentWorkflowType.includes('Receiving & Reserving')) {
+      this.currentItemAction = 'Inventory'; 
+      if (destRow) destRow.style.display = 'flex';
+      if (tagRow) tagRow.style.display = 'none';
+      if (typeof UIManager !== 'undefined' && UIManager.setItemAction) UIManager.setItemAction('Inventory');
+    } else if (this.currentWorkflowType.includes('Reserving')) {
+      this.currentItemAction = 'Reserved';
+      if (destRow) destRow.style.display = 'none';
+      if (tagRow) tagRow.style.display = 'none';
+    } else if (this.currentWorkflowType.includes('Packing')) {
+      this.currentItemAction = 'Pack & Ship';
+      if (destRow) destRow.style.display = 'none';
+      if (tagRow) tagRow.style.display = 'none';
+    } else {
+      this.currentItemAction = 'Inventory';
+      if (destRow) destRow.style.display = 'none';
+      if (tagRow) tagRow.style.display = 'none';
+    }
+
+    localStorage.setItem('asp_session_id', this.sessionId);
+    localStorage.setItem('asp_session_is_active', 'true');
+    localStorage.setItem('asp_user_name', this.currentUserName);
+    localStorage.setItem('asp_session_name', this.currentSessionName);
+    localStorage.setItem('asp_order_num', this.currentOrderNum);
+    localStorage.setItem('asp_workflow_type', this.currentWorkflowType);
+    localStorage.setItem('asp_session_date_str', this.sessionDateStr);
+    localStorage.setItem('asp_session_start_str', this.sessionStartStr);
+    localStorage.setItem('asp_manifest_enabled', this.isManifestEnabled ? 'true' : 'false');
+    localStorage.setItem('asp_active_manifest', JSON.stringify(this.expectedManifest));
+    localStorage.setItem('asp_session_scanned_objects', JSON.stringify(this.scannedObjects));
+    localStorage.setItem('asp_pending_new_items', JSON.stringify(this.pendingNewItems));
+    localStorage.setItem('asp_pending_updates', JSON.stringify(this.pendingFieldUpdates));
+
+    this.updateHeaderBanners();
+    document.getElementById('screenArchive').style.display = 'none';
+    this.goToSummaryScreen();
+  },
+
+  deleteArchivedSession(id) {
+    if (!confirm("Are you sure you want to permanently delete this session from the archive?")) return;
+    let archive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
+    archive = archive.filter(s => s.id !== id);
+    localStorage.setItem('asp_session_archive', JSON.stringify(archive));
+    this.renderArchiveList();
   },
 
   // Un-Reserve Logic Engine (With Partial Quantity Support)
