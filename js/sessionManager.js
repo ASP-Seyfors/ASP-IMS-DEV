@@ -1095,8 +1095,14 @@ const SessionManager = {
 
         // ✨ NEW: Trigger Shopify Sync natively to Feeder App if applicable
         try {
-            let refsToSync = this.scannedObjects.map(scan => scan.ref);
-            this.pendingNewItems.forEach(item => { if (item.ref) refsToSync.push(item.ref); });
+            let refsToSync = [];
+            // ✨ FIX: If it is a Full Stocktake, we must sync the entire catalog because un-scanned items went to 0!
+            if (this.currentWorkflowType === 'Full Stocktake') {
+                refsToSync = DatabaseManager.db.map(i => i.sku || i.ref);
+            } else {
+                refsToSync = this.scannedObjects.map(scan => scan.ref);
+                this.pendingNewItems.forEach(item => { if (item.ref) refsToSync.push(item.ref); });
+            }
             
             let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
             if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
@@ -1436,9 +1442,7 @@ const SessionManager = {
     document.getElementById('screenArchive').style.display = 'none';
     document.getElementById('screenSetup').style.display = 'block';
   },
-
-  // Paste these directly below closeArchive()
-
+  
   renderArchiveList() {
     const container = document.getElementById('archiveListContainer');
     
