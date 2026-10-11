@@ -35,6 +35,9 @@ const ASSETS_TO_CACHE = [
   
   // JavaScript
   './js/config.js',
+  './js/apiManager.js',       // ✨ ADD THIS
+  './js/manifestManager.js',  // ✨ ADD THIS
+  './js/qboManager.js',       // ✨ ADD THIS
   './js/componentManager.js',
   './js/app.js',
   './js/auditManager.js',

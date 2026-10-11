@@ -1189,7 +1189,7 @@ const SessionManager = {
       }
     });
 
-    // Generate the PDF BEFORE the backend zeroes everything out!
+    // ✨ ALL LOCAL MUTATIONS DELETED! We simply generate the Variance Report and then hand off to the cloud!
     if (varianceData.length > 0) ReportsManager.generateVarianceReportPDF(varianceData, this.currentWorkflowType, netFinancialImpact);
     else alert("No variances detected! Your physical counts match the system perfectly.");
     
