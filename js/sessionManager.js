@@ -1840,13 +1840,25 @@ const SessionManager = {
           );
 
           let refsToSync = unreservedItems.map(scan => scan.ref);
-          let shopifySyncPayload = DatabaseManager.buildShopifyPayload(refsToSync);
+          let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
           
-          if (shopifySyncPayload.length > 0) {
-              networkTasks.push(fetch(this.getActiveArchiveUrl(), { 
-                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                  body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: shopifySyncPayload }) 
-              }).catch(e => console.warn("Shopify background sync failed")));
+          if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
+              // ✨ FIX: Fire-and-forget batched Shopify Sync to prevent timeouts on massive un-reserves
+              (async () => {
+                  let batchSize = 40; 
+                  for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
+                      let batch = shopifyUpdatePayload.slice(i, i + batchSize);
+                      try {
+                          await fetch(ApiManager.getActiveArchiveUrl(), { 
+                              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                              body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
+                          });
+                      } catch(e) { console.warn("Shopify batch sync failed:", e); }
+                      
+                      // Pause for 1.5 seconds between batches so Shopify doesn't reject the connection
+                      await new Promise(r => setTimeout(r, 1500));
+                  }
+              })();
           }
 
           let uNameInput = document.getElementById('userNameInput');
