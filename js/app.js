@@ -398,22 +398,24 @@ window.handleItemCustomerSelect = (val) => DatabaseManager.handleItemCustomerSel
 
 window.startSession = () => SessionManager.startSession();
 window.rescueLastSession = () => SessionManager.rescueLastSession();
-window.processPastedSpreadsheet = () => SessionManager.processPastedSpreadsheet();
-window.addManifestRow = () => SessionManager.addManifestRow();
-window.cancelManifestEntry = () => SessionManager.cancelManifestEntry();
-window.goToManifestReview = () => SessionManager.goToManifestReview();
-window.returnToManifestEdit = () => SessionManager.returnToManifestEdit();
-window.confirmManifestAndStart = () => SessionManager.confirmManifestAndStart();
-window.toggleManifestResRow = (idx) => SessionManager.toggleManifestResRow(idx);
 window.goToSummaryScreen = () => SessionManager.goToSummaryScreen();
 window.goToReviewStage = () => SessionManager.goToReviewStage();
 window.confirmFieldUpdate = (field) => SessionManager.confirmFieldUpdate(field);
 window.returnToEdit = () => SessionManager.returnToEdit();
 window.cancelScannedItem = () => SessionManager.cancelScannedItem();
 window.saveItemLog = () => SessionManager.saveItemLog();
-window.clearManifestList = () => SessionManager.clearManifestList();
-window.triggerQboSync = (e) => SessionManager.triggerQboSync(e);
 window.offloadAndPurgeHistory = (e) => SessionManager.offloadAndPurgeHistory(e);
+
+// Moved from Session Manager to new QBO Manager and Manifest Manager.
+window.triggerQboSync = (e) => QboManager.triggerQboSync(e);
+window.addManifestRow = () => ManifestManager.addManifestRow();
+window.cancelManifestEntry = () => ManifestManager.cancelManifestEntry();
+window.goToManifestReview = () => ManifestManager.goToManifestReview();
+window.returnToManifestEdit = () => ManifestManager.returnToManifestEdit();
+window.confirmManifestAndStart = () => ManifestManager.confirmManifestAndStart();
+window.toggleManifestResRow = (idx) => ManifestManager.toggleManifestResRow(idx);
+window.clearManifestList = () => ManifestManager.clearManifestList();
+window.processPastedSpreadsheet = () => ManifestManager.processPastedSpreadsheet();
 
 window.scanDocumentOCR = (e) => ScannerManager.scanDocumentOCR(e);
 window.resetScanLinesAndFields = () => ScannerManager.resetScanLinesAndFields();
