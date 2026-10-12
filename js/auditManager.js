@@ -2231,6 +2231,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       logMsg(`Found ${sessionsToFetch.length} chronological sessions to replay.`, '#64b5f6');
       
       let fullSessions = [];
+      let allAuditRows = []; // ✨ ADD THIS LINE
       
       // Batch download payloads with Google Rate-Limit Throttling & Exponential Backoff
       for (let i = 0; i < sessionsToFetch.length; i++) {
@@ -2390,6 +2391,21 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
            };
         });
 
+        // ✨ NEW: Rebuild the chronological Audit Log row for each item!
+        let d = new Date(sess.lastUpdated);
+        let pad = (n) => n.toString().padStart(2, '0');
+        let timeStr = `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+        transformedScans.forEach(tItem => {
+           let cLot = (tItem.lot === 'N/A' || tItem.lot === 'NA' || tItem.lot === 'NO_LOT') ? '' : tItem.lot;
+           let cExp = (tItem.exp === 'N/A' || tItem.exp === 'NA' || tItem.exp === 'NO_EXP') ? '' : tItem.exp;
+           let dest = tItem.actionTag || "Inventory";
+           if ((dest === "Reserved" || dest === "Pack & Ship" || dest === "Un-Reserved") && tItem.customerTag) {
+               dest = dest + " - " + tItem.customerTag;
+           }
+           allAuditRows.push([timeStr, sess.userName || "User", sess.sessionName, sess.workflowType || "General", tItem.ref || "UNKNOWN", cLot, cExp, tItem.qty || 0, dest]);
+        });
+        
         // USE THE TRANSFORMED DATA FOR THE MATH
         if (sess.workflowType && sess.workflowType.includes('Stocktake')) {
           let scannedTotals = {};
@@ -2448,7 +2464,21 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         
         // ✨ THE FIX 3: Force the circuit breaker open since we are authoritatively rebuilding memory from scratch
         sessionStorage.setItem('asp_allocations_verified', 'true');
-        await SessionManager.syncAllocationsToCloud(); // ✨ Added 'await'
+        await SessionManager.syncAllocationsToCloud(); 
+      }
+
+      // ✨ NEW: Push the rebuilt Audit Log to Google Sheets in safe chunks
+      if (allAuditRows.length > 0 && ApiManager.getActiveArchiveUrl()) {
+        logMsg(`Pushing ${allAuditRows.length} rebuilt Audit Log rows to Google Sheets...`, '#64b5f6');
+        let batchSize = 2500;
+        for (let i = 0; i < allAuditRows.length; i += batchSize) {
+           let batch = allAuditRows.slice(i, i + batchSize);
+           await fetch(ApiManager.getActiveArchiveUrl(), { 
+              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+              body: JSON.stringify({ action: "REBUILD_AUDIT_LOG", payload: batch, isFirstBatch: (i === 0) }) 
+           });
+           await new Promise(r => setTimeout(r, 1000));
+        }
       }
 
       updateProgress(`Restore Complete!`, 100);

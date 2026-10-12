@@ -1014,7 +1014,11 @@ const SessionManager = {
 
   completeSession(skipConfirm = false, skipShipping = false, skipIncoming = false) {
     if (this.currentWorkflowType === 'Picking & Packing' && !skipShipping) {
-      if (typeof ShippingManager !== 'undefined') { ShippingManager.openModal(); return; }
+      if (typeof ShippingManager !== 'undefined') { 
+        // ShippingManager.openModal(); <-- Commented out to temporarily bypass UI
+        ShippingManager.skipAndComplete(); // ✨ Instantly fires the skip function instead!
+        return; 
+      }
     }
     if (this.currentWorkflowType.includes('Receiving') && !skipIncoming) {
       if (typeof ShippingManager !== 'undefined' && typeof ShippingManager.openIncomingModal === 'function') { ShippingManager.openIncomingModal(); return; }
