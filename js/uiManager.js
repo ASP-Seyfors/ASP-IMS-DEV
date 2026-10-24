@@ -901,6 +901,30 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     console.error = (...args) => { originalError.apply(console, args); logToUI(args.join(' '), '#ef9a9a'); };
   },
 
+  showShopifySyncingBadge(show, count = 0) {
+      let badge = document.getElementById('floatingShopifyBadge');
+      if (!badge && show) {
+          badge = document.createElement('div');
+          badge.id = 'floatingShopifyBadge';
+          badge.style.cssText = 'position:fixed; bottom:20px; left:20px; background:#f57f17; color:#fff; padding:10px 15px; border-radius:30px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:999999; display:flex; align-items:center; gap:8px;';
+          document.body.appendChild(badge);
+      }
+      if (show && badge) {
+          badge.innerHTML = `<div style="width:16px; height:16px; border:3px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div> Syncing ${count} updates to Shopify...`;
+          badge.style.display = 'flex';
+          if (!document.getElementById('spinKeyframes')) {
+              let style = document.createElement('style');
+              style.id = 'spinKeyframes';
+              style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
+              document.head.appendChild(style);
+          }
+      } else if (!show && badge) {
+          badge.innerHTML = `✅ Shopify Sync Complete`;
+          badge.style.backgroundColor = '#2e7d32';
+          setTimeout(() => badge.style.display = 'none', 3000);
+      }
+  },
+
   toggleDebugConsole() {
     let fc = document.getElementById('floatingDebugConsoleContainer');
     if (fc) {

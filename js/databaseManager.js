@@ -586,9 +586,13 @@ const DatabaseManager = {
     let itemSku = this.getItemSku(item);
     let itemVendor = this.getItemVendor(item);
     if (itemSku && !document.getElementById('refInput').value.trim()) document.getElementById('refInput').value = itemSku;
-    if (item.gtin && !document.getElementById('gtinInput').value.trim() && !document.getElementById('chkNaGtin').checked) {
-      document.getElementById('gtinInput').value = item.gtin;
+    
+    let gtinInput = document.getElementById('gtinInput');
+    if (gtinInput && !document.getElementById('chkNaGtin').checked) {
+        // ✨ FIX: Always overwrite with the matched item's GTIN. If it lacks one, clear the field so old GTINs don't stick to new variants!
+        gtinInput.value = item.gtin || "";
     }
+    
     if (itemVendor) {
       let vendorSelect = document.getElementById('vendorSelect');
       let targetOption = Array.from(vendorSelect.options).find(opt => opt.value.trim().toLowerCase() === itemVendor.trim().toLowerCase());

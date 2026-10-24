@@ -1148,6 +1148,12 @@ const SessionManager = {
             let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSyncToShopify);
             
             if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
+                
+                // ✨ FIX: Show floating sync indicator
+                if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                    UIManager.showShopifySyncingBadge(true, shopifyUpdatePayload.length);
+                }
+
                 // Fire-and-forget batched Shopify Sync to prevent timeouts
                 (async () => {
                     let batchSize = 40; 
@@ -1161,6 +1167,11 @@ const SessionManager = {
                         } catch(e) { console.warn("Shopify batch sync failed:", e); }
                         
                         await new Promise(r => setTimeout(r, 1500));
+                    }
+                    
+                    // ✨ FIX: Hide the badge
+                    if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                        UIManager.showShopifySyncingBadge(false);
                     }
                 })();
             }
