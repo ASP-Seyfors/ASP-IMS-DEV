@@ -1230,11 +1230,20 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     
     sortedSkus.forEach(ref => {
       let dbItem = DatabaseManager.db.find(i => DatabaseManager.getItemSku(i) === ref);
+      
+      // ✨ FIX: Calculate True Available Qty instead of Raw Total Qty
+      let trueAvailable = 0;
+      if (dbItem) {
+          let total = parseInt(dbItem.onHand, 10) || 0;
+          let reserved = parseInt(dbItem.reservedQty, 10) || 0;
+          trueAvailable = total - reserved;
+      }
+
       resultList.push({
         ref: ref,
         desc: dbItem ? DatabaseManager.getItemDesc(dbItem) : 'Surgical Item',
         histQty: skuVolumeMap[ref] || 0,
-        onHand: dbItem ? (dbItem.onHand || 0) : 0, 
+        onHand: trueAvailable > 0 ? trueAvailable : 0, // Prevents negative numbers from showing on the flyer
         price: dbItem ? dbItem.price : '$0.00',
         cost: dbItem ? (dbItem.cost || '$0.00') : '$0.00'
       });

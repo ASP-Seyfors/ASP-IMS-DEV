@@ -384,12 +384,23 @@ const DatabaseManager = {
     if (!dbItem) return;
 
     let isAdmin = AuthManager.currentUser && AuthManager.currentUser.isAdmin;
+    
     let priceInputHtml = isAdmin 
       ? `<input type="text" id="modalPrice" value="${dbItem.price || '$0.00'}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">` 
       : `<input type="text" id="modalPrice" value="${dbItem.price || '$0.00'}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#777;" readonly title="Admin approval required to edit pricing.">`;
+    
     let costInputHtml = isAdmin 
       ? `<input type="text" id="modalCost" value="${dbItem.cost || '$0.00'}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;">` 
       : `<input type="text" id="modalCost" value="***" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#999;" readonly title="Restricted Admin Data">`;
+
+    // ✨ NEW: RM Price and DM Price Inputs
+    let rmPriceInputHtml = isAdmin 
+      ? `<input type="text" id="modalRmPrice" value="${dbItem.revMedPrice || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="$0.00">` 
+      : `<input type="text" id="modalRmPrice" value="${dbItem.revMedPrice || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#777;" readonly title="Admin approval required.">`;
+
+    let dmPriceInputHtml = isAdmin 
+      ? `<input type="text" id="modalDmPrice" value="${dbItem.dotMedPrice || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px;" placeholder="$0.00">` 
+      : `<input type="text" id="modalDmPrice" value="${dbItem.dotMedPrice || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#777;" readonly title="Admin approval required.">`;
 
     document.getElementById('modalRef').value = dbItem.ref || dbItem.sku;
     document.getElementById('modalMfr').value = dbItem.mfr || '';
@@ -401,9 +412,18 @@ const DatabaseManager = {
     statusEl.value = dbItem.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
     statusEl.style.color = dbItem.status === 'ACTIVE' ? '#2e7d32' : '#c62828';
 
-    document.getElementById('modalPricingBlock').innerHTML = `
-      <div style="flex:1;"><label style="font-weight:bold; font-size:0.85rem; color:#555;">Selling Price</label>${priceInputHtml}</div>
-      <div style="flex:1;"><label style="font-weight:bold; font-size:0.85rem; color:#555;">Unit Cost</label>${costInputHtml}</div>`;
+    // ✨ NEW: Override the container to display as a 2x2 Grid instead of a single row
+    let pricingBlock = document.getElementById('modalPricingBlock');
+    pricingBlock.style.display = 'grid';
+    pricingBlock.style.gridTemplateColumns = '1fr 1fr';
+    pricingBlock.style.gap = '10px';
+
+    pricingBlock.innerHTML = `
+      <div><label style="font-weight:bold; font-size:0.85rem; color:#555;">Selling Price</label>${priceInputHtml}</div>
+      <div><label style="font-weight:bold; font-size:0.85rem; color:#555;">Unit Cost</label>${costInputHtml}</div>
+      <div><label style="font-weight:bold; font-size:0.85rem; color:#555;">RM Price</label>${rmPriceInputHtml}</div>
+      <div><label style="font-weight:bold; font-size:0.85rem; color:#555;">DM Price</label>${dmPriceInputHtml}</div>
+    `;
 
     document.getElementById('itemEditModal').style.display = 'flex';
   },
@@ -415,15 +435,26 @@ const DatabaseManager = {
     let cat = document.getElementById('modalCat').value.trim();
     let shelf = document.getElementById('modalShelf').value.trim().toUpperCase();
     let status = document.getElementById('modalStatus').value;
+    
     let price = document.getElementById('modalPrice').value.trim();
     let costEl = document.getElementById('modalCost');
+    let rmPriceEl = document.getElementById('modalRmPrice');
+    let dmPriceEl = document.getElementById('modalDmPrice');
     
     let isAdmin = AuthManager.currentUser && AuthManager.currentUser.isAdmin;
     let cost = (isAdmin && costEl) ? costEl.value.trim() : null;
+    let rmPrice = (isAdmin && rmPriceEl) ? rmPriceEl.value.trim() : null;
+    let dmPrice = (isAdmin && dmPriceEl) ? dmPriceEl.value.trim() : null;
 
     let dbItem = this.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
     if (dbItem) {
-      let changed = (dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || (isAdmin && dbItem.price !== price) || (isAdmin && cost !== null && dbItem.cost !== cost));
+      let changed = (
+        dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || 
+        (isAdmin && dbItem.price !== price) || 
+        (isAdmin && cost !== null && dbItem.cost !== cost) ||
+        (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) ||
+        (isAdmin && dmPrice !== null && (dbItem.dotMedPrice || '') !== dmPrice)
+      );
       
       if (changed || dbItem.shelf !== shelf) {
         let changeNotes = [];
@@ -434,6 +465,8 @@ const DatabaseManager = {
         if (dbItem.status !== status) changeNotes.push(`Status: ${dbItem.status} -> ${status}`);
         if (isAdmin && dbItem.price !== price) changeNotes.push(`Price: ${dbItem.price} -> ${price}`);
         if (isAdmin && cost !== null && dbItem.cost !== cost) changeNotes.push(`Cost Updated`);
+        if (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) changeNotes.push(`RM Price Updated`);
+        if (isAdmin && dmPrice !== null && (dbItem.dotMedPrice || '') !== dmPrice) changeNotes.push(`DM Price Updated`);
 
         dbItem.mfr = mfr;
         dbItem.desc = desc;
@@ -443,6 +476,8 @@ const DatabaseManager = {
         if (isAdmin) {
           dbItem.price = price;
           if (cost !== null) dbItem.cost = cost;
+          if (rmPrice !== null) dbItem.revMedPrice = rmPrice;
+          if (dmPrice !== null) dbItem.dotMedPrice = dmPrice;
         }
 
         let pendingUpd = JSON.parse(localStorage.getItem('asp_pending_updates')) || [];
@@ -453,7 +488,6 @@ const DatabaseManager = {
 
         localStorage.setItem('asp_wh_db', JSON.stringify(this.db));
         
-        // ✨ NEW: Call the centralized Shopify Payload Builder
         let shopifyUpdatePayload = this.buildShopifyPayload([ref]);
 
         if (shopifyUpdatePayload.length > 0) {

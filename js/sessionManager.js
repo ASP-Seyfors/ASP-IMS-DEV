@@ -1097,38 +1097,16 @@ const SessionManager = {
         let data = await res.json();
         if (data.status !== "success") throw new Error(data.message);
 
-        // ✨ NEW: Trigger Shopify Sync natively to Feeder App if applicable
-        try {
-            let refsToSync = [];
-            if (this.currentWorkflowType === 'Full Stocktake') {
-                refsToSync = DatabaseManager.db.map(i => i.sku || i.ref);
-            } else {
-                refsToSync = this.scannedObjects.map(scan => scan.ref);
-                this.pendingNewItems.forEach(item => { if (item.ref) refsToSync.push(item.ref); });
-            }
-            
-            let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
-            
-            if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
-                // ✨ FIX: Wrap the sync in an invisible background loop to prevent Google/Shopify timeouts
-                (async () => {
-                    let batchSize = 40; // Safe threshold for Apps Script execution limits
-                    for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
-                        let batch = shopifyUpdatePayload.slice(i, i + batchSize);
-                        try {
-                            await fetch(ApiManager.getActiveArchiveUrl(), { 
-                                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                                body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
-                            });
-                        } catch(e) { console.warn("Shopify batch sync failed:", e); }
-                        
-                        // Pause for 1.5 seconds between batches so Shopify doesn't reject the connection
-                        await new Promise(r => setTimeout(r, 1500));
-                    }
-                })();
-            }
-        } catch(e) {}
+        // ✨ FIX 1: Capture the REFs to sync *before* we wipe the local session memory, but DON'T build the payload yet!
+        let refsToSyncToShopify = [];
+        if (this.currentWorkflowType === 'Full Stocktake') {
+            refsToSyncToShopify = DatabaseManager.db.map(i => i.sku || i.ref);
+        } else {
+            refsToSyncToShopify = this.scannedObjects.map(scan => scan.ref);
+            this.pendingNewItems.forEach(item => { if (item.ref) refsToSyncToShopify.push(item.ref); });
+        }
 
+        // Clean up Local Memory
         this.pendingNewItems = []; this.pendingFieldUpdates = [];
         localStorage.setItem('asp_pending_new_items', JSON.stringify([])); 
         localStorage.setItem('asp_pending_updates', JSON.stringify([]));
@@ -1157,11 +1135,37 @@ const SessionManager = {
         document.getElementById('screenSummary').style.display = 'none';
         document.getElementById('screenSetup').style.display = 'block';
 
+        // 5. Download the Newly Calculated Database natively via the Master Sync!
         sessionStorage.setItem('asp_allocations_verified', 'true');
         if (typeof window.masterSystemSync === 'function') {
             await window.masterSystemSync(null); 
         } else {
             UIManager.showCustomAlert("Session Complete", "✅ Inventory successfully updated in the Cloud!");
+        }
+
+        // ✨ FIX 2: NOW that the freshly calculated database is downloaded, build the Shopify payload!
+        try {
+            let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSyncToShopify);
+            
+            if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
+                // Fire-and-forget batched Shopify Sync to prevent timeouts
+                (async () => {
+                    let batchSize = 40; 
+                    for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
+                        let batch = shopifyUpdatePayload.slice(i, i + batchSize);
+                        try {
+                            await fetch(ApiManager.getActiveArchiveUrl(), { 
+                                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                                body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
+                            });
+                        } catch(e) { console.warn("Shopify batch sync failed:", e); }
+                        
+                        await new Promise(r => setTimeout(r, 1500));
+                    }
+                })();
+            }
+        } catch(e) {
+            console.warn("Shopify background sync setup failed", e);
         }
 
       } catch (err) {
@@ -1246,48 +1250,79 @@ const SessionManager = {
 
     if (!confirm(`Are you absolutely sure you want to mathematically REVERSE the session:\n\n"${targetLite.sessionName}"?\n\nThis will download the payload from the cloud and subtract all items that were originally added.`)) return;
 
-    let targetSession = null;
-    try {
-        let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${targetId}`);
-        targetSession = await res.json();
-        if (!targetSession || targetSession.status === "error") throw new Error("Cloud payload missing.");
-    } catch(err) {
-        alert("Failed to download session payload from cloud: " + err.message);
-        return;
+    // ✨ FIX: Identify all parts of a split payload automatically
+    let partsToFetch = [targetLite];
+    let baseName = targetLite.sessionName;
+
+    let match = targetLite.sessionName.match(/(.*?)\s*\(Part \d+ of \d+\)$/i);
+    if (match) {
+      baseName = match[1].trim();
+      partsToFetch = dir.filter(s => {
+          let smatch = s.sessionName.match(/(.*?)\s*\(Part \d+ of \d+\)$/i);
+          let sBase = smatch ? smatch[1].trim() : s.sessionName;
+          return sBase === baseName && s.dateStr === targetLite.dateStr;
+      }).sort((a, b) => parseInt(a.id) - parseInt(b.id));
     }
 
-    // Convert all scanned items to negative quantities for the Ledger Engine
-    let revScannedObjects = targetSession.scannedObjects.map(item => {
-        return { ...item, qty: -(item.qty), itemNote: item.itemNote ? `[REVERSAL] ${item.itemNote}` : `REVERSAL of ${targetSession.id}` };
-    });
+    let overlay = document.createElement('div');
+    overlay.id = 'reversalOverlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
+    overlay.innerHTML = `<h3>🔄 Reversing Session...</h3><p id="revStatusText" style="color:#a5d6a7;">Downloading cloud payloads...</p>`;
+    document.body.appendChild(overlay);
 
-    // Build the Reversal Payload
-    let sessionObj = {
-      id: Date.now().toString(), status: 'Completed', userName: this.currentUserName || 'Thomas',
-      sessionName: `[REVERSED] ${targetSession.sessionName}`, orderNum: targetSession.orderNum,
-      workflowType: targetSession.workflowType, dateStr: new Date().toLocaleDateString().replace(/\//g, '.'),
-      startStr: new Date().toLocaleTimeString(), manifestEnabled: false, expectedManifest: [],
-      scannedObjects: revScannedObjects, pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
-    };
+    let combinedScans = [];
+    let targetSession = null;
 
     try {
-        let overlay = document.createElement('div');
-        overlay.id = 'reversalOverlay';
-        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
-        overlay.innerHTML = `<h3>🔄 Reversing Session...</h3><p>Transmitting negative payload to the Cloud Ledger...</p>`;
-        document.body.appendChild(overlay);
+        // Download all parts and stitch them together
+        for (let i = 0; i < partsToFetch.length; i++) {
+            let partLite = partsToFetch[i];
+            if (partsToFetch.length > 1) document.getElementById('revStatusText').innerText = `Downloading part ${i+1} of ${partsToFetch.length}...`;
+            
+            let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SESSION&id=${partLite.id}`);
+            let partData = await res.json();
+            if (!partData || partData.status === "error") throw new Error(partData.message || "Cloud payload missing.");
+            
+            if (i === 0) targetSession = partData;
+            combinedScans = combinedScans.concat(partData.scannedObjects || []);
+        }
 
-        let res = await fetch(ApiManager.getActiveArchiveUrl(), { 
-            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: "COMMIT_SESSION", payload: sessionObj })
+        document.getElementById('revStatusText').innerText = "Transmitting negative payloads to the Cloud Ledger...";
+
+        // Convert all scanned items to negative quantities
+        let revScannedObjects = combinedScans.map(item => {
+            return { ...item, qty: -(item.qty), itemNote: item.itemNote ? `[REVERSAL] ${item.itemNote}` : `REVERSAL of ${targetSession.id}` };
         });
-        
-        let data = await res.json();
-        document.body.removeChild(overlay);
 
-        if (data.status !== "success") throw new Error(data.message);
+        // Build the Master Reversal Payload
+        let masterSessionObj = {
+          id: Date.now().toString(), status: 'Completed', userName: this.currentUserName || 'Thomas',
+          sessionName: `[REVERSED] ${baseName}`, orderNum: targetSession.orderNum,
+          workflowType: targetSession.workflowType, dateStr: new Date().toLocaleDateString().replace(/\//g, '.'),
+          startStr: new Date().toLocaleTimeString(), manifestEnabled: false, expectedManifest: [],
+          scannedObjects: revScannedObjects, pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
+        };
+
+        // Split it back into chunks if it exceeds the 45,000 char cell limit
+        let chunks = this.splitPayloadIfNeeded(masterSessionObj);
+
+        // Push chunks sequentially to COMMIT_SESSION
+        for (let i = 0; i < chunks.length; i++) {
+            if (chunks.length > 1) document.getElementById('revStatusText').innerText = `Committing reversed part ${i+1} of ${chunks.length}...`;
+            
+            let res = await fetch(ApiManager.getActiveArchiveUrl(), { 
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "COMMIT_SESSION", payload: chunks[i] })
+            });
+            
+            let data = await res.json();
+            if (data.status !== "success") throw new Error(data.message);
+            
+            await new Promise(r => setTimeout(r, 1000)); 
+        }
         
-        // If successful, auto-sync to pull down the reversed math!
+        document.body.removeChild(overlay);
+        
         sessionStorage.setItem('asp_allocations_verified', 'true');
         if (typeof window.masterSystemSync === 'function') await window.masterSystemSync(null); 
         
@@ -1778,7 +1813,6 @@ const SessionManager = {
           `;
           document.body.appendChild(overlay);
 
-          let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
           let unreservedItems = [];
           
           checkboxes.forEach(chk => {
@@ -1795,76 +1829,17 @@ const SessionManager = {
               if (isNaN(unresQty) || unresQty <= 0) return;
               if (unresQty > maxQty) unresQty = maxQty;
 
-              if (allocations[custName] && allocations[custName][ref]) {
-                  let itemData = allocations[custName][ref];
-                  if (itemData.details) {
-                      let detIndex = itemData.details.findIndex(d => d.lot === lot && d.exp === exp && d.sessionId === sessionId);
-                      if (detIndex > -1) {
-                          itemData.details[detIndex].qty -= unresQty;
-                          if (itemData.details[detIndex].qty <= 0) itemData.details.splice(detIndex, 1);
-                      }
-                      itemData.qty -= unresQty;
-                      if (itemData.qty <= 0) delete allocations[custName][ref];
-                  } else if (itemData.qty !== undefined) {
-                      itemData.qty -= unresQty;
-                      if (itemData.qty <= 0) delete allocations[custName][ref];
-                  }
-                  if (Object.keys(allocations[custName]).length === 0) delete allocations[custName];
-              }
-
-              let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
-              if (dbItem) {
-                  dbItem.reservedQty = Math.max(0, (dbItem.reservedQty || 0) - unresQty);
-              }
-
               unreservedItems.push({
                   ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: unresQty,
-                  actionTag: "Un-Reserved", customerTag: custName, isNew: false, sessionId: Date.now().toString(),
+                  actionTag: "Un-Reserve", // ✨ THE FIX: Explicitly tag this so the Ledger Engine knows what to do
+                  customerTag: custName, isNew: false, sessionId: Date.now().toString(),
                   itemNote: "Un-Reserved from Bin"
               });
           });
 
-          localStorage.setItem('asp_allocations', JSON.stringify(allocations));
-          localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
           document.getElementById('modalUnreserve').style.display = 'none';
 
-          this.syncAllocationsToCloud();
-
-          let cleanCustomers = DatabaseManager.customers.filter(c => !c.startsWith("+") && c !== "#ERROR!");
-          let cleanSuppliers = DatabaseManager.suppliers.filter(s => !s.startsWith("+") && s !== "#ERROR!");
-          let cleanVendors = DatabaseManager.vendors.filter(v => !v.startsWith("+") && v !== "#ERROR!");
-
-          let networkTasks = [];
-
-          networkTasks.push(
-              fetch(this.getActiveArchiveUrl(), {
-                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                  body: JSON.stringify({ action: "SYNC_LOCAL_DB", payload: { items: DatabaseManager.db, customers: cleanCustomers, suppliers: cleanSuppliers, vendors: cleanVendors } })
-              })
-          );
-
-          let refsToSync = unreservedItems.map(scan => scan.ref);
-          let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
-          
-          if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
-              // ✨ FIX: Fire-and-forget batched Shopify Sync to prevent timeouts on massive un-reserves
-              (async () => {
-                  let batchSize = 40; 
-                  for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
-                      let batch = shopifyUpdatePayload.slice(i, i + batchSize);
-                      try {
-                          await fetch(ApiManager.getActiveArchiveUrl(), { 
-                              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                              body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
-                          });
-                      } catch(e) { console.warn("Shopify batch sync failed:", e); }
-                      
-                      // Pause for 1.5 seconds between batches so Shopify doesn't reject the connection
-                      await new Promise(r => setTimeout(r, 1500));
-                  }
-              })();
-          }
-
+          // ✨ THE FIX: We no longer do math locally! We just build the payload and send it to the Ledger Engine!
           let uNameInput = document.getElementById('userNameInput');
           let userName = uNameInput && uNameInput.value ? uNameInput.value.trim() : "Operator";
 
@@ -1876,18 +1851,38 @@ const SessionManager = {
               pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
           };
 
-          let localArchive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
-          localArchive.unshift(auditPayload);
-          localStorage.setItem('asp_session_archive', JSON.stringify(localArchive));
+          // 1. Send to the Cloud Ledger Engine for secure math calculation
+          let res = await fetch(ApiManager.getActiveArchiveUrl(), {
+              method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: "COMMIT_SESSION", payload: auditPayload })
+          });
+          
+          let data = await res.json();
+          if (data.status !== "success") throw new Error(data.message);
 
-          networkTasks.push(
-              fetch(this.getActiveArchiveUrl(), {
-                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                  body: JSON.stringify({ action: "ARCHIVE_SESSION", payload: auditPayload })
-              })
-          );
+          // 2. Trigger Shopify Sync in the background
+          let refsToSync = unreservedItems.map(scan => scan.ref);
+          let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
+          
+          if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
+              (async () => {
+                  let batchSize = 40; 
+                  for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
+                      let batch = shopifyUpdatePayload.slice(i, i + batchSize);
+                      try {
+                          await fetch(ApiManager.getActiveArchiveUrl(), { 
+                              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                              body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
+                          });
+                      } catch(e) { console.warn("Shopify batch sync failed:", e); }
+                      await new Promise(r => setTimeout(r, 1500));
+                  }
+              })();
+          }
 
-          await Promise.all(networkTasks);
+          // 3. Force the app to download the freshly calculated database and allocations
+          sessionStorage.setItem('asp_allocations_verified', 'true');
+          if (typeof window.masterSystemSync === 'function') await window.masterSystemSync(null);
 
           let overlayEl = document.getElementById('unreserveOverlay');
           if (overlayEl) document.body.removeChild(overlayEl);

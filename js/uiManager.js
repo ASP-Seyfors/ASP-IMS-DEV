@@ -362,42 +362,41 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     `;
 
     if (dbOnHand > 0 || dbReserved > 0) {
-      // If we have inventory, fetch the cloud log to build the exact lots
-      fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`)
+      // If we have inventory, fetch the clean, pre-calculated EXP_TRACK ledger
+      fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_EXP_TRACK&t=${Date.now()}`)
         .then(res => res.text())
         .then(text => {
           let responseData = JSON.parse(text);
           if (responseData.status !== "success" || !responseData.data) throw new Error("Failed");
 
-          let lotMap = {};
-          responseData.data.forEach(row => {
-            let rowRef = row['REF / SKU'];
-            let lot = row['Lot'];
-            let exp = row['Exp Date'];
-            let qty = parseInt(row['Qty Moved'], 10) || 0;
-            let workflow = row['Workflow'] || '';
-            
-            if (rowRef === ref && lot && lot !== 'N/A') {
-              let key = `${lot}_${exp}`;
-              if (!lotMap[key]) lotMap[key] = { lot: lot, exp: exp, qty: 0 };
-              
-              if (workflow.includes('Receiving') || workflow.includes('Stocktake')) { lotMap[key].qty += qty; }
-              else if (workflow.includes('Packing') || workflow.includes('Pack & Ship')) { lotMap[key].qty -= qty; }
-            }
-          });
-
           let lotRows = '';
-          Object.values(lotMap).filter(l => l.qty > 0).sort((a,b) => new Date(a.exp) - new Date(b.exp)).forEach(l => {
-            let expDate = new Date(l.exp);
-            let monthsLeft = (expDate - new Date()) / (1000 * 60 * 60 * 24 * 30);
-            let alertBadge = monthsLeft <= 6 ? '<span style="color:#d32f2f; font-weight:bold;">🚨 Short (<6m)</span>' : (monthsLeft <= 12 ? '<span style="color:#f57f17; font-weight:bold;">⚠️ Short (<12m)</span>' : '');
-            lotRows += `<tr style="border-bottom:1px solid #eee;"><td style="padding:4px;"><strong>${l.lot}</strong></td><td style="padding:4px;">${l.exp}</td><td style="padding:4px; text-align:center; font-weight:bold;">${l.qty}</td><td style="padding:4px; text-align:right; font-size:0.75rem;">${alertBadge}</td></tr>`;
+          let shelf = item.shelf ? item.shelf : '--'; // ✨ Pulls shelf location from local DB
+
+          // ✨ THE FIX: Filter the pre-calculated EXP_TRACK ledger directly for active physical stock
+          let activeLots = responseData.data.filter(row => row['REF / SKU'] === ref && parseInt(row['Qty'], 10) > 0);
+
+          activeLots.sort((a,b) => new Date(a['Exp Date']) - new Date(b['Exp Date'])).forEach(l => {
+            lotRows += `
+              <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:4px;"><strong>${l['Lot']}</strong></td>
+                <td style="padding:4px;">${l['Exp Date']}</td>
+                <td style="padding:4px; text-align:center; font-weight:bold; color:#0277bd;">${l['Qty']}</td>
+                <td style="padding:4px; text-align:right; font-size:0.75rem; color:#555; font-weight:bold;">${shelf}</td>
+              </tr>`;
           });
 
           let box = document.getElementById('quickLookupLotBox');
           if (box) {
             box.innerHTML = lotRows 
-              ? `<table style="width:100%; border-collapse:collapse; font-size:0.8rem; background:#fff; border:1px solid #ddd; margin-top:8px;"><tr style="background:#eee; text-align:left;"><th style="padding:4px;">Lot</th><th style="padding:4px;">Exp</th><th style="padding:4px; text-align:center;">Qty</th><th style="padding:4px; text-align:right;">Status</th></tr>${lotRows}</table>`
+              ? `<table style="width:100%; border-collapse:collapse; font-size:0.8rem; background:#fff; border:1px solid #ddd; margin-top:8px;">
+                   <tr style="background:#eee; text-align:left;">
+                     <th style="padding:4px;">Lot</th>
+                     <th style="padding:4px;">Exp</th>
+                     <th style="padding:4px; text-align:center;">Qty</th>
+                     <th style="padding:4px; text-align:right;">Shelf</th>
+                   </tr>
+                   ${lotRows}
+                 </table>`
               : `<div style="font-size:0.8rem; color:#777; font-style:italic; padding:10px;">Physical inventory exists, but no lot tracking data was found.</div>`;
             box.style.textAlign = 'left';
             box.style.padding = '0';
