@@ -375,15 +375,15 @@ const UIManager = {// GLOBAL CONFIGURATIONS
           let lotRows = '';
           let shelf = item.shelf ? item.shelf : '--'; // ✨ Pulls shelf location from local DB
 
-          // ✨ THE FIX: Force both sides of the comparison to be Strings and trim whitespace!
-          let activeLots = responseData.data.filter(row => String(row['REF / SKU']).trim().toUpperCase() === String(ref).trim().toUpperCase() && parseInt(row['Qty'], 10) > 0);
+          // ✨ THE FIX: Match the exact ALL-CAPS headers from Google Sheets!
+          let activeLots = responseData.data.filter(row => String(row['REF / SKU']).trim().toUpperCase() === String(ref).trim().toUpperCase() && parseInt(row['QTY'], 10) > 0);
 
-          activeLots.sort((a,b) => new Date(a['Exp Date']) - new Date(b['Exp Date'])).forEach(l => {
+          activeLots.sort((a,b) => new Date(a['EXP DATE']) - new Date(b['EXP DATE'])).forEach(l => {
             lotRows += `
               <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:4px;"><strong>${l['Lot']}</strong></td>
-                <td style="padding:4px;">${l['Exp Date']}</td>
-                <td style="padding:4px; text-align:center; font-weight:bold; color:#0277bd;">${l['Qty']}</td>
+                <td style="padding:4px;"><strong>${l['LOT']}</strong></td>
+                <td style="padding:4px;">${l['EXP DATE']}</td>
+                <td style="padding:4px; text-align:center; font-weight:bold; color:#0277bd;">${l['QTY']}</td>
                 <td style="padding:4px; text-align:right; font-size:0.75rem; color:#555; font-weight:bold;">${shelf}</td>
               </tr>`;
           });
@@ -904,21 +904,29 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     console.error = (...args) => { originalError.apply(console, args); logToUI(args.join(' '), '#ef9a9a'); };
   },
 
-  showShopifySyncingBadge(show, count = 0) {
+  showShopifySyncingBadge(show, count = 0, currentBatch = 0, totalBatches = 0) {
       let badge = document.getElementById('floatingShopifyBadge');
       if (!badge && show) {
           badge = document.createElement('div');
           badge.id = 'floatingShopifyBadge';
-          // ✨ FIX: Moved to top center
-          badge.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#f57f17; color:#fff; padding:10px 15px; border-radius:30px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:999999; display:flex; align-items:center; gap:8px;';
+          badge.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#f57f17; color:#fff; padding:12px 20px; border-radius:8px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:999999; display:flex; flex-direction:column; gap:8px; width: 300px; text-align:center;';
           document.body.appendChild(badge);
       }
       if (show && badge) {
-          badge.innerHTML = `<div style="width:16px; height:16px; border:3px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div> Syncing ${count} updates to Shopify...Please DO NOT close or refresh the app until sync is completed.`;
+          let pct = totalBatches > 0 ? Math.round((currentBatch / totalBatches) * 100) : 0;
+          badge.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                <div style="width:16px; height:16px; border:3px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div> 
+                <span>Syncing ${count} updates to Shopify...please wait to close or refresh the browser.</span>
+            </div>
+            <div style="font-size:0.75rem; color:#ffe082;">Batch ${currentBatch} of ${totalBatches}</div>
+            <div style="width:100%; background:rgba(255,255,255,0.3); border-radius:4px; height:6px; overflow:hidden; margin-top:2px;">
+                <div style="width:${pct}%; background:#fff; height:100%; transition: width 0.5s ease;"></div>
+            </div>
+          `;
           badge.style.display = 'flex';
           if (!document.getElementById('spinKeyframes')) {
-              let style = document.createElement('style');
-              style.id = 'spinKeyframes';
+              let style = document.createElement('style'); style.id = 'spinKeyframes';
               style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
               document.head.appendChild(style);
           }

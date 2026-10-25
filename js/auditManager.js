@@ -1083,10 +1083,12 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let qty = r.querySelector('.rep-qty').value.trim(); 
       let price = r.querySelector('.rep-price').value.trim();
       
-      let formattedPrice = 'Call for Price';
+      let formattedPrice = '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>';
       if (price) {
           let numPrice = parseFloat(price.replace(/[^0-9.-]+/g, ""));
-          if (price.startsWith('$')) {
+          if (numPrice === 0) {
+              formattedPrice = '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>';
+          } else if (price.startsWith('$')) {
               formattedPrice = price;
           } else if (isNaN(numPrice)) {
               formattedPrice = price;
@@ -1175,7 +1177,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let desc = r.querySelector('.rep-desc').value.trim();
       let qty = r.querySelector('.rep-qty').value.trim(); 
       let price = r.querySelector('.rep-price').value.trim();
-      let formattedPrice = price ? (price.startsWith('$') || isNaN(parseFloat(price.replace(/[^0-9.-]+/g,""))) ? price : '$' + price) : 'Inquire';
+      let numPrice = parseFloat(String(price).replace(/[^0-9.-]+/g, ""));
+      let formattedPrice = (numPrice === 0 || !price) ? '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>' : (price.startsWith('$') ? price : '$' + price);
 
       if (ref) {
         html += `<tr><td class="ref-col">${ref}</td>${includeDesc ? `<td class="desc-col">${desc || 'Surgical Products Item'}</td>` : ''}${includeQty ? `<td style="text-align:center;"><span class="qty-badge">${qty}</span></td>` : ''}${includePrice ? `<td style="text-align:right; font-weight:bold; color:#2e7d32;">${formattedPrice}</td>` : ''}</tr>`;

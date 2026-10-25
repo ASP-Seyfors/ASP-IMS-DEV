@@ -382,7 +382,7 @@ const ReportsManager = {
 
   generateVarianceReportPDF(varianceData, mode, netFinancialImpact) {
     // Keep your standard YYYY.MM.DD formatting
-    let filename = `Stocktake_Variance_Report_${SessionManager.sessionDateStr}.pdf`;
+    let filename = `Stocktake_Variance_Report_${SessionManager.sessionDateStr}`;
     let financialColor = netFinancialImpact >= 0 ? '#2e7d32' : '#c62828';
     let impactStr = netFinancialImpact >= 0 ? `+$${netFinancialImpact.toFixed(2)}` : `-$${Math.abs(netFinancialImpact).toFixed(2)}`;
 
@@ -714,13 +714,13 @@ const ReportsManager = {
         twentyFour: []
       };
 
-      // Sort directly into buckets using the pre-calculated Status strings!
+      // ✨ FIX: Map to the exact ALL-CAPS headers provided by the Google Sheets JSON
       activeLots.forEach(row => {
           let ref = row['REF / SKU'];
-          let lot = row['Lot'];
-          let exp = row['Exp Date'];
-          let qty = parseInt(row['Qty'], 10) || 0;
-          let status = row['Status'];
+          let lot = row['LOT']; 
+          let exp = row['EXP DATE']; 
+          let qty = parseInt(row['QTY'], 10) || 0; 
+          let status = row['EXP STATUS']; 
           
           if (!ref || qty <= 0) return;
           

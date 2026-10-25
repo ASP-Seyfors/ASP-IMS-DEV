@@ -158,9 +158,20 @@ const ScannerManager = {
     let qtyInp = document.getElementById('qtyInput');
     if (qtyInp) qtyInp.value = '1';
 
-    // ✨ NEW: Clear Shelf Input
     let shelfInp = document.getElementById('shelfInput');
-    if (shelfInp) shelfInp.value = '';
+    if (shelfInp) {
+        shelfInp.value = '';
+        // ✨ FIX: Lockdown the shelf if we are Packing or Reserving!
+        if (typeof SessionManager !== 'undefined' && SessionManager.currentWorkflowType && (SessionManager.currentWorkflowType.includes('Pack') || SessionManager.currentWorkflowType.includes('Order'))) {
+             shelfInp.readOnly = true;
+             shelfInp.style.backgroundColor = '#f0f0f0';
+             shelfInp.style.color = '#888';
+        } else {
+             shelfInp.readOnly = false;
+             shelfInp.style.backgroundColor = '';
+             shelfInp.style.color = '';
+        }
+    }
     
     let vendorSel = document.getElementById('vendorSelect');
     if (vendorSel) vendorSel.selectedIndex = 0;

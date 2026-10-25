@@ -589,9 +589,12 @@ const SessionManager = {
     let btnMfr = document.getElementById('btnConfirmMfr');
     if (btnMfr) btnMfr.style.display = (this.currentMatchedItem && DatabaseManager.getItemVendor(this.currentMatchedItem).toLowerCase() !== vendor.toLowerCase()) ? 'inline-block' : 'none';
 
-    // ✨ NEW: Show the Shelf Update button if it changed
+    // ✨ FIX: Force both variables to be uppercase strings to prevent false mismatches
     let btnShelf = document.getElementById('btnConfirmShelf');
-    if (this.currentMatchedItem && shelf && this.currentMatchedItem.shelf !== shelf) {
+    let dbShelf = this.currentMatchedItem ? String(this.currentMatchedItem.shelf || "").toUpperCase().trim() : "";
+    let uiShelf = String(shelf || "").toUpperCase().trim();
+    
+    if (this.currentMatchedItem && uiShelf && dbShelf !== uiShelf) {
         this.pendingUpdates['shelf'] = shelf;
         if (btnShelf) btnShelf.style.display = 'inline-block';
     } else {
@@ -1180,24 +1183,32 @@ const SessionManager = {
 
                 // Fire-and-forget batched Shopify Sync to prevent timeouts
                 (async () => {
-                    let batchSize = 40; 
-                    for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
-                        let batch = shopifyUpdatePayload.slice(i, i + batchSize);
-                        try {
-                            await fetch(ApiManager.getActiveArchiveUrl(), { 
-                                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
-                                body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
-                            });
-                        } catch(e) { console.warn("Shopify batch sync failed:", e); }
-                        
-                        await new Promise(r => setTimeout(r, 1500));
-                    }
-                    
-                    // ✨ FIX: Hide the badge
-                    if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
-                        UIManager.showShopifySyncingBadge(false);
-                    }
-                })();
+                  let batchSize = 40; 
+                  let totalBatches = Math.ceil(shopifyUpdatePayload.length / batchSize); // ✨ FIX: Calculate exact batches
+                  
+                  for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
+                      let currentBatch = (i / batchSize) + 1;
+                      let batch = shopifyUpdatePayload.slice(i, i + batchSize);
+                      
+                      // ✨ FIX: Update UI meter before sending the batch
+                      if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                          UIManager.showShopifySyncingBadge(true, shopifyUpdatePayload.length, currentBatch, totalBatches);
+                      }
+                      
+                      try {
+                          await fetch(ApiManager.getActiveArchiveUrl(), { 
+                              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                              body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
+                          });
+                      } catch(e) { console.warn("Shopify batch sync failed:", e); }
+                      
+                      await new Promise(r => setTimeout(r, 1500));
+                  }
+                  
+                  if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                      UIManager.showShopifySyncingBadge(false);
+                  }
+              })();
             }
         } catch(e) {
             console.warn("Shopify background sync setup failed", e);
@@ -1912,14 +1923,24 @@ const SessionManager = {
 
               (async () => {
                   let batchSize = 40; 
+                  let totalBatches = Math.ceil(shopifyUpdatePayload.length / batchSize); // ✨ FIX: Calculate exact batches
+                  
                   for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
+                      let currentBatch = (i / batchSize) + 1;
                       let batch = shopifyUpdatePayload.slice(i, i + batchSize);
+                      
+                      // ✨ FIX: Update UI meter before sending the batch
+                      if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                          UIManager.showShopifySyncingBadge(true, shopifyUpdatePayload.length, currentBatch, totalBatches);
+                      }
+                      
                       try {
                           await fetch(ApiManager.getActiveArchiveUrl(), { 
                               method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                               body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
                           });
                       } catch(e) { console.warn("Shopify batch sync failed:", e); }
+                      
                       await new Promise(r => setTimeout(r, 1500));
                   }
                   
