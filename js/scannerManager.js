@@ -157,8 +157,11 @@ const ScannerManager = {
     
     let qtyInp = document.getElementById('qtyInput');
     if (qtyInp) qtyInp.value = '1';
+
+    // ✨ NEW: Clear Shelf Input
+    let shelfInp = document.getElementById('shelfInput');
+    if (shelfInp) shelfInp.value = '';
     
-    // ✨ FIX: Force the Vendor dropdown back to the default prompt
     let vendorSel = document.getElementById('vendorSelect');
     if (vendorSel) vendorSel.selectedIndex = 0;
     

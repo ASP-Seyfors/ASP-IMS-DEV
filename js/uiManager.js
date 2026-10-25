@@ -342,12 +342,15 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     let dbOnHand = parseInt(item.onHand || item.TotalQty, 10) || 0;
     let dbReserved = parseInt(item.reservedQty, 10) || 0;
     let dbAvailable = dbOnHand - dbReserved;
+    let dbShelf = item.shelf || 'Unassigned'; // ✨ NEW
 
     // --- LIVE CLOUD LOT TRACING ---
     resContainer.innerHTML = `
       <div style="background:#f9f9f9; border:1px solid #e0e0e0; border-radius:6px; padding:12px;">
         <div style="font-size:1.1rem; font-weight:bold; color:#00796b;">REF: ${ref}</div>
-        <div style="font-size:0.85rem; color:#555; margin-bottom:8px;">Manufacturer: <strong>${mfr}</strong></div>
+        <div style="font-size:0.85rem; color:#555; margin-bottom:8px;">
+            Manufacturer: <strong>${mfr}</strong> | Shelf: <strong style="color:#0277bd;">${dbShelf}</strong>
+        </div>
         <div style="font-size:0.85rem; color:#333; margin-bottom:10px;">${desc}</div>
         <div style="background:#fff; border:1px solid #ccc; border-radius:4px; padding:8px; display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem;">
           <span>Selling Price: <strong style="color:#2e7d32;">${price}</strong></span>

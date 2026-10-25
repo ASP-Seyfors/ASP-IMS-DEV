@@ -589,8 +589,13 @@ const DatabaseManager = {
     
     let gtinInput = document.getElementById('gtinInput');
     if (gtinInput && !document.getElementById('chkNaGtin').checked) {
-        // ✨ FIX: Always overwrite with the matched item's GTIN. If it lacks one, clear the field so old GTINs don't stick to new variants!
         gtinInput.value = item.gtin || "";
+    }
+
+    // ✨ NEW: Auto-fill the Shelf Location
+    let shelfInput = document.getElementById('shelfInput');
+    if (shelfInput) {
+        shelfInput.value = item.shelf || "";
     }
     
     if (itemVendor) {

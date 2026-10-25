@@ -478,17 +478,30 @@ const SessionManager = {
       let selectedMfr = document.getElementById('vendorSelect').value;
       this.currentMatchedItem.mfr = selectedMfr;
       alert(`Database updated: Manufacturer updated for REF!`);
+    } else if (field === 'shelf' && this.pendingUpdates['shelf']) {
+      // ✨ NEW: Handle Shelf Updates
+      this.currentMatchedItem.shelf = this.pendingUpdates['shelf'];
+      alert(`Database updated: Shelf Location updated for REF!`);
     }
+    
+    // ✨ FIX: Determine the actual new value being saved
+    let updateValue = "";
+    if (field === 'gtin') updateValue = this.pendingUpdates['gtin'];
+    else if (field === 'mfr') updateValue = document.getElementById('vendorSelect').value;
+    else if (field === 'shelf') updateValue = this.pendingUpdates['shelf'];
+    
+    let displayField = field === 'gtin' ? 'GTIN' : (field === 'mfr' ? 'Manufacturer' : 'Shelf Location');
+
     this.pendingFieldUpdates.push({
       ref: DatabaseManager.getItemSku(this.currentMatchedItem),
-      field: field === 'gtin' ? 'GTIN' : 'Manufacturer',
-      newValue: field === 'gtin' ? this.pendingUpdates['gtin'] : document.getElementById('vendorSelect').value,
+      field: displayField,
+      newValue: updateValue,
       timestamp: new Date().toLocaleString()
     });
     localStorage.setItem('asp_pending_updates', JSON.stringify(this.pendingFieldUpdates));
     localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
     UIManager.hideAllConfirmButtons();
-  },  
+  }, 
 
   goToReviewStage() {
     let expField = document.getElementById('expInput');
@@ -502,7 +515,8 @@ const SessionManager = {
     const exp = document.getElementById('expInput').value.trim();
     const vendor = document.getElementById('vendorSelect').value;
     const qty = parseInt(document.getElementById('qtyInput').value, 10) || 1;
-    
+    const shelf = document.getElementById('shelfInput') ? document.getElementById('shelfInput').value.trim().toUpperCase() : ''; // ✨ NEW
+
     const custVal = document.getElementById('itemCustomerSelect') ? document.getElementById('itemCustomerSelect').value : '';
     const ordVal = document.getElementById('itemOrderNumInput') ? document.getElementById('itemOrderNumInput').value.trim() : '';
     const cTag = custVal + (ordVal ? ` - ${ordVal}` : '');
@@ -538,8 +552,9 @@ const SessionManager = {
     if (document.getElementById('revLot')) document.getElementById('revLot').textContent = lot || '--';
     if (document.getElementById('revExp')) document.getElementById('revExp').textContent = exp || '--';
     if (document.getElementById('revMfr')) document.getElementById('revMfr').textContent = vendor;
+    if (document.getElementById('revShelf')) document.getElementById('revShelf').textContent = shelf || '--'; // ✨ NEW
     if (document.getElementById('revQty')) document.getElementById('revQty').textContent = qty;
-    
+
     if (document.getElementById('revItemNoteRow')) {
       document.getElementById('revItemNoteRow').style.display = iNote ? 'flex' : 'none';
       if (document.getElementById('revItemNote')) document.getElementById('revItemNote').textContent = ' ' + iNote;
@@ -573,6 +588,15 @@ const SessionManager = {
 
     let btnMfr = document.getElementById('btnConfirmMfr');
     if (btnMfr) btnMfr.style.display = (this.currentMatchedItem && DatabaseManager.getItemVendor(this.currentMatchedItem).toLowerCase() !== vendor.toLowerCase()) ? 'inline-block' : 'none';
+
+    // ✨ NEW: Show the Shelf Update button if it changed
+    let btnShelf = document.getElementById('btnConfirmShelf');
+    if (this.currentMatchedItem && shelf && this.currentMatchedItem.shelf !== shelf) {
+        this.pendingUpdates['shelf'] = shelf;
+        if (btnShelf) btnShelf.style.display = 'inline-block';
+    } else {
+        if (btnShelf) btnShelf.style.display = 'none';
+    }
 
     // ✨ NEW: Auto-Check the Bundle box if this item is a known bundle!
     if (this.currentMatchedItem && this.currentMatchedItem.parentRef && parseInt(this.currentMatchedItem.uomMult, 10) > 1) {
@@ -688,7 +712,7 @@ const SessionManager = {
                syncedThrive: "FALSE", syncedShopify: "FALSE",
                desc: "Navigate to vendor website for item description.", 
                category: "General", shopifyCategory: "Medical Supplies", status: "ACTIVE",
-               parentRef: pRef, uomMult: uMult, shelf: ""
+               parentRef: pRef, uomMult: uMult, shelf: document.getElementById('shelfInput') ? document.getElementById('shelfInput').value.trim().toUpperCase() : "" // ✨ NEW
            });
        }
 
@@ -704,7 +728,7 @@ const SessionManager = {
                    syncedThrive: "FALSE", syncedShopify: "FALSE",
                    desc: "Navigate to vendor website for item description.", 
                    category: "General", shopifyCategory: "Medical Supplies", status: "ACTIVE",
-                   parentRef: "", uomMult: 1, shelf: ""
+                   parentRef: "", uomMult: 1, shelf: document.getElementById('shelfInput') ? document.getElementById('shelfInput').value.trim().toUpperCase() : "" // ✨ NEW
                });
            }
        }
