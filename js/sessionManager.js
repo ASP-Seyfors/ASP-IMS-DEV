@@ -1816,7 +1816,7 @@ const SessionManager = {
           overlay.innerHTML = `
             <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
               <h3 style="margin:0 0 15px 0; color:#d32f2f;">🔄 Processing Un-Reserve</h3>
-              <div style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ Adjusting inventory and syncing to the cloud...</div>
+              <div id="unresStep1" style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ Adjusting inventory and syncing to the cloud...</div>
               <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
                 <div style="width:100%; height:100%; background:#d32f2f; animation: pulse 1.5s infinite;"></div>
               </div>
@@ -1842,7 +1842,7 @@ const SessionManager = {
 
               unreservedItems.push({
                   ref: ref, lot: lot || "N/A", exp: exp || "N/A", qty: unresQty,
-                  actionTag: "Un-Reserve", // ✨ THE FIX: Explicitly tag this so the Ledger Engine knows what to do
+                  actionTag: "Un-Reserve",
                   customerTag: custName, isNew: false, sessionId: Date.now().toString(),
                   itemNote: "Un-Reserved from Bin"
               });
@@ -1850,7 +1850,6 @@ const SessionManager = {
 
           document.getElementById('modalUnreserve').style.display = 'none';
 
-          // ✨ THE FIX: We no longer do math locally! We just build the payload and send it to the Ledger Engine!
           let uNameInput = document.getElementById('userNameInput');
           let userName = uNameInput && uNameInput.value ? uNameInput.value.trim() : "Operator";
 
@@ -1871,11 +1870,22 @@ const SessionManager = {
           let data = await res.json();
           if (data.status !== "success") throw new Error(data.message);
 
-          // 2. Trigger Shopify Sync in the background
+          document.getElementById('unresStep1').innerHTML = `✅ <span style="color:#2e7d32;">Cloud math calculated! Downloading fresh sync...</span>`;
+
+          // ✨ FIX 1: Force the app to download the freshly calculated database FIRST!
+          sessionStorage.setItem('asp_allocations_verified', 'true');
+          if (typeof window.masterSystemSync === 'function') await window.masterSystemSync(null);
+
+          // ✨ FIX 2: NOW build the Shopify payload using the updated, accurate math
           let refsToSync = unreservedItems.map(scan => scan.ref);
           let shopifyUpdatePayload = DatabaseManager.buildShopifyPayload(refsToSync);
           
           if (shopifyUpdatePayload.length > 0 && ApiManager.getActiveArchiveUrl()) {
+              
+              if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                  UIManager.showShopifySyncingBadge(true, shopifyUpdatePayload.length);
+              }
+
               (async () => {
                   let batchSize = 40; 
                   for (let i = 0; i < shopifyUpdatePayload.length; i += batchSize) {
@@ -1888,12 +1898,12 @@ const SessionManager = {
                       } catch(e) { console.warn("Shopify batch sync failed:", e); }
                       await new Promise(r => setTimeout(r, 1500));
                   }
+                  
+                  if (typeof UIManager !== 'undefined' && UIManager.showShopifySyncingBadge) {
+                      UIManager.showShopifySyncingBadge(false);
+                  }
               })();
           }
-
-          // 3. Force the app to download the freshly calculated database and allocations
-          sessionStorage.setItem('asp_allocations_verified', 'true');
-          if (typeof window.masterSystemSync === 'function') await window.masterSystemSync(null);
 
           let overlayEl = document.getElementById('unreserveOverlay');
           if (overlayEl) document.body.removeChild(overlayEl);

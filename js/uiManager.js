@@ -372,8 +372,8 @@ const UIManager = {// GLOBAL CONFIGURATIONS
           let lotRows = '';
           let shelf = item.shelf ? item.shelf : '--'; // ✨ Pulls shelf location from local DB
 
-          // ✨ THE FIX: Filter the pre-calculated EXP_TRACK ledger directly for active physical stock
-          let activeLots = responseData.data.filter(row => row['REF / SKU'] === ref && parseInt(row['Qty'], 10) > 0);
+          // ✨ THE FIX: Force both sides of the comparison to be Strings and trim whitespace!
+          let activeLots = responseData.data.filter(row => String(row['REF / SKU']).trim().toUpperCase() === String(ref).trim().toUpperCase() && parseInt(row['Qty'], 10) > 0);
 
           activeLots.sort((a,b) => new Date(a['Exp Date']) - new Date(b['Exp Date'])).forEach(l => {
             lotRows += `
@@ -906,11 +906,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
       if (!badge && show) {
           badge = document.createElement('div');
           badge.id = 'floatingShopifyBadge';
-          badge.style.cssText = 'position:fixed; bottom:20px; left:20px; background:#f57f17; color:#fff; padding:10px 15px; border-radius:30px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:999999; display:flex; align-items:center; gap:8px;';
+          // ✨ FIX: Moved to top center
+          badge.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#f57f17; color:#fff; padding:10px 15px; border-radius:30px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:999999; display:flex; align-items:center; gap:8px;';
           document.body.appendChild(badge);
       }
       if (show && badge) {
-          badge.innerHTML = `<div style="width:16px; height:16px; border:3px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div> Syncing ${count} updates to Shopify...`;
+          badge.innerHTML = `<div style="width:16px; height:16px; border:3px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div> Syncing ${count} updates to Shopify...Please DO NOT close or refresh the app until sync is completed.`;
           badge.style.display = 'flex';
           if (!document.getElementById('spinKeyframes')) {
               let style = document.createElement('style');
