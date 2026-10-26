@@ -499,12 +499,18 @@ const DatabaseManager = {
 
         if (changeNotes.length > 0) {
             let editPayload = {
-              id: Date.now().toString(), status: "Completed", userName: AuthManager.currentUser ? AuthManager.currentUser.name : "System Admin",
-              sessionName: "Database Editor Update", orderNum: "", workflowType: "Admin Adjustment",
+              id: Date.now().toString(), 
+              status: "Completed", 
+              isSynced: true, // ✨ FIX: Prevents Master Sync from uploading this a second time!
+              userName: AuthManager.currentUser ? AuthManager.currentUser.name : "System Admin",
+              sessionName: "Database Editor Update", 
+              orderNum: "", 
+              workflowType: "DB Edit: " + changeNotes.join(", "), // ✨ FIX: Injects specific changes into Workflow
               dateStr: new Date().toLocaleDateString().replace(/\//g, '.'), startStr: new Date().toLocaleTimeString(),
               manifestEnabled: false, expectedManifest: [],
               scannedObjects: [{
-                 actionTag: "DB Edit", gtin: dbItem.gtin || "N/A", ref: ref, lot: "N/A", exp: "N/A", mfr: mfr, desc: "Database Update",
+                 actionTag: changeNotes.join(" | "), // ✨ FIX: Injects specific changes into Destination/Action
+                 gtin: dbItem.gtin || "N/A", ref: ref, lot: "N/A", exp: "N/A", mfr: mfr, desc: "Database Update",
                  price: price, qty: 0, rawScanLines: [], isNew: false, customerTag: "", orderNum: "", sessionId: Date.now().toString(), itemNote: changeNotes.join(" | ")
               }],
               pendingNewItems: [], pendingUpdates: [], lastUpdated: Date.now()
@@ -513,6 +519,8 @@ const DatabaseManager = {
             let archive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
             archive.unshift(editPayload);
             localStorage.setItem('asp_session_archive', JSON.stringify(archive));
+            
+            // Push instantly to the cloud so the rest of the team can see the audit record
             if (typeof SessionManager !== 'undefined') SessionManager.pushToCloudArchive(editPayload);
         }
 
