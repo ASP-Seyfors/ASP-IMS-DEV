@@ -2323,13 +2323,21 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
             });
         }
         
-        // ✨ THE FIX 2: Apply any field updates (GTINs, Mfrs) made during this session
+        // ✨ THE FIX 2: Apply any field updates (GTINs, Mfrs, Shelves) made during this session
         if (sess.pendingUpdates && sess.pendingUpdates.length > 0) {
             sess.pendingUpdates.forEach(upd => {
                 let dbItem = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === (upd.ref || '').toUpperCase());
                 if (dbItem && upd.field) {
-                    dbItem[upd.field] = upd.newValue;
-                    logMsg(`    + Applied field update to: ${upd.ref}`);
+                    
+                    // ✨ TRANSLATION DICTIONARY: Map the UI display name back to the actual database object key!
+                    let objKey = "";
+                    if (upd.field === 'GTIN') objKey = 'gtin';
+                    else if (upd.field === 'Manufacturer') objKey = 'mfr';
+                    else if (upd.field === 'Shelf Location') objKey = 'shelf';
+                    else objKey = upd.field; // Fallback
+
+                    dbItem[objKey] = upd.newValue;
+                    logMsg(`    + Applied field update to: ${upd.ref} (${objKey})`);
                 }
             });
         }
