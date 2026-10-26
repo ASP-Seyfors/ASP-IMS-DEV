@@ -352,10 +352,18 @@ const UIManager = {// GLOBAL CONFIGURATIONS
             Manufacturer: <strong>${mfr}</strong> | Shelf: <strong style="color:#0277bd;">${dbShelf}</strong>
         </div>
         <div style="font-size:0.85rem; color:#333; margin-bottom:10px;">${desc}</div>
-        <div style="background:#fff; border:1px solid #ccc; border-radius:4px; padding:8px; display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem;">
-          <span>Selling Price: <strong style="color:#2e7d32;">${price}</strong></span>
-          <span>Unit Cost: <strong style="color:#555;">${cost}</strong></span>
+        
+        <div style="background:#fff; border:1px solid #ccc; border-radius:4px; padding:8px; margin-bottom:12px; font-size:0.85rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 6px;">
+            <span>Selling Price: <strong style="color:#2e7d32;">${price}</strong></span>
+            <span>Unit Cost: <strong style="color:#555;">${cost}</strong></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding-top: 6px; border-top: 1px dashed #eee;">
+            <span>RM Price: <strong>${item.revMedPrice || ''}</strong></span>
+            <span>DM Price: <strong>${item.dotMedPrice || ''}</strong></span>
+          </div>
         </div>
+
         <div style="font-weight:bold; font-size:0.85rem; color:#0277bd; margin-bottom:6px; display:flex; justify-content:space-between;">
           <span>Total On-Hand: ${dbOnHand}</span>
           <span style="color:${dbAvailable > 0 ? '#2e7d32' : '#c62828'};">Available to Sell: ${dbAvailable}</span>
