@@ -597,7 +597,10 @@ const DatabaseManager = {
     
     let gtinInput = document.getElementById('gtinInput');
     if (gtinInput && !document.getElementById('chkNaGtin').checked) {
-        gtinInput.value = item.gtin || "";
+        // ✨ FIX: Only overwrite the input if the database HAS a GTIN. 
+        if (item.gtin) {
+            gtinInput.value = item.gtin || "";
+        }
     }
 
     // ✨ NEW: Auto-fill the Shelf Location
