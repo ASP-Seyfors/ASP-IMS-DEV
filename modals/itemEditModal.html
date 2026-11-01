@@ -28,11 +28,16 @@
     </div>
     <div style="display:flex; gap:10px; margin-bottom:10px;">
       <div style="flex:1;">
-        <label style="font-weight:bold; font-size:0.85rem; color:#555;">Status</label>
+        <label style="font-weight:bold; font-size:0.85rem; color:var(--text-main, #555);">Status</label>
         <select id="modalStatus" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-weight:bold;">
           <option value="ACTIVE">ACTIVE</option>
           <option value="INACTIVE">INACTIVE</option>
         </select>
+      </div>
+      <!-- ✨ NEW: Min Stock Level Field -->
+      <div style="flex:1;">
+        <label style="font-weight:bold; font-size:0.85rem; color:var(--text-main, #555);">Min Stock Level</label>
+        <input type="number" id="modalMinStock" min="0" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;" title="When available inventory falls to or below this number, the automated Restock Report is triggered.">
       </div>
     </div>
     <div style="display:flex; gap:10px; margin-bottom:20px; padding:10px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;" id="modalPricingBlock">

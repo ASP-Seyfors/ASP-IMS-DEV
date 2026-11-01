@@ -344,6 +344,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     let dbAvailable = dbOnHand - dbReserved;
     let dbShelf = item.shelf || 'Unassigned'; // ✨ NEW
 
+    // Check if a restock was already requested today
+    let localRequests = JSON.parse(localStorage.getItem('asp_restock_requests')) || { date: new Date().toLocaleDateString(), refs: [] };
+    if (localRequests.date !== new Date().toLocaleDateString()) {
+        localRequests = { date: new Date().toLocaleDateString(), refs: [] }; // Reset if it's a new day
+    }
+
     // --- LIVE CLOUD LOT TRACING ---
     resContainer.innerHTML = `
       <div style="background:#f9f9f9; border:1px solid #e0e0e0; border-radius:6px; padding:12px;">
@@ -371,6 +377,11 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         <div id="quickLookupLotBox" style="text-align:center; padding:10px; color:#00796b; font-weight:bold;">⏳ Querying Live Cloud Ledger for Lot History...</div>
       </div>
     `;
+
+    if (localRequests.refs.includes(ref)) {
+        let badge = document.getElementById('restockPendingBadge');
+        if (badge) badge.style.display = 'flex';
+    }
 
     if (dbOnHand > 0 || dbReserved > 0) {
       // If we have inventory, fetch the clean, pre-calculated EXP_TRACK ledger
@@ -424,6 +435,52 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         box.style.padding = '0';
       }
     }
+  },
+
+  requestItemRestock() {
+    let ref = document.getElementById('refInput').value.trim().toUpperCase();
+    if (!ref) return;
+
+    let localRequests = JSON.parse(localStorage.getItem('asp_restock_requests')) || { date: new Date().toLocaleDateString(), refs: [] };
+    
+    // Safety check: Don't let them submit it twice
+    if (localRequests.refs.includes(ref)) {
+       this.showCustomAlert("Already Requested", `A restock request for ${ref} is already pending and will be sent to the Procurement team at the end of the day.`);
+       return;
+    }
+
+    this.showCustomConfirm("Request Restock", `Are you sure you want to flag ${ref} for restocking?\n\nThis will instantly alert the procurement team at the end of the day.`, async () => {
+        let btn = document.getElementById('btnRequestRestock');
+        let origText = btn.textContent;
+        if (btn) { btn.textContent = "⏳ Sending..."; btn.disabled = true; }
+        
+        let userName = (typeof AuthManager !== 'undefined' && AuthManager.currentUser) ? AuthManager.currentUser.name : "Operator";
+        
+        try {
+            // Fire API payload to Apps Script (we will build this backend function next!)
+            await fetch(ApiManager.getActiveArchiveUrl(), {
+                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: "LOG_RESTOCK_REQUEST",
+                    payload: { ref: ref, user: userName }
+                })
+            });
+            
+            // Save to local cache so the red dot stays visible all day
+            localRequests.refs.push(ref);
+            localStorage.setItem('asp_restock_requests', JSON.stringify(localRequests));
+            
+            // Update UI
+            let badge = document.getElementById('restockPendingBadge');
+            if (badge) badge.style.display = 'flex';
+            this.showCustomAlert("Success", `✅ Restock request for ${ref} has been queued!`);
+            
+        } catch (err) {
+            alert("Network Error: " + err.message);
+        } finally {
+            if (btn) { btn.textContent = origText; btn.disabled = false; }
+        }
+    });
   },
 
   openStocktakeModal() {

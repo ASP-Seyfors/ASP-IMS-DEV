@@ -407,6 +407,7 @@ const DatabaseManager = {
     document.getElementById('modalDesc').value = dbItem.desc || '';
     document.getElementById('modalCat').value = dbItem.category || '';
     document.getElementById('modalShelf').value = dbItem.shelf || '';
+    document.getElementById('modalMinStock').value = dbItem.minStock || 0; // ✨ NEW
     
     let statusEl = document.getElementById('modalStatus');
     statusEl.value = dbItem.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
@@ -434,6 +435,7 @@ const DatabaseManager = {
     let desc = document.getElementById('modalDesc').value.trim();
     let cat = document.getElementById('modalCat').value.trim();
     let shelf = document.getElementById('modalShelf').value.trim().toUpperCase();
+    let minStock = parseInt(document.getElementById('modalMinStock').value, 10) || 0; // ✨ NEW
     let status = document.getElementById('modalStatus').value;
     
     let price = document.getElementById('modalPrice').value.trim();
@@ -449,12 +451,13 @@ const DatabaseManager = {
     let dbItem = this.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
     if (dbItem) {
       let changed = (
-        dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || 
-        (isAdmin && dbItem.price !== price) || 
-        (isAdmin && cost !== null && dbItem.cost !== cost) ||
-        (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) ||
-        (isAdmin && dmPrice !== null && (dbItem.dotMedPrice || '') !== dmPrice)
-      );
+      dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || 
+      (parseInt(dbItem.minStock, 10) || 0) !== minStock || // ✨ NEW
+      (isAdmin && dbItem.price !== price) || 
+      (isAdmin && cost !== null && dbItem.cost !== cost) ||
+      (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) ||
+      (isAdmin && dmPrice !== null && (dbItem.dotMedPrice || '') !== dmPrice)
+    );
       
       if (changed || dbItem.shelf !== shelf) {
         let changeNotes = [];
@@ -462,6 +465,7 @@ const DatabaseManager = {
         if (dbItem.desc !== desc) changeNotes.push(`Desc Updated`);
         if (dbItem.category !== cat) changeNotes.push(`Cat: ${dbItem.category} -> ${cat}`);
         if (dbItem.shelf !== shelf) changeNotes.push(`Shelf: ${dbItem.shelf} -> ${shelf}`);
+        if ((parseInt(dbItem.minStock, 10) || 0) !== minStock) changeNotes.push(`Min Stock Updated to ${minStock}`); // ✨ NEW
         if (dbItem.status !== status) changeNotes.push(`Status: ${dbItem.status} -> ${status}`);
         if (isAdmin && dbItem.price !== price) changeNotes.push(`Price: ${dbItem.price} -> ${price}`);
         if (isAdmin && cost !== null && dbItem.cost !== cost) changeNotes.push(`Cost Updated`);
@@ -472,6 +476,7 @@ const DatabaseManager = {
         dbItem.desc = desc;
         dbItem.category = cat;
         dbItem.shelf = shelf;
+        dbItem.minStock = minStock; // ✨ NEW
         dbItem.status = status;
         if (isAdmin) {
           dbItem.price = price;
@@ -699,7 +704,8 @@ const DatabaseManager = {
             syncedShopify: row[20], 
             onRevMed: row[21], 
             onDotMed: row[22], 
-            shopifyCategory: row[23] || "Medical Supplies"
+            shopifyCategory: row[23] || "Medical Supplies",
+            minStock: parseInt(row[24], 10) || 0 // ✨ NEW: Captures Column Y
           }));
           
           fullDb.items = fullDb.items.concat(mappedItems);
