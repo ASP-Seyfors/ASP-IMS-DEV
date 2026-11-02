@@ -29,11 +29,11 @@ else if (currentUrl.includes("ASP-IMS-DEV")) {
     ENV_CONFIG = {
         CLOUD_ARCHIVE_URL: "https://script.google.com/macros/s/AKfycby-jGbxOlkmMDQwDN5x1FHae6OTNlVD4ZsBDWiLzotdp2ALs0JGYe_RYvSoXMDD7EqQeg/exec",
         GOOGLE_FEEDER_URL: "https://script.google.com/macros/s/AKfycbzm9u8lHnJEgDyG8rJk5YaXs8VY_jzyganveRP8UwkgLlMtZxhLjWIZ4iu545H07ogFRw/exec",
-        APP_VERSION: "6.5.7 (DEV)",
+        APP_VERSION: "6.5.8 (DEV)",
         ENVIRONMENT_NAME: "ASP DEV",
         THEME_COLOR: "#cf0452", 
 
-        LOGO_URL: "ASP_Box_Web_RGB_DEV.png",
+        LOGO_URL: "Gemini_3D_ASP_Logo_DEV.png",
         SMALL_ICON_URL: "ASP_Icon_192_DEV.png",
         LARGE_ICON_URL: "ASP_Icon_512_DEV.png"
     };
