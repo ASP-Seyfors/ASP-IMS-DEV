@@ -421,3 +421,24 @@ body.theme-slate #modalPricingBlock label,
 body.theme-sage #modalPricingBlock label {
     color: var(--text-main) !important;
 }
+
+/* =========================================================
+   ✨ NEW: RESTOCK BADGE DARK MODE OVERRIDES
+========================================================= */
+/* Lighten the dark red text so it pops against dark backgrounds */
+body.theme-slate #restockPendingBadge,
+body.theme-sage #restockPendingBadge {
+    color: #ef5350 !important; 
+}
+
+/* Lighten the pulsing animation dot */
+body.theme-slate #restockPendingBadge div,
+body.theme-sage #restockPendingBadge div {
+    background-color: #ef5350 !important; 
+}
+
+/* Ensure the white button text isn't inadvertently darkened by inheritance */
+body.theme-slate #btnRequestRestock,
+body.theme-sage #btnRequestRestock {
+    color: #ffffff !important;
+}

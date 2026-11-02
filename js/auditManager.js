@@ -894,12 +894,16 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let formattedPrice = item.price ? (item.price.startsWith('$') ? item.price : '$' + item.price) : '$0.00';
       let formattedCost = item.cost ? (item.cost.startsWith('$') ? item.cost : '$' + item.cost) : '$0.00';
 
+      // ✨ NEW: Format historical volume and on-hand stock
+      let displayHist = DatabaseManager.formatPackaging(item.histQty, item.uomMult);
+      let displayOnHand = DatabaseManager.formatPackaging(item.onHand, item.uomMult);
+
       html += `
         <tr>
           <td class="ref-cell">${item.ref}</td>
           ${incDesc ? `<td class="desc-cell">${item.desc}</td>` : ''}
-          ${incHist ? `<td><strong>${item.histQty} units</strong></td>` : ''}
-          ${incOnHand ? `<td style="color:${item.onHand > 0 ? '#2e7d32' : '#c62828'}; font-weight:bold;">${item.onHand}</td>` : ''}
+          ${incHist ? `<td><strong>${displayHist}</strong></td>` : ''}
+          ${incOnHand ? `<td style="color:${item.onHand > 0 ? '#2e7d32' : '#c62828'}; font-weight:bold;">${displayOnHand}</td>` : ''}
           ${incPrice ? `<td>${formattedPrice}</td>` : ''}
           ${incCost ? `<td>${formattedCost}</td>` : ''}
         </tr>`;
@@ -1083,6 +1087,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let qty = r.querySelector('.rep-qty').value.trim(); 
       let price = r.querySelector('.rep-price').value.trim();
       
+      // ✨ NEW: Lookup the UOM and apply the Box Math formatter
+      let dbItem = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase()) : null;
+      let uom = dbItem ? (parseInt(dbItem.uomMult, 10) || 1) : 1;
+      let displayQty = DatabaseManager.formatPackaging(qty, uom);
+      
       let formattedPrice = '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>';
       if (price) {
           let numPrice = parseFloat(price.replace(/[^0-9.-]+/g, ""));
@@ -1101,7 +1110,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         html += `<tr style="background-color: #ffffff;">
           <td style="padding: 10px; border: 1px solid #ccc; font-weight: bold; color: #0277bd;">${ref}</td>
           ${includeDesc ? `<td style="padding: 10px; border: 1px solid #ccc;">${desc}</td>` : ''}
-          ${includeQty ? `<td style="padding: 10px; border: 1px solid #ccc; text-align: center; font-weight: bold;">${qty}</td>` : ''}
+          ${includeQty ? `<td style="padding: 10px; border: 1px solid #ccc; text-align: center; font-weight: bold;">${displayQty}</td>` : ''}
           ${includePrice ? `<td style="padding: 10px; border: 1px solid #ccc; text-align: right; color: #2e7d32; font-weight: bold;">${formattedPrice}</td>` : ''}
         </tr>`;
       }
@@ -1177,11 +1186,17 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let desc = r.querySelector('.rep-desc').value.trim();
       let qty = r.querySelector('.rep-qty').value.trim(); 
       let price = r.querySelector('.rep-price').value.trim();
+
+      // ✨ NEW: Lookup the UOM and apply the Box Math formatter
+      let dbItem = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase()) : null;
+      let uom = dbItem ? (parseInt(dbItem.uomMult, 10) || 1) : 1;
+      let displayQty = DatabaseManager.formatPackaging(qty, uom);
+
       let numPrice = parseFloat(String(price).replace(/[^0-9.-]+/g, ""));
       let formattedPrice = (numPrice === 0 || !price) ? '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>' : (price.startsWith('$') ? price : '$' + price);
 
       if (ref) {
-        html += `<tr><td class="ref-col">${ref}</td>${includeDesc ? `<td class="desc-col">${desc || 'Surgical Products Item'}</td>` : ''}${includeQty ? `<td style="text-align:center;"><span class="qty-badge">${qty}</span></td>` : ''}${includePrice ? `<td style="text-align:right; font-weight:bold; color:#2e7d32;">${formattedPrice}</td>` : ''}</tr>`;
+        html += `<tr><td class="ref-col">${ref}</td>${includeDesc ? `<td class="desc-col">${desc || 'Surgical Products Item'}</td>` : ''}${includeQty ? `<td style="text-align:center;"><span class="qty-badge">${displayQty}</span></td>` : ''}${includePrice ? `<td style="text-align:right; font-weight:bold; color:#2e7d32;">${formattedPrice}</td>` : ''}</tr>`;
       }
     });
 
@@ -1246,9 +1261,10 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         ref: ref,
         desc: dbItem ? DatabaseManager.getItemDesc(dbItem) : 'Surgical Item',
         histQty: skuVolumeMap[ref] || 0,
-        onHand: trueAvailable > 0 ? trueAvailable : 0, // Prevents negative numbers from showing on the flyer
+        onHand: trueAvailable > 0 ? trueAvailable : 0, 
         price: dbItem ? dbItem.price : '$0.00',
-        cost: dbItem ? (dbItem.cost || '$0.00') : '$0.00'
+        cost: dbItem ? (dbItem.cost || '$0.00') : '$0.00',
+        uomMult: dbItem ? (parseInt(dbItem.uomMult, 10) || 1) : 1 // ✨ NEW
       });
     });
 

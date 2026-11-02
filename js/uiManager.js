@@ -161,12 +161,17 @@ const UIManager = {// GLOBAL CONFIGURATIONS
                 let qty = parseInt(rawQty, 10) || 0; 
                 
                 if (qty <= 0) return;
-                
                 totalItems += qty;
+                
+                // ✨ NEW: Lookup the item in the DB to find its UOM, then format the quantity
+                let dbItem = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase()) : null;
+                let uom = dbItem ? (parseInt(dbItem.uomMult, 10) || 1) : 1;
+                let displayQty = DatabaseManager.formatPackaging(qty, uom);
+
                 rowsHtml += `
                     <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #ccc; font-size:0.85rem;">
                         <span style="font-weight:bold; color:#0277bd;">${ref}</span>
-                        <span style="font-weight:bold; color:#333;">Qty: ${qty}</span>
+                        <span style="font-weight:bold; color:#333;">Qty: ${displayQty}</span>
                     </div>
                 `;
             });
@@ -342,7 +347,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     let dbOnHand = parseInt(item.onHand || item.TotalQty, 10) || 0;
     let dbReserved = parseInt(item.reservedQty, 10) || 0;
     let dbAvailable = dbOnHand - dbReserved;
-    let dbShelf = item.shelf || 'Unassigned'; // ✨ NEW
+    let dbShelf = item.shelf || 'Unassigned'; 
+    
+    // ✨ NEW: Fetch UOM and apply Box Math
+    let uom = parseInt(item.uomMult, 10) || 1;
+    let displayOnHand = DatabaseManager.formatPackaging(dbOnHand, uom);
+    let displayAvailable = DatabaseManager.formatPackaging(dbAvailable, uom);
 
     // Check if a restock was already requested today
     let localRequests = JSON.parse(localStorage.getItem('asp_restock_requests')) || { date: new Date().toLocaleDateString(), refs: [] };
@@ -371,8 +381,8 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         </div>
 
         <div style="font-weight:bold; font-size:0.85rem; color:#0277bd; margin-bottom:6px; display:flex; justify-content:space-between;">
-          <span>Total On-Hand: ${dbOnHand}</span>
-          <span style="color:${dbAvailable > 0 ? '#2e7d32' : '#c62828'};">Available to Sell: ${dbAvailable}</span>
+          <span>Total On-Hand: ${displayOnHand}</span>
+          <span style="color:${dbAvailable > 0 ? '#2e7d32' : '#c62828'};">Available to Sell: ${displayAvailable}</span>
         </div>
         <div id="quickLookupLotBox" style="text-align:center; padding:10px; color:#00796b; font-weight:bold;">⏳ Querying Live Cloud Ledger for Lot History...</div>
       </div>
