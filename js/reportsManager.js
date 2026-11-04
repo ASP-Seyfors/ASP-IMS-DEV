@@ -71,6 +71,19 @@ const ReportsManager = {
     document.getElementById('modalSubCategories').style.display = 'none';
   },
 
+  // ✨ NEW: Helper to identify hidden parent items across all reports
+  getHiddenParentRefs() {
+      let hiddenParents = new Set();
+      if (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) {
+          DatabaseManager.db.forEach(i => {
+              if (DatabaseManager.isBoxOnly(i)) {
+                  hiddenParents.add(DatabaseManager.getCleanParentRef(i).toUpperCase());
+              }
+          });
+      }
+      return hiddenParents;
+  },
+
   openAddressBookEditor() {
     this.renderAddressBookGrid();
     document.getElementById('addressBookModal').style.display = 'flex';
@@ -269,9 +282,12 @@ const ReportsManager = {
     let incTotal = document.getElementById('chkInvTotal') ? document.getElementById('chkInvTotal').checked : false;
     let incRes = document.getElementById('chkInvRes') ? document.getElementById('chkInvRes').checked : false;
 
+    let hiddenParents = this.getHiddenParentRefs();
+
     // Apply Dynamic Naming
     if (type === 'in_stock') {
       filtered = db.filter(i => {
+        if (hiddenParents.has((i.sku || i.ref || '').toUpperCase())) return false; // ✨ Filter Box Only
         let total = parseInt(i.onHand, 10) || 0;
         let res = parseInt(i.reservedQty, 10) || 0;
         let avail = total - res;
@@ -280,7 +296,10 @@ const ReportsManager = {
         return avail > 0;
       });
     } else if (type === 'out_of_stock') {
-      filtered = db.filter(i => !i.onHand || i.onHand === 0);
+      filtered = db.filter(i => {
+        if (hiddenParents.has((i.sku || i.ref || '').toUpperCase())) return false; // ✨ Filter Box Only
+        return !i.onHand || i.onHand === 0;
+      });
       title = "Out of Stock Items Report";
       fileSuffix = "Out_Of_Stock";
     } else if (type === 'pricing') {
@@ -815,9 +834,12 @@ const ReportsManager = {
       return;
     }
 
+    let hiddenParents = this.getHiddenParentRefs();
+
     let filtered = db;
     if (mode === 'onhand') {
       filtered = db.filter(item => {
+        if (hiddenParents.has(DatabaseManager.getItemSku(item))) return false; // ✨ Filter Box Only
         let total = parseInt(item.onHand || item.TotalQty, 10) || 0;
         let res = parseInt(item.reservedQty, 10) || 0;
         let avail = total - res;

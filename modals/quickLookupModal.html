@@ -10,6 +10,12 @@
         <input type="text" id="quickLookupInput" placeholder="e.g. 8698G or Scan 2D" style="flex:1; padding:8px; font-size:1rem; text-transform:uppercase;" onkeypress="if(event.key==='Enter') UIManager.executeQuickLookup()">
         <button onclick="UIManager.executeQuickLookup()" style="background:#00796b; color:#fff; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer;">Search</button>
       </div>
+      <!-- ✨ NEW: Filter for Box Variants -->
+      <div style="margin-top:10px;">
+        <label style="font-size:0.85rem; color:var(--text-main, #555); cursor:pointer; font-weight:bold;">
+            <input type="checkbox" id="chkFilterBoxVariantsOnly" onchange="UIManager.executeQuickLookup()"> Show Box (Bundles) Variants Only
+        </label>
+      </div>
     </div>
     <!-- ✨ NEW: Request Restock Button -->
         <div style="margin-top: 10px; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">

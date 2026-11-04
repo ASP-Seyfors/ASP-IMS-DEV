@@ -227,6 +227,55 @@ const SessionManager = {
     QboManager.bindOrderInputListener(); 
   },
 
+  populateCustomerOrdersDropdown(custName) {
+    let orderSelect = document.getElementById('itemKnownOrdersSelect');
+    let orderInput = document.getElementById('itemOrderNumInput');
+    
+    if (!orderSelect || !orderInput || !custName || custName === '+ Add Customer') {
+        if (orderSelect) orderSelect.style.display = 'none';
+        return;
+    }
+
+    let cleanCust = custName.toUpperCase().trim();
+    let knownOrders = new Set();
+
+    // 1. Check existing Allocations (Reserved Bins)
+    let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
+    let custAllocations = allocations[cleanCust];
+    
+    if (custAllocations) {
+        Object.keys(custAllocations).forEach(ref => {
+            let data = custAllocations[ref];
+            if (data.details && data.details.length > 0) {
+                data.details.forEach(det => {
+                    if (det.orderNum && det.qty > 0) knownOrders.add(det.orderNum);
+                });
+            }
+        });
+    }
+
+    // 2. Check items already scanned during THIS session
+    this.scannedObjects.forEach(scan => {
+        let tagParts = scan.customerTag ? scan.customerTag.split(' - ') : [];
+        if (tagParts[0] && tagParts[0].trim().toUpperCase() === cleanCust && tagParts[1]) {
+            knownOrders.add(tagParts[1].trim());
+        }
+    });
+
+    if (knownOrders.size > 0) {
+        orderSelect.innerHTML = '<option value="">-- Known Orders (Select to Auto-Fill) --</option>';
+        Array.from(knownOrders).sort().forEach(ord => {
+            let opt = document.createElement('option');
+            opt.value = ord;
+            opt.textContent = ord;
+            orderSelect.appendChild(opt);
+        });
+        orderSelect.style.display = 'block';
+    } else {
+        orderSelect.style.display = 'none';
+    }
+  },
+
   startStocktakeSession(mode) {
     let uName = document.getElementById('userNameInput').value.trim();
     if (typeof AuthManager !== 'undefined' && AuthManager.isWorkstation) {

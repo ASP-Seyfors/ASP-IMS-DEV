@@ -40,6 +40,14 @@ const DatabaseManager = {
   customerAliases: JSON.parse(localStorage.getItem('asp_wh_cust_aliases')) || {},
   supplierAliases: JSON.parse(localStorage.getItem('asp_wh_sup_aliases')) || {},
 
+  // ✨ NEW: Box Only Signal Helpers
+  isBoxOnly(item) {
+      return item && item.parentRef && String(item.parentRef).startsWith('*');
+  },
+  getCleanParentRef(item) {
+      return item && item.parentRef ? String(item.parentRef).replace(/^\*/, '').trim() : '';
+  },
+
   resolveAlias(name, type = 'customer') {
     if (!name) return name;
     let cleanName = String(name).trim().toUpperCase();
@@ -433,6 +441,19 @@ const DatabaseManager = {
     statusEl.value = dbItem.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
     statusEl.style.color = dbItem.status === 'ACTIVE' ? '#2e7d32' : '#c62828';
 
+    // ✨ NEW: Read the Box Only Flag
+    let bundleRow = document.getElementById('modalBundleRow');
+    let sellAsBoxOnlyChk = document.getElementById('modalSellAsBoxOnly');
+    if (bundleRow && sellAsBoxOnlyChk) {
+        if (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1) {
+            bundleRow.style.display = 'block';
+            sellAsBoxOnlyChk.checked = this.isBoxOnly(dbItem);
+        } else {
+            bundleRow.style.display = 'none';
+            sellAsBoxOnlyChk.checked = false;
+        }
+    }
+
     // ✨ NEW: Override the container to display as a 2x2 Grid instead of a single row
     let pricingBlock = document.getElementById('modalPricingBlock');
     pricingBlock.style.display = 'grid';
@@ -470,9 +491,15 @@ const DatabaseManager = {
 
     let dbItem = this.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
     if (dbItem) {
+      // ✨ Box Only logic tracking
+      let uomMultNum = parseInt(dbItem.uomMult, 10) || 1;
+      let isBoxOnly = document.getElementById('modalSellAsBoxOnly') ? document.getElementById('modalSellAsBoxOnly').checked : false;
+      let currentIsBoxOnly = this.isBoxOnly(dbItem);
+
       let changed = (
       dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || 
-      (parseInt(dbItem.minStock, 10) || 0) !== minStock || // ✨ NEW
+      (parseInt(dbItem.minStock, 10) || 0) !== minStock || 
+      (dbItem.parentRef && uomMultNum > 1 && isBoxOnly !== currentIsBoxOnly) ||
       (isAdmin && dbItem.price !== price) || 
       (isAdmin && cost !== null && dbItem.cost !== cost) ||
       (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) ||
@@ -485,8 +512,15 @@ const DatabaseManager = {
         if (dbItem.desc !== desc) changeNotes.push(`Desc Updated`);
         if (dbItem.category !== cat) changeNotes.push(`Cat: ${dbItem.category} -> ${cat}`);
         if (dbItem.shelf !== shelf) changeNotes.push(`Shelf: ${dbItem.shelf} -> ${shelf}`);
-        if ((parseInt(dbItem.minStock, 10) || 0) !== minStock) changeNotes.push(`Min Stock Updated to ${minStock}`); // ✨ NEW
+        if ((parseInt(dbItem.minStock, 10) || 0) !== minStock) changeNotes.push(`Min Stock Updated to ${minStock}`); 
         if (dbItem.status !== status) changeNotes.push(`Status: ${dbItem.status} -> ${status}`);
+        
+        // ✨ Process the new Box flag
+        if (dbItem.parentRef && uomMultNum > 1 && isBoxOnly !== currentIsBoxOnly) {
+            changeNotes.push(`Box Only: ${isBoxOnly ? 'YES' : 'NO'}`);
+            let cleanParent = this.getCleanParentRef(dbItem);
+            dbItem.parentRef = isBoxOnly ? `*${cleanParent}` : cleanParent;
+        }
         if (isAdmin && dbItem.price !== price) changeNotes.push(`Price: ${dbItem.price} -> ${price}`);
         if (isAdmin && cost !== null && dbItem.cost !== cost) changeNotes.push(`Cost Updated`);
         if (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) changeNotes.push(`RM Price Updated`);
@@ -899,7 +933,7 @@ const DatabaseManager = {
 
         // Always identify the Parent to ensure the whole bundle family syncs together
         let isBundle = (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1);
-        let parentRef = isBundle ? dbItem.parentRef : (dbItem.sku || dbItem.ref);
+        let parentRef = isBundle ? this.getCleanParentRef(dbItem) : (dbItem.sku || dbItem.ref);
         let parentItem = this.db.find(i => String(i.sku || i.ref || '').toUpperCase() === String(parentRef).toUpperCase()) || dbItem;
 
         let pHandle = String(parentRef).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');

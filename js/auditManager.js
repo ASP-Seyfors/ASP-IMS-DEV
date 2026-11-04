@@ -981,10 +981,13 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let custInput = document.getElementById('customerReportSelect');
     let cust = (custInput && custInput.value) ? custInput.value : 'PROMO';
     
+    let hiddenParents = this.getHiddenParentRefs();
+    
     // Pull ALL available inventory directly from the master database
     let availableItems = [];
     if (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) {
       availableItems = DatabaseManager.db.filter(dbItem => {
+        if (hiddenParents.has(DatabaseManager.getItemSku(dbItem))) return false; // ✨ Filter Box Only
         let total = parseInt(dbItem.onHand, 10) || 0;
         let res = parseInt(dbItem.reservedQty, 10) || 0;
         return (total - res) > 0;
