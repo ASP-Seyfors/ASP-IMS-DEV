@@ -941,12 +941,10 @@ const ReportsManager = {
     }
   },
 
-  // ✨ FIX: Switched to a GET request so the browser can read the response!
   async loadSubscribers() {
       const container = document.getElementById('subListContainer');
       container.innerHTML = '<p style="text-align:center; color:#0277bd;">Loading...</p>';
       try {
-          // Use GET with URL parameters to bypass CORS restrictions
           let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_SUBSCRIBERS`);
           let data = await res.json();
           
@@ -955,13 +953,23 @@ const ReportsManager = {
               html += '<tr style="background:#f0f0f0; border-bottom:1px solid #ccc;"><th style="padding:4px;">Name</th><th style="padding:4px;">Email</th><th style="padding:4px;">Freq</th><th style="padding:4px;">Status</th><th style="padding:4px;"></th></tr>';
               
               data.subs.forEach(sub => {
+                  // Pass the new variables safely to the edit button
+                  let safeCat = (sub.categories || '').replace(/'/g, "\\'");
                   html += `<tr style="border-bottom:1px solid #eee;">
                     <td style="padding:4px;">${sub.name}</td>
-                    <td style="padding:4px; color:#0277bd;">${sub.email}</td>
+                    <td style="padding:4px; color:#0277bd; word-break:break-all;">${sub.email}</td>
                     <td style="padding:4px;">${sub.freq}</td>
-                    <td style="padding:4px; color:${sub.status === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
+                    <td style="padding:4px; font-weight:bold; color:${sub.status === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
                     <td style="padding:4px; text-align:right;">
-                       <button class="btn-small" style="padding:2px 6px; font-size:0.7rem;" onclick="document.getElementById('subName').value='${sub.name}'; document.getElementById('subEmail').value='${sub.email}'; document.getElementById('subFreq').value='${sub.freq === 'Daily' ? 'Daily' : 'Weekly'}'; document.getElementById('subStatus').value='${sub.status === 'ACTIVE' ? 'Active' : 'Inactive'}'; document.getElementById('subCategories').value='${sub.categories || ''}';">Edit</button>
+                       <button class="btn-small" style="padding:4px 8px; font-size:0.75rem;" onclick="
+                          document.getElementById('subName').value='${sub.name}'; 
+                          document.getElementById('subEmail').value='${sub.email}'; 
+                          document.getElementById('subFreq').value='${sub.freq}'; 
+                          document.getElementById('subStatus').value='${sub.status === 'ACTIVE' ? 'Active' : 'Inactive'}'; 
+                          document.getElementById('subCategories').value='${safeCat}';
+                          if(document.getElementById('subFormat')) document.getElementById('subFormat').value='${sub.format || 'SMART'}';
+                          if(document.getElementById('subFallback')) document.getElementById('subFallback').value='${sub.fallback || 'SELLERS'}';
+                       ">Edit</button>
                     </td>
                   </tr>`;
               });
@@ -976,7 +984,6 @@ const ReportsManager = {
   },
 
   saveSubscriber(event) {
-      // Grab the button and save its original text
       let btn = event ? event.target : document.activeElement;
       let origText = btn.textContent;
       btn.textContent = "⏳ Saving..."; btn.disabled = true;
@@ -985,16 +992,20 @@ const ReportsManager = {
       let email = document.getElementById('subEmail').value.trim();
       let freq = document.getElementById('subFreq').value;
       let status = document.getElementById('subStatus').value;
+      let format = document.getElementById('subFormat') ? document.getElementById('subFormat').value : "SMART";
+      let fallback = document.getElementById('subFallback') ? document.getElementById('subFallback').value : "SELLERS";
+      let categoryPref = document.getElementById('subCategories').value.trim();
 
       if (!name || !email) {
           UIManager.showCustomAlert("Error", "Please provide a name and email address.");
-          btn.textContent = origText; btn.disabled = false; // Reset button
+          btn.textContent = origText; btn.disabled = false; 
           return;
       }
-
-      let categoryPref = document.getElementById('subCategories').value.trim();
        
-      let payload = { name: name, email: email, freq: freq, status: status, categories: categoryPref };
+      let payload = { 
+          name: name, email: email, freq: freq, status: status, 
+          categories: categoryPref, format: format, fallback: fallback 
+      };
 
       fetch(ApiManager.getActiveArchiveUrl(), {
           method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1003,12 +1014,11 @@ const ReportsManager = {
           UIManager.showCustomAlert("Success", `${name} has been updated in the cloud!`);
           document.getElementById('subName').value = "";
           document.getElementById('subEmail').value = "";
+          this.loadSubscribers(); // Auto-refresh the list
       }).catch(err => {
           UIManager.showCustomAlert("Error", "Failed to save subscriber.");
       }).finally(() => {
-          // This always runs at the very end to restore the button!
-          btn.textContent = origText; 
-          btn.disabled = false;
+          btn.textContent = origText; btn.disabled = false;
       });
   },
 
