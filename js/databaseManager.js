@@ -359,6 +359,7 @@ const DatabaseManager = {
     let mfrFilter = (document.getElementById('dbMfrFilter') ? document.getElementById('dbMfrFilter').value : 'ALL');
     let needsPriceFilter = document.getElementById('chkNeedsPrice') ? document.getElementById('chkNeedsPrice').checked : false;
     let needsPriceInStockFilter = document.getElementById('chkNeedsPriceInStock') ? document.getElementById('chkNeedsPriceInStock').checked : false;
+    let showBoxOnlyFilter = document.getElementById('chkShowBoxOnly') ? document.getElementById('chkShowBoxOnly').checked : false; // ✨ NEW
 
     let mfrDropdown = document.getElementById('dbMfrFilter');
     if (mfrDropdown && mfrDropdown.options.length <= 1) {
@@ -375,24 +376,68 @@ const DatabaseManager = {
         let isMissingPrice = (!i.price || i.price === '$0.00' || i.price === '0');
         let matchesPrice = needsPriceFilter ? isMissingPrice : true;
         
-        // ✨ NEW: Missing Price AND physically available in the warehouse
-        let avail = (parseInt(i.onHand, 10) || 0) - (parseInt(i.reservedQty, 10) || 0);
+        let total = parseInt(i.onHand, 10) || 0;
+        let res = parseInt(i.reservedQty, 10) || 0;
+        let avail = total - res;
         let matchesPriceInStock = needsPriceInStockFilter ? (isMissingPrice && avail > 0) : true;
 
-        return matchesSearch && matchesMfr && matchesPrice && matchesPriceInStock;
+        // ✨ NEW: Box Only Filter checks if the UOM multiplier is > 1
+        let isBundle = i.parentRef && parseInt(i.uomMult, 10) > 1;
+        let matchesBoxOnly = showBoxOnlyFilter ? isBundle : true;
+
+        return matchesSearch && matchesMfr && matchesPrice && matchesPriceInStock && matchesBoxOnly;
       })
       .sort((a,b) => (a.mfr || '').localeCompare(b.mfr) || (a.ref || '').localeCompare(b.ref));
     
     let html = '';
     dbCopy.forEach((item, idx) => {
-      let safeRef = String(item.ref || item.sku || '').replace(/"/g, '&quot;');
-      let avail = (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0); // ✨ MATH
+      let safeRef = String(item.ref || item.sku || '').replace(/"/g, '"');
       
+      // ✨ NEW MATH: Calculate Bundle Quantities and "Each" Remainders dynamically for the UI!
+      let avail = 0;
+      let isBoxOnlyLabel = "";
+      let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
+      
+      if (isBundle) {
+          let parentSku = this.getCleanParentRef(item);
+          let parentItem = this.db.find(p => this.getItemSku(p) === parentSku);
+          if (parentItem) {
+              let pTotal = parseInt(parentItem.onHand, 10) || 0;
+              let pRes = parseInt(parentItem.reservedQty, 10) || 0;
+              let pAvail = pTotal - pRes;
+              avail = Math.floor(pAvail / parseInt(item.uomMult, 10)); // Total full boxes available
+          }
+          
+          // Badge Logic
+          if (this.isBoxOnly(item)) {
+              isBoxOnlyLabel = `<span style="background-color:#e65100; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; margin-left:8px;" title="This variant is hidden from customer reports">BOX ONLY</span>`;
+          } else {
+              isBoxOnlyLabel = `<span style="background-color:#00796b; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; margin-left:8px;">BUNDLE</span>`;
+          }
+      } else {
+          let total = parseInt(item.onHand, 10) || 0;
+          let res = parseInt(item.reservedQty, 10) || 0;
+          avail = total - res;
+          
+          // Calculate Remainder if this "Each" item belongs to a standard Bundle
+          let children = this.db.filter(c => this.getCleanParentRef(c) === this.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
+          if (children.length > 0) {
+              let hasBoxOnlyChild = children.some(c => this.isBoxOnly(c));
+              let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
+              
+              // If it's a standard bundle, show the loose remainder here. If it's a Box Only, leave the total available alone.
+              if (!hasBoxOnlyChild && largestBundle > 1) {
+                  avail = avail % largestBundle;
+              }
+          }
+      }
+      
+      // Fixed background toggling for Dark Mode support
       html += `
-        <tr style="border-bottom: 1px solid #eee; background-color: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};">
-          <td style="padding:10px; color:#555;">${item.mfr || '--'}</td>
-          <td style="padding:10px; font-weight:bold; color:#00796b;">${item.ref || item.sku}</td>
-          <td style="padding:10px; font-size:0.85rem; color:#333;">${item.desc || '--'}</td>
+        <tr style="border-bottom: 1px solid var(--border-color, #eee); background-color: ${idx % 2 === 0 ? 'var(--input-bg, #fff)' : 'var(--raw-bg, #f9f9f9)'};">
+          <td style="padding:10px; color:var(--text-main, #555);">${item.mfr || '--'}</td>
+          <td style="padding:10px; font-weight:bold; color:var(--heading-color, #00796b);">${item.ref || item.sku} ${isBoxOnlyLabel}</td>
+          <td style="padding:10px; font-size:0.85rem; color:var(--text-main, #333);">${item.desc || '--'}</td>
           <td style="padding:10px; text-align:center; font-weight:bold; color:${avail > 0 ? '#2e7d32' : '#c62828'};">${avail}</td>
           <td style="padding:10px; text-align:center;">
             <button class="btn-small btn-auto" style="background-color: #00796b; color: #fff; margin:0; padding:6px 12px; display:flex; align-items:center; gap:6px;" onclick="DatabaseManager.openEditModal('${safeRef}')">

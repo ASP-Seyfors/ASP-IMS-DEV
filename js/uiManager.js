@@ -765,9 +765,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
     let color = isError ? '#c62828' : '#0277bd';
     modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+      <div style="background:var(--card-bg, #fff); border-radius:8px; width:100%; max-width:400px; padding:20px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
         <h3 style="color:${color}; margin-top:0;">${title}</h3>
-        <p style="color:#555; font-size:0.95rem; margin-bottom:20px;">${message}</p>
+        <p style="color:var(--text-main, #555); font-size:0.95rem; margin-bottom:20px;">${message}</p>
         <button onclick="this.parentElement.parentElement.remove()" style="background:${color}; color:#fff; border:none; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; width:100%;">OK</button>
       </div>`;
     document.body.appendChild(modal);

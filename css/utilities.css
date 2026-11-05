@@ -405,3 +405,21 @@ body.theme-slate #itemCustomerSelect, body.theme-sage #itemCustomerSelect {
 body.theme-slate #modalBundleRow label, body.theme-sage #modalBundleRow label {
     color: #ff9800 !important; /* Brighter orange to pop against the dark mode */
 }
+
+/* ✨ FIXES: Dark Mode Readability Overrides for Audit Hub, Ledger Search, and Sync Modals */
+body.theme-slate #screenAuditHub p, body.theme-sage #screenAuditHub p,
+body.theme-slate #screenAuditHub div[style*="color:#555"], body.theme-sage #screenAuditHub div[style*="color:#555"],
+body.theme-slate #screenAuditHub div[style*="color: #555"], body.theme-sage #screenAuditHub div[style*="color: #555"],
+body.theme-slate #screenAuditHub div[style*="color:#333"], body.theme-sage #screenAuditHub div[style*="color:#333"],
+body.theme-slate #screenAuditHub div[style*="color:#777"], body.theme-sage #screenAuditHub div[style*="color:#777"],
+body.theme-slate #panelArchiveExport p, body.theme-sage #panelArchiveExport p,
+body.theme-slate #syncProgressModal p, body.theme-sage #syncProgressModal p,
+body.theme-slate #syncProgressModal div[style*="color:#555"], body.theme-sage #syncProgressModal div[style*="color:#555"] {
+    color: var(--text-main) !important;
+}
+
+body.theme-slate #ledgerSearchTimeframe, body.theme-sage #ledgerSearchTimeframe {
+    color: #ce93d8 !important; /* Brighter purple for dark mode */
+    border-color: #ce93d8 !important;
+    background-color: var(--input-bg) !important;
+}
