@@ -777,9 +777,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     let modal = document.createElement('div');
     modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;';
     modal.innerHTML = `
-      <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+      <div style="background:var(--card-bg, #fff); border-radius:8px; width:100%; max-width:400px; padding:20px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
         <h3 style="color:#0277bd; margin-top:0;">${title}</h3>
-        <p style="color:#555; font-size:0.95rem; margin-bottom:20px;">${message}</p>
+        <p style="color:var(--text-main, #555); font-size:0.95rem; margin-bottom:20px;">${message}</p>
         <div style="display:flex; justify-content:space-between; gap:10px;">
           <button onclick="this.parentElement.parentElement.parentElement.remove()" style="flex:1; background:#757575; color:#fff; border:none; padding:10px; border-radius:4px; cursor:pointer;">Cancel</button>
           <button id="btnConfirmAction" style="flex:1; background:#0277bd; color:#fff; border:none; padding:10px; border-radius:4px; font-weight:bold; cursor:pointer;">Confirm</button>

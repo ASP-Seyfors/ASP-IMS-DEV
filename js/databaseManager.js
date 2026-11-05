@@ -359,7 +359,7 @@ const DatabaseManager = {
     let mfrFilter = (document.getElementById('dbMfrFilter') ? document.getElementById('dbMfrFilter').value : 'ALL');
     let needsPriceFilter = document.getElementById('chkNeedsPrice') ? document.getElementById('chkNeedsPrice').checked : false;
     let needsPriceInStockFilter = document.getElementById('chkNeedsPriceInStock') ? document.getElementById('chkNeedsPriceInStock').checked : false;
-    let showBoxOnlyFilter = document.getElementById('chkShowBoxOnly') ? document.getElementById('chkShowBoxOnly').checked : false; // ✨ NEW
+    let showBoxOnlyFilter = document.getElementById('chkShowBoxOnly') ? document.getElementById('chkShowBoxOnly').checked : false;
 
     let mfrDropdown = document.getElementById('dbMfrFilter');
     if (mfrDropdown && mfrDropdown.options.length <= 1) {
@@ -372,7 +372,6 @@ const DatabaseManager = {
     let dbCopy = this.db.filter(i => {
         let matchesSearch = !searchQuery || (i.ref || i.sku || '').toLowerCase().includes(searchQuery) || (i.desc || '').toLowerCase().includes(searchQuery);
         let matchesMfr = mfrFilter === 'ALL' || i.mfr === mfrFilter;
-        
         let isMissingPrice = (!i.price || i.price === '$0.00' || i.price === '0');
         let matchesPrice = needsPriceFilter ? isMissingPrice : true;
         
@@ -381,7 +380,6 @@ const DatabaseManager = {
         let avail = total - res;
         let matchesPriceInStock = needsPriceInStockFilter ? (isMissingPrice && avail > 0) : true;
 
-        // ✨ NEW: Box Only Filter checks if the UOM multiplier is > 1
         let isBundle = i.parentRef && parseInt(i.uomMult, 10) > 1;
         let matchesBoxOnly = showBoxOnlyFilter ? isBundle : true;
 
@@ -393,7 +391,7 @@ const DatabaseManager = {
     dbCopy.forEach((item, idx) => {
       let safeRef = String(item.ref || item.sku || '').replace(/"/g, '"');
       
-      // ✨ NEW MATH: Calculate Bundle Quantities and "Each" Remainders dynamically for the UI!
+      // ✨ NEW MATH: Calculate Bundle Quantities and "Each" Remainders dynamically!
       let avail = 0;
       let isBoxOnlyLabel = "";
       let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
@@ -407,8 +405,6 @@ const DatabaseManager = {
               let pAvail = pTotal - pRes;
               avail = Math.floor(pAvail / parseInt(item.uomMult, 10)); // Total full boxes available
           }
-          
-          // Badge Logic
           if (this.isBoxOnly(item)) {
               isBoxOnlyLabel = `<span style="background-color:#e65100; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; margin-left:8px;" title="This variant is hidden from customer reports">BOX ONLY</span>`;
           } else {
@@ -419,20 +415,14 @@ const DatabaseManager = {
           let res = parseInt(item.reservedQty, 10) || 0;
           avail = total - res;
           
-          // Calculate Remainder if this "Each" item belongs to a standard Bundle
+          // ✨ If it's a parent Each, only show the loose remainder left over outside of boxes
           let children = this.db.filter(c => this.getCleanParentRef(c) === this.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
           if (children.length > 0) {
-              let hasBoxOnlyChild = children.some(c => this.isBoxOnly(c));
               let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
-              
-              // If it's a standard bundle, show the loose remainder here. If it's a Box Only, leave the total available alone.
-              if (!hasBoxOnlyChild && largestBundle > 1) {
-                  avail = avail % largestBundle;
-              }
+              if (largestBundle > 1) avail = avail % largestBundle;
           }
       }
       
-      // Fixed background toggling for Dark Mode support
       html += `
         <tr style="border-bottom: 1px solid var(--border-color, #eee); background-color: ${idx % 2 === 0 ? 'var(--input-bg, #fff)' : 'var(--raw-bg, #f9f9f9)'};">
           <td style="padding:10px; color:var(--text-main, #555);">${item.mfr || '--'}</td>
@@ -448,7 +438,6 @@ const DatabaseManager = {
       `;
     });
     tbody.innerHTML = html;
-
     if (typeof lucide !== 'undefined') lucide.createIcons();
   },
 
@@ -534,6 +523,14 @@ const DatabaseManager = {
       // ✨ Box Only logic tracking
       let uomMultNum = parseInt(dbItem.uomMult, 10) || 1;
       let isBoxOnly = document.getElementById('modalSellAsBoxOnly') ? document.getElementById('modalSellAsBoxOnly').checked : false;
+      
+      // ✨ FIX: Reject tagging "Each" items as "Box Only"
+      if (isBoxOnly && uomMultNum <= 1) {
+          UIManager.showCustomAlert("Invalid Flag", "You cannot flag a base 'Each' variant as 'Box Only'. This flag can only be applied to bundled variants (multipliers > 1).", true);
+          document.getElementById('modalSellAsBoxOnly').checked = false;
+          isBoxOnly = false;
+      }
+
       let currentIsBoxOnly = this.isBoxOnly(dbItem);
 
       let changed = (
@@ -870,12 +867,12 @@ const DatabaseManager = {
         let overlay = document.createElement('div');
         overlay.id = 'dbUploadOverlay';
         overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
-        overlay.innerHTML = `
-          <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
+       overlay.innerHTML = `
+          <div style="background:var(--card-bg, #fff); border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
             <h3 style="margin:0 0 15px 0; color:#0277bd;">⬆️ Uploading Database Edits</h3>
-            <div id="updStep1" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 1. Packaging Data...</div>
-            <div id="updStep2" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 2. Transmitting to Google...</div>
-            <div id="updStep3" style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ 3. Verifying Upload...</div>
+            <div id="updStep1" style="margin-bottom:10px; font-weight:bold; color:var(--text-main, #555);">⏳ 1. Packaging Data...</div>
+            <div id="updStep2" style="margin-bottom:10px; font-weight:bold; color:var(--text-main, #555);">⏳ 2. Transmitting to Google...</div>
+            <div id="updStep3" style="margin-bottom:15px; font-weight:bold; color:var(--text-main, #555);">⏳ 3. Verifying Upload...</div>
             <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
               <div id="updProgressBar" style="width:0%; height:100%; background:#2e7d32; transition:width 0.3s ease;"></div>
             </div>

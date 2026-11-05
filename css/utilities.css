@@ -423,3 +423,10 @@ body.theme-slate #ledgerSearchTimeframe, body.theme-sage #ledgerSearchTimeframe 
     border-color: #ce93d8 !important;
     background-color: var(--input-bg) !important;
 }
+
+/* ✨ FIXES: Dark Mode Readability Overrides for Audit Hub and Reports */
+body.theme-slate #screenAuditHub p, body.theme-sage #screenAuditHub p,
+body.theme-slate #screenReports p, body.theme-sage #screenReports p,
+body.theme-slate #screenReports label, body.theme-sage #screenReports label {
+    color: var(--text-main) !important;
+}

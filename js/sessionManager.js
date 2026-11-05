@@ -1129,11 +1129,11 @@ const SessionManager = {
       overlay.id = 'sessionSaveOverlay';
       overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff;';
       overlay.innerHTML = `
-        <div style="background:#fff; border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
+        <div style="background:var(--card-bg, #fff); border-radius:8px; width:100%; max-width:400px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.5); text-align:center;">
           <h3 style="margin:0 0 15px 0; color:#0277bd;">💾 Committing Session to Cloud</h3>
-          <div id="syncStep1" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 1. Validating Payload...</div>
-          <div id="syncStep2" style="margin-bottom:10px; font-weight:bold; color:#555;">⏳ 2. Server Processing...</div>
-          <div id="syncStep3" style="margin-bottom:15px; font-weight:bold; color:#555;">⏳ 3. Downloading Fresh Sync...</div>
+          <div id="syncStep1" style="margin-bottom:10px; font-weight:bold; color:var(--text-main, #555);">⏳ 1. Validating Payload...</div>
+          <div id="syncStep2" style="margin-bottom:10px; font-weight:bold; color:var(--text-main, #555);">⏳ 2. Server Processing...</div>
+          <div id="syncStep3" style="margin-bottom:15px; font-weight:bold; color:var(--text-main, #555);">⏳ 3. Downloading Fresh Sync...</div>
           <div style="width:100%; background:#eee; border-radius:4px; height:8px; overflow:hidden;">
             <div id="syncProgressBar" style="width:0%; height:100%; background:#2e7d32; transition:width 0.3s ease;"></div>
           </div>
