@@ -549,8 +549,21 @@ const SessionManager = {
     });
     localStorage.setItem('asp_pending_updates', JSON.stringify(this.pendingFieldUpdates));
     localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
-    UIManager.hideAllConfirmButtons();
-  }, 
+    
+    // ✨ THE FIX: Target the specific button and hide it, rather than nuking all of them!
+    if (field === 'gtin') {
+        let btnGtin = document.getElementById('btnConfirmGtin');
+        let diffBanner = document.getElementById('gtinDiffBanner');
+        if (btnGtin) btnGtin.style.display = 'none';
+        if (diffBanner) diffBanner.style.display = 'none';
+    } else if (field === 'mfr') {
+        let btnMfr = document.getElementById('btnConfirmMfr');
+        if (btnMfr) btnMfr.style.display = 'none';
+    } else if (field === 'shelf') {
+        let btnShelf = document.getElementById('btnConfirmShelf');
+        if (btnShelf) btnShelf.style.display = 'none';
+    }
+  },
 
   goToReviewStage() {
     let expField = document.getElementById('expInput');
@@ -841,6 +854,15 @@ const SessionManager = {
       let dbMatch = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
       if (dbMatch) dbMatch.gtin = rawGtin;
       localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
+      
+      // ✨ THE FIX: We must queue this GTIN to be uploaded!
+      this.pendingFieldUpdates.push({
+        ref: ref,
+        field: 'GTIN',
+        newValue: rawGtin,
+        timestamp: new Date().toLocaleString()
+      });
+      localStorage.setItem('asp_pending_updates', JSON.stringify(this.pendingFieldUpdates));
     }
 
     this.scannedObjects.push({

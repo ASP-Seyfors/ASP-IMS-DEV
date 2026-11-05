@@ -28,7 +28,8 @@ const AuditManager = {
   },
 
   loadCloudSessionsForExport() {
-    let select = document.getElementById('cloudExportSessionSelect');
+    // ✨ THE FIX: Match the exact ID used in screens/reports.html
+    let select = document.getElementById('archiveExportSelect');
     if (!select) return;
 
     let archive = JSON.parse(localStorage.getItem('asp_cloud_directory')) || [];

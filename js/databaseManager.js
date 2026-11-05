@@ -441,17 +441,12 @@ const DatabaseManager = {
     statusEl.value = dbItem.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
     statusEl.style.color = dbItem.status === 'ACTIVE' ? '#2e7d32' : '#c62828';
 
-    // ✨ NEW: Read the Box Only Flag
+    // ✨ THE FIX: Show the checkbox for BOTH Individual Items and Bundles
     let bundleRow = document.getElementById('modalBundleRow');
     let sellAsBoxOnlyChk = document.getElementById('modalSellAsBoxOnly');
     if (bundleRow && sellAsBoxOnlyChk) {
-        if (dbItem.parentRef && parseInt(dbItem.uomMult, 10) > 1) {
-            bundleRow.style.display = 'block';
-            sellAsBoxOnlyChk.checked = this.isBoxOnly(dbItem);
-        } else {
-            bundleRow.style.display = 'none';
-            sellAsBoxOnlyChk.checked = false;
-        }
+        bundleRow.style.display = 'block';
+        sellAsBoxOnlyChk.checked = this.isBoxOnly(dbItem);
     }
 
     // ✨ NEW: Override the container to display as a 2x2 Grid instead of a single row
@@ -515,12 +510,13 @@ const DatabaseManager = {
         if ((parseInt(dbItem.minStock, 10) || 0) !== minStock) changeNotes.push(`Min Stock Updated to ${minStock}`); 
         if (dbItem.status !== status) changeNotes.push(`Status: ${dbItem.status} -> ${status}`);
         
-        // ✨ Process the new Box flag
-        if (dbItem.parentRef && uomMultNum > 1 && isBoxOnly !== currentIsBoxOnly) {
+        // ✨ THE FIX: Remove the uomMult > 1 requirement so it saves for ANY item
+        if (isBoxOnly !== currentIsBoxOnly) {
             changeNotes.push(`Box Only: ${isBoxOnly ? 'YES' : 'NO'}`);
             let cleanParent = this.getCleanParentRef(dbItem);
             dbItem.parentRef = isBoxOnly ? `*${cleanParent}` : cleanParent;
         }
+
         if (isAdmin && dbItem.price !== price) changeNotes.push(`Price: ${dbItem.price} -> ${price}`);
         if (isAdmin && cost !== null && dbItem.cost !== cost) changeNotes.push(`Cost Updated`);
         if (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) changeNotes.push(`RM Price Updated`);

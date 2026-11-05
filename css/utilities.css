@@ -362,3 +362,46 @@ body.theme-slate #restockPendingBadge div, body.theme-sage #restockPendingBadge 
 body.theme-slate #btnRequestRestock, body.theme-sage #btnRequestRestock {
     color: #ffffff !important;
 }
+
+/* =========================================================
+   ✨ FINAL UI POLISH: DARK/HYBRID MODE TEXT CONTRAST FIXES
+========================================================= */
+
+/* 1. Fix hardcoded dark gray text across all app sections and custom alerts */
+body.theme-slate p[style*="color: #555"], body.theme-sage p[style*="color: #555"],
+body.theme-slate p[style*="color:#555"], body.theme-sage p[style*="color:#555"],
+body.theme-slate label[style*="color: #555"], body.theme-sage label[style*="color: #555"],
+body.theme-slate label[style*="color:#555"], body.theme-sage label[style*="color:#555"],
+body.theme-slate span[style*="color: #555"], body.theme-sage span[style*="color: #555"],
+body.theme-slate span[style*="color:#555"], body.theme-sage span[style*="color:#555"],
+body.theme-slate div[style*="color: #555"], body.theme-sage div[style*="color: #555"],
+body.theme-slate div[style*="color:#555"], body.theme-sage div[style*="color:#555"] {
+    color: var(--text-main) !important;
+}
+
+/* 2. Fix the Stocktake Modal background and text */
+body.theme-slate #stocktakeModal > div, body.theme-sage #stocktakeModal > div {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+}
+body.theme-slate #stocktakeModal h3, body.theme-sage #stocktakeModal h3 {
+    color: var(--heading-color) !important;
+}
+
+/* 3. Fix Customer Tag labels on the Scanning Screen */
+body.theme-slate #rowCustomerTag div.form-label, body.theme-sage #rowCustomerTag div.form-label {
+    color: var(--heading-color) !important;
+}
+
+/* 4. Fix dropdowns inside the Customer Tag row */
+body.theme-slate #itemKnownOrdersSelect, body.theme-sage #itemKnownOrdersSelect,
+body.theme-slate #itemCustomerSelect, body.theme-sage #itemCustomerSelect {
+    background-color: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* 5. Fix "Sell As Box Only" label inside the Database Editor Modal */
+body.theme-slate #modalBundleRow label, body.theme-sage #modalBundleRow label {
+    color: #ff9800 !important; /* Brighter orange to pop against the dark mode */
+}

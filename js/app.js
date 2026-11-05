@@ -449,6 +449,10 @@ window.exportAppsScriptFiles = exportAppsScriptFiles;
 
 // Address Book Editor
 window.openAddressBookEditor = () => ReportsManager.openAddressBookEditor();
+// ✨ THE FIX: Expose the Custom Flyer and Sales Reports functions globally
+window.openCustomSalesFlyer = () => AuditManager.openCustomSalesFlyer();
+window.openCustomerStockReportEditor = () => AuditManager.openCustomerStockReportEditor();
+window.openInternalSalesReportOptions = () => AuditManager.openInternalSalesReportOptions();
 
 window.forceAppUpdate = forceAppUpdate;
 
