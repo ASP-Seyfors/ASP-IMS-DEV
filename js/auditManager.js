@@ -2661,6 +2661,155 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     } catch(err) {
       resultsContainer.innerHTML = `<div style="padding:15px; color:#c62828; background:#ffebee; border-radius:4px; text-align:center;">Error fetching Deep Archive data: ${err.message}</div>`;
     }
+  }, // <-- THIS IS LINE 348
+
+  // ✨ NEW: Multi-variable Historical Ledger Search
+  async searchLedgerHistory() {
+    let inputEl = document.getElementById('ledgerSearchInput');
+    let resultsContainer = document.getElementById('ledgerSearchResults');
+    let timeframe = document.getElementById('ledgerSearchTimeframe').value;
+    
+    if (!inputEl || !resultsContainer) return;
+
+    // Split by comma for multiple REFs/Terms
+    let rawQueries = inputEl.value.trim().toUpperCase().split(',').map(q => q.trim()).filter(q => q);
+    if (rawQueries.length === 0) { 
+        UIManager.showCustomAlert("Notice", "Please enter at least one search term (REF, PO, Customer, etc)."); 
+        return; 
+    }
+
+    resultsContainer.innerHTML = '<div style="padding:15px; color:#7b1fa2; text-align:center; font-weight:bold;">⏳ Querying live cloud ledger...</div>';
+
+    try {
+      let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+      let text = await res.text();
+      let responseData = JSON.parse(text);
+      
+      if (responseData.status !== "success" || !responseData.data) throw new Error("Failed to load audit log.");
+
+      let auditLog = responseData.data;
+
+      let cutoffDate = new Date();
+      if (timeframe === '30d') cutoffDate.setDate(cutoffDate.getDate() - 30);
+      else if (timeframe === '90d') cutoffDate.setDate(cutoffDate.getDate() - 90);
+      else if (timeframe === '180d') cutoffDate.setDate(cutoffDate.getDate() - 180);
+      else cutoffDate = new Date(2000, 0, 1); 
+
+      let foundEvents = [];
+      let totalQty = 0;
+
+      auditLog.forEach(row => {
+        let rowDate = new Date(row['Timestamp']);
+        if (rowDate < cutoffDate) return;
+
+        let rRef = String(row['REF / SKU'] || '').toUpperCase();
+        let rSession = String(row['Session / Reason'] || '').toUpperCase();
+        let rDest = String(row['Destination / Action'] || '').toUpperCase();
+        let rLot = String(row['Lot'] || '').toUpperCase();
+        let rUser = String(row['User'] || '').toUpperCase();
+
+        // Check if ANY of the queries match this row
+        let isMatch = rawQueries.some(q => 
+            rRef.includes(q) || rSession.includes(q) || rDest.includes(q) || rLot.includes(q) || rUser.includes(q)
+        );
+
+        if (isMatch) {
+          let qty = parseInt(row['Qty Moved'], 10) || 0;
+          foundEvents.push({
+            sessionName: row['Session / Reason'] || "Unknown Session",
+            workflow: row['Workflow'] || "Unknown Workflow",
+            date: row['Timestamp'] || "Unknown Date",
+            user: row['User'] || "Operator",
+            qty: qty,
+            ref: row['REF / SKU'],
+            lot: row['Lot'],
+            exp: row['Exp Date'],
+            actionTag: row['Destination / Action']
+          });
+          totalQty += Math.abs(qty);
+        }
+      });
+
+      if (foundEvents.length === 0) {
+        resultsContainer.innerHTML = `
+          <div style="padding:15px; color:#c62828; background:#ffebee; border-radius:4px; text-align:center;">
+            No records found for your search terms within the selected timeframe.
+          </div>`;
+        return;
+      }
+
+      // Sort reverse chronological (newest first)
+      foundEvents.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      let html = `<div style="margin-top:10px; padding:10px; background:#f3e5f5; border:1px solid #ce93d8; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; color:#7b1fa2;">📊 Results (${foundEvents.length} events)</h4>
+                        <span class="badge-info" style="background-color:#7b1fa2; color:#fff;">Total Units Moved: ${totalQty}</span>
+                    </div>
+                    <div style="max-height: 350px; overflow-y: auto; padding-right:4px;">`;
+                    
+      foundEvents.forEach(ev => {
+        let actColor = '#555';
+        if (ev.workflow.includes('Receiving')) actColor = '#2e7d32'; // Green
+        if (ev.workflow.includes('Packing') || ev.workflow.includes('Ship')) actColor = '#e65100'; // Orange
+        if (ev.workflow.includes('Reserving')) actColor = '#0277bd'; // Blue
+
+        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid ${actColor}; font-size:0.85rem; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                      <strong style="color:#0277bd; font-size:0.9rem;">${ev.ref}</strong>
+                      <strong style="color:${actColor}; font-size:0.9rem;">Qty: ${ev.qty}</strong>
+                  </div>
+                  <div style="margin-bottom:4px; font-size:0.8rem; color:#555;">
+                      Lot: <strong>${ev.lot || 'N/A'}</strong> | Exp: <strong>${ev.exp || 'N/A'}</strong>
+                  </div>
+                  <div style="margin-bottom:2px; color:#333;"><strong>Session:</strong> ${ev.sessionName}</div>
+                  <div style="margin-bottom:4px; color:#555;"><strong>Dest/Note:</strong> ${ev.actionTag}</div>
+                  <div style="color:#777; font-size:0.75rem; display:flex; justify-content:space-between; border-top:1px dashed #eee; padding-top:4px; margin-top:4px;">
+                      <span>${ev.date}</span>
+                      <span>Operator: ${ev.user}</span>
+                  </div>
+                </div>`;
+      });
+      html += `</div>`;
+      
+      html += `<div style="text-align:right; margin-top:10px; border-top:1px solid #ce93d8; padding-top:10px;">
+                  <button class="btn-small" style="background:#7b1fa2; color:#fff; padding:8px 16px; font-weight:bold; cursor:pointer;" onclick="AuditManager.exportLedgerSearchResults()">📥 Export Results to CSV</button>
+               </div></div>`;
+
+      resultsContainer.innerHTML = html;
+      this.lastLedgerSearchResults = foundEvents;
+
+    } catch(err) {
+      resultsContainer.innerHTML = `<div style="padding:15px; color:#c62828; background:#ffebee; border-radius:4px; text-align:center;">Error fetching ledger data: ${err.message}</div>`;
+    }
+  },
+
+  exportLedgerSearchResults() {
+      if (!this.lastLedgerSearchResults || this.lastLedgerSearchResults.length === 0) {
+          UIManager.showCustomAlert("Notice", "No search results to export.");
+          return;
+      }
+      
+      let csvContent = "DATE,OPERATOR,SESSION,WORKFLOW,REF/SKU,LOT,EXP,QTY MOVED,DESTINATION/NOTE\r\n";
+      
+      this.lastLedgerSearchResults.forEach(ev => {
+          let date = String(ev.date || '').replace(/"/g, '""');
+          let user = String(ev.user || '').replace(/"/g, '""');
+          let session = String(ev.sessionName || '').replace(/"/g, '""');
+          let wf = String(ev.workflow || '').replace(/"/g, '""');
+          let ref = String(ev.ref || '').replace(/"/g, '""');
+          let lot = String(ev.lot || '').replace(/"/g, '""');
+          let exp = String(ev.exp || '').replace(/"/g, '""');
+          let qty = ev.qty || 0;
+          let dest = String(ev.actionTag || '').replace(/"/g, '""');
+          
+          csvContent += `"${date}","${user}","${session}","${wf}","${ref}","${lot}","${exp}",${qty},"${dest}"\r\n`;
+      });
+      
+      let dateStr = new Date().toLocaleDateString().replace(/\//g, '.');
+      if (typeof UIManager !== 'undefined' && UIManager.triggerShareOrDownload) {
+          UIManager.triggerShareOrDownload(csvContent, `ASP_Ledger_Search_Results_${dateStr}.csv`, 'text/csv');
+      }
   },
 
   exportShopifyProducts() {
@@ -2969,5 +3118,123 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     });
 
     return { updatedDb: currentDb, updatedAllocations: currentAllocations };
+  },
+
+  // ==========================================================================
+  // PAYLOAD SANDBOX SIMULATOR
+  // ==========================================================================
+  simDb: null,
+  simAllocations: null,
+
+  openSimulatorModal() {
+      this.resetSimulator();
+      document.getElementById('simulatorModal').style.display = 'flex';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+  },
+
+  resetSimulator() {
+      // Create a fresh deep copy of the live database and allocations
+      this.simDb = JSON.parse(JSON.stringify(DatabaseManager.db));
+      this.simAllocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
+      
+      document.getElementById('simPayloadInput').value = '';
+      document.getElementById('simResultsConsole').innerHTML = `
+        <div style="color:#64b5f6;">> Sandbox initialized.</div>
+        <div style="color:#64b5f6;">> Virtual database cloned from live memory (${this.simDb.length} master items).</div>
+        <div style="color:#64b5f6;">> Virtual allocations mapped.</div>
+        <div style="color:#888;">> Waiting for payload...</div>
+      `;
+  },
+
+  runSimulatedPayload() {
+      let inputVal = document.getElementById('simPayloadInput').value.trim();
+      let consoleEl = document.getElementById('simResultsConsole');
+      
+      const log = (msg, color = "#fff") => {
+          let div = document.createElement('div');
+          div.style.color = color;
+          div.style.paddingTop = "4px";
+          div.textContent = msg;
+          consoleEl.appendChild(div);
+          consoleEl.scrollTop = consoleEl.scrollHeight;
+      };
+
+      if (!inputVal) {
+          log("> ERROR: Payload input is empty.", "#ef5350");
+          return;
+      }
+
+      let payload;
+      try {
+          payload = JSON.parse(inputVal);
+      } catch(e) {
+          log("> ERROR: Invalid JSON format. Ensure you pasted a valid session payload.", "#ef5350");
+          return;
+      }
+
+      let scans = payload.scannedObjects || [];
+      let wType = payload.workflowType || "Unknown";
+      
+      log(`\n=========================================`, "#888");
+      log(`> RUNNING: ${payload.sessionName || 'Unnamed Session'} (${wType})`, "#ffb300");
+      log(`> SCANNED ITEMS: ${scans.length}`, "#ffb300");
+      log(`=========================================`, "#888");
+
+      if (scans.length === 0) {
+          log("> Notice: No scanned objects found in payload.", "#888");
+          return;
+      }
+
+      // Snapshot the before-state for the items involved
+      let beforeState = {};
+      scans.forEach(scan => {
+          let ref = (scan.ref || scan.sku || '').toUpperCase().trim();
+          if (!beforeState[ref]) {
+              let dbItem = this.simDb.find(i => (i.sku || i.ref || '').toUpperCase() === ref);
+              beforeState[ref] = {
+                  onHand: dbItem ? (parseInt(dbItem.onHand, 10) || 0) : 0,
+                  reserved: dbItem ? (parseInt(dbItem.reservedQty, 10) || 0) : 0
+              };
+          }
+      });
+
+      try {
+          // Process the math using the internal Ledger Engine replayer
+          let result = this._replayLedgerMath(scans, this.simDb, this.simAllocations, wType);
+          this.simDb = result.updatedDb;
+          this.simAllocations = result.updatedAllocations;
+
+          // Calculate and output the deltas
+          let processedRefs = Object.keys(beforeState).sort();
+          processedRefs.forEach(ref => {
+              let dbItem = this.simDb.find(i => (i.sku || i.ref || '').toUpperCase() === ref);
+              let afterOnHand = dbItem ? (parseInt(dbItem.onHand, 10) || 0) : 0;
+              let afterReserved = dbItem ? (parseInt(dbItem.reservedQty, 10) || 0) : 0;
+              
+              let diffOnHand = afterOnHand - beforeState[ref].onHand;
+              let diffReserved = afterReserved - beforeState[ref].reserved;
+              
+              let outputStr = `[${ref}] `;
+              let changes = [];
+              
+              if (diffOnHand !== 0) {
+                  changes.push(`Inventory: ${diffOnHand > 0 ? '+' : ''}${diffOnHand} (Total: ${afterOnHand})`);
+              }
+              if (diffReserved !== 0) {
+                  changes.push(`Reserved: ${diffReserved > 0 ? '+' : ''}${diffReserved} (Total: ${afterReserved})`);
+              }
+              
+              if (changes.length > 0) {
+                  log(outputStr + changes.join(" | "), diffOnHand < 0 || diffReserved < 0 ? "#ff8a65" : "#a5d6a7");
+              } else {
+                  log(outputStr + "No net quantity change.", "#888");
+              }
+          });
+          
+          log(`> ✅ Payload execution complete. Virtual state saved.`, "#4caf50");
+
+      } catch (err) {
+          log(`> FATAL MATH ERROR: ${err.message}`, "#ef5350");
+      }
   }
 };
