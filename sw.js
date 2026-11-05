@@ -17,7 +17,7 @@
  * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
  * All Rights Reserved.
  * ======================================================================= */
-const CACHE_NAME = 'asp-ims-dev-v6.6.4';
+const CACHE_NAME = 'asp-ims-dev-v6.6.5';
 
 
 const ASSETS_TO_CACHE = [
@@ -28,6 +28,7 @@ const ASSETS_TO_CACHE = [
   './ASP_Icon_192_DEV.png',
   './ASP_Icon_512_DEV.png',
   './Gemini_3D_ASP_Logo_DEV.png',
+  './ASP_Signature_Logo_DEV.png',
   
   // CSS
   './css/layout.css',
