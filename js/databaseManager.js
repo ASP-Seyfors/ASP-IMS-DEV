@@ -55,25 +55,24 @@ const DatabaseManager = {
     return dict[cleanName] ? dict[cleanName] : String(name).trim();
   },
 
-  formatPackaging(qty, uomMult) {
+  formatPackaging(qty, uomMult, isBundle) {
     let uom = parseInt(uomMult, 10) || 1;
     let total = parseInt(qty, 10) || 0;
-    
-    // If it's a standard Each item, or quantity is 0, just return the number
     if (uom <= 1 || total === 0) return total.toString();
+    
+    // ✨ THE FIX: If this item is already a Box variant, just return the raw integer
+    if (isBundle) return total.toString(); 
     
     let isNegative = total < 0;
     let absTotal = Math.abs(total);
-    
     let boxes = Math.floor(absTotal / uom);
     let eaches = absTotal % uom;
     let sign = isNegative ? "-" : "";
     
     if (boxes === 0) return `${sign}${eaches} Eaches`;
     if (eaches === 0) return `${sign}${boxes} Box(es) of ${uom}`;
-    
     return `${sign}${boxes} Box(es) of ${uom} + ${eaches} Eaches`;
-},
+  },
 
   async init() {
     // AUTO-SYNC: Merge any new hardcoded defaults into localStorage cache

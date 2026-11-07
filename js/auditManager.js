@@ -27,6 +27,33 @@ const AuditManager = {
     return val.replace(/^\][a-zA-Z0-9]{2}/, '').replace(/[\x00-\x1F\x7F-\x9F]/g, '').trim() || 'N/A';
   },
 
+  getTrueAvailability(item) {
+      if (!item) return 0;
+      let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
+      
+      if (isBundle) {
+          let pSku = DatabaseManager.getCleanParentRef(item).toUpperCase();
+          let pItem = DatabaseManager.db.find(i => DatabaseManager.getItemSku(i) === pSku);
+          if (pItem) {
+              let pAvail = (parseInt(pItem.onHand, 10) || 0) - (parseInt(pItem.reservedQty, 10) || 0);
+              return Math.floor(pAvail / parseInt(item.uomMult, 10));
+          }
+          return 0;
+      } else {
+          let avail = (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0);
+          let children = DatabaseManager.db.filter(c => DatabaseManager.getCleanParentRef(c).toUpperCase() === DatabaseManager.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
+          if (children.length > 0) {
+              // ✨ FIX: Check for Box Only flag across all environments
+              let hasBoxOnly = children.some(c => DatabaseManager.isBoxOnly(c));
+              if (hasBoxOnly) return 0; // Completely hide the 'Each' remainder if flagged as Box Only
+              
+              let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
+              if (largestBundle > 1) avail = avail % largestBundle;
+          }
+          return avail;
+      }
+  },
+
   loadCloudSessionsForExport() {
     // ✨ THE FIX: Match the exact ID used in screens/reports.html
     let select = document.getElementById('archiveExportSelect');
@@ -988,15 +1015,21 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let availableItems = [];
     if (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) {
       availableItems = DatabaseManager.db.filter(dbItem => {
-        if (hiddenParents.has(DatabaseManager.getItemSku(dbItem))) return false; // ✨ Filter Box Only
-        let total = parseInt(dbItem.onHand, 10) || 0;
-        let res = parseInt(dbItem.reservedQty, 10) || 0;
-        return (total - res) > 0;
+        // ✨ Filter Box Only items globally if their child flag demands it
+        if (typeof ReportsManager !== 'undefined' && ReportsManager.getHiddenParentRefs) {
+            let hiddenParents = ReportsManager.getHiddenParentRefs();
+            if (hiddenParents.has(DatabaseManager.getItemSku(dbItem))) return false;
+        }
+        
+        // ✨ Apply the true Box math availability
+        return this.getTrueAvailability(dbItem) > 0;
+        
       }).map(dbItem => {
         return {
           ref: DatabaseManager.getItemSku(dbItem),
           desc: DatabaseManager.getItemDesc(dbItem),
-          onHand: (parseInt(dbItem.onHand, 10) || 0) - (parseInt(dbItem.reservedQty, 10) || 0),
+          // ✨ Update the object assignment to use the new math
+          onHand: this.getTrueAvailability(dbItem),
           price: dbItem.price || '$0.00'
         };
       }).sort((a, b) => a.ref.localeCompare(b.ref));
@@ -1256,9 +1289,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       // ✨ FIX: Calculate True Available Qty instead of Raw Total Qty
       let trueAvailable = 0;
       if (dbItem) {
-          let total = parseInt(dbItem.onHand, 10) || 0;
-          let reserved = parseInt(dbItem.reservedQty, 10) || 0;
-          trueAvailable = total - reserved;
+          trueAvailable = this.getTrueAvailability(dbItem);
       }
 
       resultList.push({

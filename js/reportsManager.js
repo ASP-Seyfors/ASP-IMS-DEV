@@ -84,6 +84,32 @@ const ReportsManager = {
       return hiddenParents;
   },
 
+  // ✨ NEW: Centralized Report Math Engine
+  getTrueAvailability(item) {
+      if (!item) return 0;
+      let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
+      
+      if (isBundle) {
+          let pSku = DatabaseManager.getCleanParentRef(item).toUpperCase();
+          let pItem = DatabaseManager.db.find(i => DatabaseManager.getItemSku(i) === pSku);
+          if (pItem) {
+              let pAvail = (parseInt(pItem.onHand, 10) || 0) - (parseInt(pItem.reservedQty, 10) || 0);
+              return Math.floor(pAvail / parseInt(item.uomMult, 10));
+          }
+          return 0;
+      } else {
+          let avail = (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0);
+          let children = DatabaseManager.db.filter(c => DatabaseManager.getCleanParentRef(c).toUpperCase() === DatabaseManager.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
+          if (children.length > 0) {
+              let hasBoxOnly = children.some(c => DatabaseManager.isBoxOnly(c));
+              if (hasBoxOnly) return 0; // Completely hide the 'Each' remainder if flagged as Box Only!
+              let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
+              if (largestBundle > 1) avail = avail % largestBundle;
+          }
+          return avail;
+      }
+  },
+
   openAddressBookEditor() {
     this.renderAddressBookGrid();
     document.getElementById('addressBookModal').style.display = 'flex';
@@ -290,7 +316,7 @@ const ReportsManager = {
         if (hiddenParents.has((i.sku || i.ref || '').toUpperCase())) return false; // ✨ Filter Box Only
         let total = parseInt(i.onHand, 10) || 0;
         let res = parseInt(i.reservedQty, 10) || 0;
-        let avail = total - res;
+        let avail = this.getTrueAvailability(item);
         let priceStr = String(i.price || '').replace(/[^0-9.-]+/g, '');
         let numPrice = parseFloat(priceStr) || 0;
         return avail > 0;
@@ -891,7 +917,7 @@ const ReportsManager = {
         let isFalse = String(i.onRevMed).toUpperCase() !== 'TRUE';
         let total = parseInt(i.onHand || 0, 10);
         let res = parseInt(i.reservedQty || 0, 10);
-        let avail = total - res;
+        let avail = this.getTrueAvailability(i);
         let priceStr = String(i.price || '').replace(/[^0-9.-]+/g, '');
         let numPrice = parseFloat(priceStr) || 0;
         return isFalse && avail > 0 && numPrice > 0;
