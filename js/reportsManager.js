@@ -969,6 +969,7 @@ const ReportsManager = {
                           document.getElementById('subCategories').value='${safeCat}';
                           if(document.getElementById('subFormat')) document.getElementById('subFormat').value='${sub.format || 'SMART'}';
                           if(document.getElementById('subFallback')) document.getElementById('subFallback').value='${sub.fallback || 'SELLERS'}';
+                          if(document.getElementById('subCustomerId')) document.getElementById('subCustomerId').value='${sub.customerId || ''}'; // ✨ NEW
                        ">Edit</button>
                     </td>
                   </tr>`;
@@ -995,6 +996,7 @@ const ReportsManager = {
       let format = document.getElementById('subFormat') ? document.getElementById('subFormat').value : "SMART";
       let fallback = document.getElementById('subFallback') ? document.getElementById('subFallback').value : "SELLERS";
       let categoryPref = document.getElementById('subCategories').value.trim();
+      let customerId = document.getElementById('subCustomerId') ? document.getElementById('subCustomerId').value : ""; // ✨ NEW
 
       if (!name || !email) {
           UIManager.showCustomAlert("Error", "Please provide a name and email address.");
@@ -1004,7 +1006,7 @@ const ReportsManager = {
        
       let payload = { 
           name: name, email: email, freq: freq, status: status, 
-          categories: categoryPref, format: format, fallback: fallback 
+          categories: categoryPref, format: format, fallback: fallback, customerId: customerId // ✨ NEW
       };
 
       fetch(ApiManager.getActiveArchiveUrl(), {

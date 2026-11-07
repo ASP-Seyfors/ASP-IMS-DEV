@@ -70,9 +70,11 @@ const UIManager = {// GLOBAL CONFIGURATIONS
   // POPULATE CUSTOMER REPORT SELECTOR FROM MASTER CUSTOMER LIST
   populateCustomerDropdown() {
     let select = document.getElementById('customerReportSelect');
+    let subSelect = document.getElementById('subCustomerId'); // ✨ NEW
     if (!select) return;
 
     select.innerHTML = '<option value="">-- Select Customer Account --</option>';
+    if (subSelect) subSelect.innerHTML = '<option value="">-- Link to Customer Account --</option>'; // ✨ NEW
     
     // Pull the clean, verified master customer list
     let custList = (typeof DatabaseManager !== 'undefined' && DatabaseManager.customers) 
@@ -81,12 +83,10 @@ const UIManager = {// GLOBAL CONFIGURATIONS
 
     let uniqueSet = new Set();
     
-    // Filter out prompts, force uppercase, and trim spaces
     let cleanList = custList
       .filter(c => c && c !== '+ Add Customer' && c.toUpperCase() !== 'SHELF' && c.toUpperCase() !== 'UNTAGGED')
       .map(c => c.trim().toUpperCase());
 
-    // Sort and append only unique names
     cleanList.sort((a, b) => a.localeCompare(b)).forEach(cust => {
       if (!uniqueSet.has(cust)) {
         uniqueSet.add(cust);
@@ -94,6 +94,13 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         opt.value = cust;
         opt.textContent = cust;
         select.appendChild(opt);
+        
+        // ✨ NEW: Append to Subscriber list too!
+        if (subSelect) {
+            let subOpt = document.createElement('option');
+            subOpt.value = cust; subOpt.textContent = cust;
+            subSelect.appendChild(subOpt);
+        }
       }
     });
   },

@@ -62,8 +62,14 @@
   <div id="panelSubscribers" style="background: #e1f5fe; border: 1px solid #03a9f4; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #01579b;">Automated Stock Report Distribution List</h4>
     <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 10px; padding: 10px; background: #fff; border: 1px dashed #03a9f4; border-radius: 4px;">
-      <input type="text" id="subName" placeholder="Customer/Company Name" style="padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px;" />
-      <input type="email" id="subEmail" placeholder="Email Address" style="padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px;" />
+      <!-- ✨ NEW: Added Linked Customer Account Dropdown -->
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="subName" placeholder="Contact Name (e.g. Mike)" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid var(--input-border); border-radius:3px; background:var(--input-bg); color:var(--text-main);" />
+        <select id="subCustomerId" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid var(--input-border); border-radius:3px; background:var(--input-bg); color:var(--text-main);" title="Link this subscriber to a Master Customer Account to track purchase history.">
+          <option value="">-- Link to Customer Account --</option>
+        </select>
+      </div>
+      <input type="email" id="subEmail" placeholder="Email Address" style="padding:6px; font-size:0.85rem; border:1px solid var(--input-border); border-radius:3px; background:var(--input-bg); color:var(--text-main);" />
       
       <div style="display:flex; gap:6px;">
         <select id="subFreq" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px;">
