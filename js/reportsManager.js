@@ -374,7 +374,9 @@ const ReportsManager = {
       
       let total = parseInt(item.onHand, 10) || 0;
       let res = parseInt(item.reservedQty, 10) || 0;
-      let avail = total - res;
+      
+      // ✨ FIX: Use the True Availability engine for the visual PDF table
+      let avail = typeof DatabaseManager !== 'undefined' ? DatabaseManager.getTrueAvailability(item) : (total - res);
       
       html += `<tr>
         ${incMfr ? `<td>${item.mfr || 'UNKNOWN'}</td>` : ''}

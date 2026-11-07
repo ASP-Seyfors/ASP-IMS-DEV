@@ -997,8 +997,9 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
     // 2. Inject Data and Bind Buttons
     document.getElementById('reportItemRowsContainer').innerHTML = rowsHtml;
-    document.getElementById('btnExportStockReportPdf').onclick = () => AuditManager.exportCustomerStockReportPDF(cust);
-    document.getElementById('btnExportStockReportEmail').onclick = () => AuditManager.draftEmailFlyer(cust);
+    // ✨ FIX: Pointed back to ReportsManager where the functions actually live
+    document.getElementById('btnExportStockReportPdf').onclick = () => ReportsManager.exportCustomerStockReportPDF(cust);
+    document.getElementById('btnExportStockReportEmail').onclick = () => ReportsManager.draftEmailFlyer(cust);
 
     // 3. Show Modal
     document.getElementById('stockReportEditorModal').style.display = 'flex';
@@ -1250,18 +1251,35 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let cleanCust = cust.toUpperCase().trim();
     let skuVolumeMap = {};
 
-    // Primary Source: Aggregate directly from active master allocations
+    // 1. Primary Source: Aggregate directly from active master allocations
     let allocations = JSON.parse(localStorage.getItem('asp_allocations')) || {};
     let custAllocations = allocations[cleanCust] || {};
     
-    // ✨ FIX: Safely extract integer quantity if the data is an object
     Object.keys(custAllocations).forEach(ref => {
       let rawVal = custAllocations[ref];
       let allocQty = typeof rawVal === 'object' ? (rawVal.qty || 0) : (parseInt(rawVal, 10) || 0);
       skuVolumeMap[ref] = (skuVolumeMap[ref] || 0) + allocQty;
     });
 
-    // Layer in remote analytics if present (for historical context)
+    // 2. ✨ NEW: Scan the local Session Archive for past packing data!
+    let archive = JSON.parse(localStorage.getItem('asp_session_archive')) || [];
+    archive.forEach(sess => {
+      let wType = (sess.workflowType || '').toUpperCase();
+      let sName = (sess.sessionName || '').toUpperCase();
+      
+      if (sess.status === 'Completed' && (wType.includes('PACK') || wType.includes('ORDER'))) {
+          let nameMatch = sName.includes(cleanCust);
+          
+          (sess.scannedObjects || []).forEach(scan => {
+              let tagMatch = (scan.customerTag || '').toUpperCase().includes(cleanCust);
+              if (nameMatch || tagMatch) {
+                  skuVolumeMap[scan.ref] = (skuVolumeMap[scan.ref] || 0) + (parseInt(scan.qty, 10) || 0);
+              }
+          });
+      }
+    });
+
+    // 3. Layer in remote analytics if present (for historical context)
     let analytics = JSON.parse(localStorage.getItem('asp_remote_analytics')) || {};
     let remoteSkuCounts = analytics[cleanCust] || {};
     Object.keys(remoteSkuCounts).forEach(ref => {
