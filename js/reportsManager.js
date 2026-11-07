@@ -71,19 +71,6 @@ const ReportsManager = {
     document.getElementById('modalSubCategories').style.display = 'none';
   },
 
-  // ✨ NEW: Helper to identify hidden parent items across all reports
-  getHiddenParentRefs() {
-      let hiddenParents = new Set();
-      if (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) {
-          DatabaseManager.db.forEach(i => {
-              if (DatabaseManager.isBoxOnly(i)) {
-                  hiddenParents.add(DatabaseManager.getCleanParentRef(i).toUpperCase());
-              }
-          });
-      }
-      return hiddenParents;
-  },
-
   // ✨ NEW: Centralized Report Math Engine
   getTrueAvailability(item) {
       if (!item) return 0;
@@ -308,18 +295,13 @@ const ReportsManager = {
     let incTotal = document.getElementById('chkInvTotal') ? document.getElementById('chkInvTotal').checked : false;
     let incRes = document.getElementById('chkInvRes') ? document.getElementById('chkInvRes').checked : false;
 
-    let hiddenParents = this.getHiddenParentRefs();
+    let hiddenParents = typeof DatabaseManager !== 'undefined' ? DatabaseManager.getHiddenParentRefs() : new Set();
 
     // Apply Dynamic Naming
     if (type === 'in_stock') {
       filtered = db.filter(i => {
-        if (hiddenParents.has((i.sku || i.ref || '').toUpperCase())) return false; // ✨ Filter Box Only
-        let total = parseInt(i.onHand, 10) || 0;
-        let res = parseInt(i.reservedQty, 10) || 0;
-        let avail = this.getTrueAvailability(item);
-        let priceStr = String(i.price || '').replace(/[^0-9.-]+/g, '');
-        let numPrice = parseFloat(priceStr) || 0;
-        return avail > 0;
+        if (hiddenParents.has((i.sku || i.ref || '').toUpperCase())) return false; 
+        return DatabaseManager.getTrueAvailability(i) > 0;
       });
     } else if (type === 'out_of_stock') {
       filtered = db.filter(i => {
@@ -860,18 +842,14 @@ const ReportsManager = {
       return;
     }
 
-    let hiddenParents = this.getHiddenParentRefs();
+    let hiddenParents = typeof DatabaseManager !== 'undefined' ? DatabaseManager.getHiddenParentRefs() : new Set();
 
     let filtered = db;
     if (mode === 'onhand') {
       filtered = db.filter(item => {
-        if (hiddenParents.has(DatabaseManager.getItemSku(item))) return false; // ✨ Filter Box Only
-        let total = parseInt(item.onHand || item.TotalQty, 10) || 0;
-        let res = parseInt(item.reservedQty, 10) || 0;
-        let avail = total - res;
-        let priceStr = String(item.price || item.Price || '').replace(/[^0-9.-]+/g, '');
-        let numPrice = parseFloat(priceStr) || 0;
-        return avail > 0 && numPrice > 0;
+        if (hiddenParents.has(DatabaseManager.getItemSku(item))) return false; 
+        let numPrice = parseFloat(String(item.price || item.Price || '').replace(/[^0-9.-]+/g, '')) || 0;
+        return DatabaseManager.getTrueAvailability(item) > 0 && numPrice > 0;
       });
     }
     
@@ -915,12 +893,8 @@ const ReportsManager = {
       fileSuffix = "Not_On_RevMed";
       filtered = db.filter(i => {
         let isFalse = String(i.onRevMed).toUpperCase() !== 'TRUE';
-        let total = parseInt(i.onHand || 0, 10);
-        let res = parseInt(i.reservedQty || 0, 10);
-        let avail = this.getTrueAvailability(i);
-        let priceStr = String(i.price || '').replace(/[^0-9.-]+/g, '');
-        let numPrice = parseFloat(priceStr) || 0;
-        return isFalse && avail > 0 && numPrice > 0;
+        let numPrice = parseFloat(String(i.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+        return isFalse && DatabaseManager.getTrueAvailability(i) > 0 && numPrice > 0;
       });
     }
 

@@ -27,8 +27,8 @@
   <div id="panelInventoryReports" style="background: #f3e5f5; border: 1px solid #ce93d8; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #4a148c;">Warehouse Inventory Reports</h4>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-      <button class="btn-small btn-auto" style="background-color: #0277bd; color: #fff;" onclick="ReportsManager.openInventoryReportOptions('in_stock')"><i data-lucide="package" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>On-Hand Stock Report</button>
-      <button class="btn-small btn-auto" style="background-color: #e65100; color: #fff;" onclick="ReportsManager.generateUnifiedExpirationReport()"><i data-lucide="triangle-alert" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Expiration Report</button>
+      <button class="btn-small btn-auto" style="background-color: #0277bd; color: #fff;" onclick="AuditManager.openInventoryReportOptions('in_stock')"><i data-lucide="package" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>On-Hand Stock Report</button>
+      <button class="btn-small btn-auto" style="background-color: #e65100; color: #fff;" onclick="AuditManager.generateUnifiedExpirationReport()"><i data-lucide="triangle-alert" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Expiration Report</button>
       <button class="btn-small btn-auto" style="background-color: #8e24aa; color: #fff;" onclick="ReportsManager.openAddressBookEditor()"><i data-lucide="book-open" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Manage Address Book</button>
       <button class="btn-action btn-auto" style="background-color: #d32f2f; color: #ffffff; margin: 0; padding: 10px;" onclick="window.openEthiconMonitorModal()">
         <i data-lucide="shield-alert" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i> Ethicon Monitor
@@ -78,25 +78,26 @@
         </select>
       </div>
 
-      <!-- ✨ NEW: Layout and Fallback Selectors -->
+      <!-- ✨ FIX: Layout and Fallback Selectors normalized colors -->
       <div style="display:flex; gap:6px;">
-        <select id="subFormat" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid #0277bd; border-radius:3px; color:#0277bd; font-weight:bold;" title="Choose the email layout design.">
+        <select id="subFormat" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px; color:#333; font-weight:normal;" title="Choose the email layout design.">
           <option value="SMART">Smart Intro + PDF (STAT Style)</option>
           <option value="LEGACY">Full Catalog in Email Body</option>
         </select>
-        <select id="subFallback" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid #f57f17; border-radius:3px; color:#f57f17; font-weight:bold;" title="If they have no purchase history, what should we show them?">
+        <select id="subFallback" style="flex:1; padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px; color:#333; font-weight:normal;" title="If they have no purchase history, what should we show them?">
           <option value="SELLERS">Fallback: Top Sellers</option>
           <option value="VALUE">Fallback: High Value</option>
           <option value="NONE">Fallback: None (PDF Only)</option>
         </select>
       </div>
       
-      <input type="text" id="subCategories" placeholder="Categories (Default: All)" readonly onclick="ReportsManager.openCategoryModal()" style="padding:6px; font-size:0.85rem; cursor:pointer; background-color:#f9f9f9; color: #333 !important; border:1px solid #ccc; border-radius:3px;" title="Click to select specific categories" />
+      <input type="text" id="subCategories" placeholder="Categories (Default: All)" readonly onclick="ReportsManager.openCategoryModal()" style="padding:6px; font-size:0.85rem; cursor:pointer; background-color:var(--input-bg); color: var(--text-main) !important; border:1px solid var(--border-color); border-radius:3px;" title="Click to select specific categories" />
       
       <button class="btn-small" style="background-color: #0277bd; color: #fff; width: 100%; margin-top:4px; padding:8px;" onclick="ReportsManager.saveSubscriber(event)">Save Subscriber</button>
     </div>
-    <div id="subListContainer" style="background: #fff; border: 1px solid #ccc; padding: 6px; border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 0.8rem;">
-      <p style="text-align:center; color:#777; margin:0;">Click 'Refresh' to view Active Subscribers.</p>
+    <!-- ✨ FIX: Changed hardcoded #fff background to CSS variables so text stays readable in Dark Mode -->
+    <div id="subListContainer" style="background: var(--card-bg, #fff); border: 1px solid var(--border-color, #ccc); padding: 6px; border-radius: 4px; max-height: 150px; overflow-y: auto; font-size: 0.8rem;">
+      <p style="text-align:center; color:var(--text-main, #777); margin:0;">Click 'Refresh' to view Active Subscribers.</p>
     </div>
     <button class="btn-small" style="background-color: #555; color: #fff; width: 100%; margin-top:6px; padding:8px;" onclick="ReportsManager.loadSubscribers()">Refresh</button>
   </div>
@@ -105,8 +106,8 @@
   <div id="panelRevMedReports" style="background: #e8f5e9; border: 1px solid #81c784; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #2e7d32;">RevMed Reports</h4>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-      <button class="btn-small btn-auto" style="background-color: #2e7d32; color: #fff;" onclick="ReportsManager.generateRevMedPDF('current')"><i data-lucide="clipboard-list" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Current RevMed Catalog</button>
-      <button class="btn-small btn-auto" style="background-color: #2e7d32; color: #fff;" onclick="ReportsManager.generateRevMedPDF('not_on_revmed')"><i data-lucide="clipboard-list" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>On-Hand Stock Not on RevMed</button>
+      <button class="btn-small btn-auto" style="background-color: #2e7d32; color: #fff;" onclick="AuditManager.generateRevMedPDF('current')"><i data-lucide="clipboard-list" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Current RevMed Catalog</button>
+      <button class="btn-small btn-auto" style="background-color: #2e7d32; color: #fff;" onclick="AuditManager.generateRevMedPDF('not_on_revmed')"><i data-lucide="clipboard-list" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>On-Hand Stock Not on RevMed</button>
     </div>
   </div>
 

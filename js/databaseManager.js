@@ -48,6 +48,41 @@ const DatabaseManager = {
       return item && item.parentRef ? String(item.parentRef).replace(/^\*/, '').trim() : '';
   },
 
+  getHiddenParentRefs() {
+      let hiddenParents = new Set();
+      this.db.forEach(i => {
+          if (this.isBoxOnly(i)) {
+              hiddenParents.add(this.getCleanParentRef(i).toUpperCase());
+          }
+      });
+      return hiddenParents;
+  },
+
+  getTrueAvailability(item) {
+      if (!item) return 0;
+      let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
+      
+      if (isBundle) {
+          let pSku = this.getCleanParentRef(item).toUpperCase();
+          let pItem = this.db.find(i => this.getItemSku(i) === pSku);
+          if (pItem) {
+              let pAvail = (parseInt(pItem.onHand, 10) || 0) - (parseInt(pItem.reservedQty, 10) || 0);
+              return Math.floor(pAvail / parseInt(item.uomMult, 10));
+          }
+          return 0;
+      } else {
+          let avail = (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0);
+          let children = this.db.filter(c => this.getCleanParentRef(c).toUpperCase() === this.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
+          if (children.length > 0) {
+              let hasBoxOnly = children.some(c => this.isBoxOnly(c));
+              if (hasBoxOnly) return 0; // Completely hide the 'Each' remainder if flagged as Box Only!
+              let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
+              if (largestBundle > 1) avail = avail % largestBundle;
+          }
+          return avail;
+      }
+  },
+
   resolveAlias(name, type = 'customer') {
     if (!name) return name;
     let cleanName = String(name).trim().toUpperCase();

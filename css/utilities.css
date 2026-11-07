@@ -240,6 +240,9 @@ body.theme-slate #helpContentContainer a, body.theme-sage #helpContentContainer 
 /* Modals Text Overrides */
 body.theme-slate #inventoryReportOptionsModal label, body.theme-sage #inventoryReportOptionsModal label,
 body.theme-slate #inventoryReportOptionsModal div[style*="color:#555"], body.theme-sage #inventoryReportOptionsModal div[style*="color:#555"],
+body.theme-slate #internalReportOptionsModal div[style*="color:#555"], body.theme-sage #internalReportOptionsModal div[style*="color:#555"],
+body.theme-slate #bugReportModal p[style*="color:#555"], body.theme-sage #bugReportModal p[style*="color:#555"],
+body.theme-slate #stockReportEditorModal div[style*="color:#555"], body.theme-sage #stockReportEditorModal div[style*="color:#555"],
 body.theme-slate #ethiconMonitorModal td[style*="color:#555"], body.theme-sage #ethiconMonitorModal td[style*="color:#555"],
 body.theme-slate #ethiconMonitorModal div[style*="color:#555"], body.theme-sage #ethiconMonitorModal div[style*="color:#555"],
 body.theme-slate #quickLookupModal span[style*="color:#555"], body.theme-sage #quickLookupModal span[style*="color:#555"],

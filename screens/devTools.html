@@ -51,11 +51,11 @@
   </div>
 
   <!-- Traceability Generation -->
-  <div style="background: #e8f5e9; border: 1px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #2e7d32;"><i data-lucide="bar-chart-3" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Generate Traceability Report</h4>
-    <p style="font-size: 0.8rem; color: #555; margin-top: 0; margin-bottom: 10px;">Select a timeframe to pull a comprehensive lifecycle audit from the live Cloud Ledger.</p>
+  <div style="background: var(--raw-bg, #e8f5e9); border: 1px solid var(--border-color, #2e7d32); padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: #4caf50;"><i data-lucide="bar-chart-3" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Generate Traceability Report</h4>
+    <p style="font-size: 0.8rem; color: var(--text-main, #555); margin-top: 0; margin-bottom: 10px;">Select a timeframe to pull a comprehensive lifecycle audit from the live Cloud Ledger.</p>
     <div style="display: flex; gap: 8px; align-items: center;">
-      <label style="font-weight:bold; font-size:0.85rem;">Timeframe:</label>
+      <label style="font-weight:bold; font-size:0.85rem; color: var(--text-main, #333);">Timeframe:</label>
       <select id="traceTimeframe" style="flex:1; padding:6px; border:1px solid #2e7d32; border-radius:4px;">
         <option value="24h">Last 24 Hours</option>
         <option value="7d" selected>Last 7 Days (End of Week)</option>
@@ -68,9 +68,9 @@
   </div>
 
   <!-- End of Week Rollup -->
-  <div style="background: #e3f2fd; border: 1px solid #90caf9; padding: 12px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
-    <h4 style="margin: 0 0 10px 0; color: #0277bd; text-align: left;"><i data-lucide="calendar-check" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>End of Week Rollup Report</h4>
-    <p style="font-size: 0.8rem; color: #555; margin-top: 0; text-align: left;">Automatically pull the live Cloud Ledger to generate a master KPI summary for the last 7 days.</p>
+  <div style="background: var(--raw-bg, #e3f2fd); border: 1px solid var(--border-color, #90caf9); padding: 12px; border-radius: 4px; margin-bottom: 15px; text-align: center;">
+    <h4 style="margin: 0 0 10px 0; color: var(--heading-color, #0277bd); text-align: left;"><i data-lucide="calendar-check" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>End of Week Rollup Report</h4>
+    <p style="font-size: 0.8rem; color: var(--text-main, #555); margin-top: 0; text-align: left;">Automatically pull the live Cloud Ledger to generate a master KPI summary for the last 7 days.</p>
     <button id="btnEndOfWeek" class="btn-action btn-start btn-auto" style="margin:0; width:100%; max-width: 350px; padding: 8px;" onclick="ReportsManager.generateEndOfWeekReport()"><i data-lucide="bar-chart-3" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Export Week Summary Report</button>
   </div>  
 
@@ -153,9 +153,9 @@
   -->
 
   <!-- Session Reversal Tool -->
-  <div style="background: #fce4ec; border: 1px solid #d81b60; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #d81b60;"><i data-lucide="refresh-cw" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Undo / Reverse Session</h4>
-    <p style="font-size: 0.8rem; color: #555; margin-top: 0; margin-bottom: 10px;">Select a recent Receiving or Reserving session (from the last 24 hours) to safely reverse its math.</p>
+  <div style="background: var(--raw-bg, #fce4ec); border: 1px solid var(--border-color, #d81b60); padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: var(--heading-color, #d81b60);"><i data-lucide="refresh-cw" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Undo / Reverse Session</h4>
+    <p style="font-size: 0.8rem; color: var(--text-main, #555); margin-top: 0; margin-bottom: 10px;">Select a recent Receiving or Reserving session (from the last 24 hours) to safely reverse its math.</p>
     <div style="display: flex; gap: 8px;">
       <select id="reversalSessionSelect" style="flex: 2; padding: 8px; border: 1px solid #d81b60; border-radius: 4px; font-weight: bold;"></select>
       <button class="btn-action btn-auto" style="flex: 1; background-color: #d81b60; color: #fff; margin: 0; padding: 8px;" onclick="SessionManager.executeSessionReversal()">Reverse Math</button>
@@ -163,15 +163,15 @@
   </div>
 
   <!-- System Restore -->
-  <div style="background: #fff3e0; border: 1px solid #e65100; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #e65100;"><i data-lucide="triangle-alert" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Event Replay & Restore</h4>
+  <div style="background: var(--raw-bg, #fff3e0); border: 1px solid var(--border-color, #e65100); padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: var(--heading-color, #e65100);"><i data-lucide="triangle-alert" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Event Replay & Restore</h4>
     <button class="btn-action btn-auto" style="background-color: #c62828; color: #fff; width: 100%; padding: 10px; font-weight: bold;" onclick="AuditManager.openRestoreModal()"><i data-lucide="rewind" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Execute System Restore</button>
   </div>  
   
   <!-- Floating Debug Console Toggle -->
-  <div style="background: #e8f5e9; border: 1px solid #2e7d32; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
-    <h4 style="margin: 0 0 10px 0; color: #2e7d32;"><i data-lucide="bug" style="width:18px; height:18px; vertical-align:middle; margin-right:4px;"></i>Live Debug Console</h4>
-    <p style="font-size: 0.8rem; color: #555; margin-top: 0; margin-bottom: 10px;">Open a floating console window to monitor background execution while using the app.</p>
+  <div style="background: var(--raw-bg, #e8f5e9); border: 1px solid var(--border-color, #2e7d32); padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+    <h4 style="margin: 0 0 10px 0; color: var(--heading-color, #2e7d32);"><i data-lucide="bug" style="width:18px; height:18px; vertical-align:middle; margin-right:4px;"></i>Live Debug Console</h4>
+    <p style="font-size: 0.8rem; color: var(--text-main, #555); margin-top: 0; margin-bottom: 10px;">Open a floating console window to monitor background execution while using the app.</p>
     <button class="btn-action btn-auto" style="background-color: #2e7d32; color: #fff; width: 100%; padding: 10px; font-weight: bold;" onclick="UIManager.toggleDebugConsole()">Toggle Floating Console</button>
   </div>
 </div>

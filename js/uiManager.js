@@ -331,7 +331,11 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         item = InventoryEngine.lookupAndNormalize(searchRef, searchGtin, DatabaseManager.db);
         if (!item) throw new Error("Item not found"); 
     } catch (e) {
-        resContainer.innerHTML = `<div style="background:#ffebee; color:#c62828; padding:12px; border-radius:4px; text-align:center;"><strong>No Match Found</strong><br>REF or GTIN "${query}" does not exist in the local catalog.</div>`;
+        // ✨ FIX: Enforced inline color for the span/div to prevent Dark Mode from overriding it to white
+        resContainer.innerHTML = `<div style="background:#ffebee; padding:12px; border-radius:4px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                                    <strong style="color:#c62828 !important;">No Match Found</strong><br>
+                                    <span style="color:#c62828 !important;">REF or GTIN "${query}" does not exist in the local catalog.</span>
+                                  </div>`;
         return;
     }
 

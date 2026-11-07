@@ -610,7 +610,11 @@ const SessionManager = {
     }
 
     if (document.getElementById('revRef')) document.getElementById('revRef').textContent = ref;
-    if (document.getElementById('revGtin')) document.getElementById('revGtin').textContent = gtin || '--';
+    if (document.getElementById('revGtin')) {
+        // ✨ FIX: If the DB is missing the GTIN, show the new one you just scanned!
+        let displayGtin = (this.currentMatchedItem && this.currentMatchedItem.gtin) ? this.currentMatchedItem.gtin : gtin;
+        document.getElementById('revGtin').textContent = displayGtin || '--';
+    }
     if (document.getElementById('revLot')) document.getElementById('revLot').textContent = lot || '--';
     if (document.getElementById('revExp')) document.getElementById('revExp').textContent = exp || '--';
     if (document.getElementById('revMfr')) document.getElementById('revMfr').textContent = vendor;

@@ -1009,27 +1009,19 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     let custInput = document.getElementById('customerReportSelect');
     let cust = (custInput && custInput.value) ? custInput.value : 'PROMO';
     
-    let hiddenParents = this.getHiddenParentRefs();
+    let hiddenParents = typeof DatabaseManager !== 'undefined' ? DatabaseManager.getHiddenParentRefs() : new Set();
     
     // Pull ALL available inventory directly from the master database
     let availableItems = [];
     if (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) {
       availableItems = DatabaseManager.db.filter(dbItem => {
-        // ✨ Filter Box Only items globally if their child flag demands it
-        if (typeof ReportsManager !== 'undefined' && ReportsManager.getHiddenParentRefs) {
-            let hiddenParents = ReportsManager.getHiddenParentRefs();
-            if (hiddenParents.has(DatabaseManager.getItemSku(dbItem))) return false;
-        }
-        
-        // ✨ Apply the true Box math availability
-        return this.getTrueAvailability(dbItem) > 0;
-        
+        if (hiddenParents.has(DatabaseManager.getItemSku(dbItem))) return false; 
+        return DatabaseManager.getTrueAvailability(dbItem) > 0;
       }).map(dbItem => {
         return {
           ref: DatabaseManager.getItemSku(dbItem),
           desc: DatabaseManager.getItemDesc(dbItem),
-          // ✨ Update the object assignment to use the new math
-          onHand: this.getTrueAvailability(dbItem),
+          onHand: DatabaseManager.getTrueAvailability(dbItem),
           price: dbItem.price || '$0.00'
         };
       }).sort((a, b) => a.ref.localeCompare(b.ref));
@@ -1286,10 +1278,10 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     sortedSkus.forEach(ref => {
       let dbItem = DatabaseManager.db.find(i => DatabaseManager.getItemSku(i) === ref);
       
-      // ✨ FIX: Calculate True Available Qty instead of Raw Total Qty
+      // ✨ FIX: Safely pull the calculation from the universal DatabaseManager
       let trueAvailable = 0;
-      if (dbItem) {
-          trueAvailable = this.getTrueAvailability(dbItem);
+      if (dbItem && typeof DatabaseManager !== 'undefined') {
+          trueAvailable = DatabaseManager.getTrueAvailability(dbItem);
       }
 
       resultList.push({
@@ -2633,11 +2625,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let html = `<div style="margin-top:10px; padding:10px; background:#e8f5e9; border:1px solid #4caf50; border-radius:4px;">
                     <h4 style="margin:0 0 8px 0; color:#2e7d32;">🔍 Trace Results for Lot: ${targetLot} (${foundEvents.length} events found)</h4>`;
       foundEvents.forEach(ev => {
-        // ✨ FIX: Injected color:#333; to force dark text on the white background
-        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #0277bd; font-size:0.85rem;">
-                  <div><strong>REF:</strong> ${ev.ref} | <strong>Qty:</strong> ${ev.qty} | <strong>Action:</strong> ${ev.actionTag}</div>
-                  <div><strong>Session:</strong> ${ev.sessionName} (${ev.workflow})</div>
-                  <div style="color:#666;">Date: ${ev.date} | Operator: ${ev.user}</div>
+        // ✨ FIX: Hardcoded colors to guarantee contrast on the white card background
+        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #0277bd; font-size:0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <div><strong style="color:#0277bd;">REF:</strong> ${ev.ref} | <strong style="color:#0277bd;">Qty:</strong> ${ev.qty} | <strong style="color:#0277bd;">Action:</strong> ${ev.actionTag}</div>
+                  <div style="margin: 4px 0;"><strong>Session:</strong> ${ev.sessionName} (${ev.workflow})</div>
+                  <div style="color:#555;">Date: ${ev.date} | Operator: ${ev.user}</div>
                 </div>`;
       });
       html += `</div>`;
@@ -2679,11 +2671,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let html = `<div style="margin-top:10px; padding:10px; background:#f3e5f5; border:1px solid #ce93d8; border-radius:4px;">
                     <h4 style="margin:0 0 8px 0; color:#7b1fa2;">🗄️ Deep Archive Results for Lot: ${targetLot} (${foundEvents.length} events found)</h4>`;
       foundEvents.forEach(ev => {
-        // ✨ FIX: Injected color:#333; to force dark text on the white background
-        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #7b1fa2; font-size:0.85rem;">
-                  <div><strong>REF:</strong> ${ev.ref} | <strong>Qty:</strong> ${ev.qty} | <strong>Action:</strong> ${ev.actionTag}</div>
-                  <div><strong>Session:</strong> ${ev.sessionName} (${ev.workflow})</div>
-                  <div style="color:#666;">Date: ${ev.date} | Operator: ${ev.user}</div>
+        // ✨ FIX: Hardcoded colors to guarantee contrast on the white card background
+        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #7b1fa2; font-size:0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <div><strong style="color:#7b1fa2;">REF:</strong> ${ev.ref} | <strong style="color:#7b1fa2;">Qty:</strong> ${ev.qty} | <strong style="color:#7b1fa2;">Action:</strong> ${ev.actionTag}</div>
+                  <div style="margin: 4px 0;"><strong>Session:</strong> ${ev.sessionName} (${ev.workflow})</div>
+                  <div style="color:#555;">Date: ${ev.date} | Operator: ${ev.user}</div>
                 </div>`;
       });
       html += `</div>`;
@@ -2785,17 +2777,17 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         if (ev.workflow.includes('Packing') || ev.workflow.includes('Ship')) actColor = '#e65100'; // Orange
         if (ev.workflow.includes('Reserving')) actColor = '#0277bd'; // Blue
 
-        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid ${actColor}; font-size:0.85rem; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+        html += `<div style="background:var(--input-bg, #fff); color:var(--text-main, #333); padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid ${actColor}; font-size:0.85rem; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
                   <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                      <strong style="color:#0277bd; font-size:0.9rem;">${ev.ref}</strong>
+                      <strong style="color:var(--heading-color, #0277bd); font-size:0.9rem;">${ev.ref}</strong>
                       <strong style="color:${actColor}; font-size:0.9rem;">Qty: ${ev.qty}</strong>
                   </div>
-                  <div style="margin-bottom:4px; font-size:0.8rem; color:#555;">
+                  <div style="margin-bottom:4px; font-size:0.8rem; color:var(--text-main, #555);">
                       Lot: <strong>${ev.lot || 'N/A'}</strong> | Exp: <strong>${ev.exp || 'N/A'}</strong>
                   </div>
-                  <div style="margin-bottom:2px; color:#333;"><strong>Session:</strong> ${ev.sessionName}</div>
-                  <div style="margin-bottom:4px; color:#555;"><strong>Dest/Note:</strong> ${ev.actionTag}</div>
-                  <div style="color:#777; font-size:0.75rem; display:flex; justify-content:space-between; border-top:1px dashed #eee; padding-top:4px; margin-top:4px;">
+                  <div style="margin-bottom:2px; color:var(--text-main, #333);"><strong>Session:</strong> ${ev.sessionName}</div>
+                  <div style="margin-bottom:4px; color:var(--text-main, #555);"><strong>Dest/Note:</strong> ${ev.actionTag}</div>
+                  <div style="color:var(--text-main, #777); font-size:0.75rem; display:flex; justify-content:space-between; border-top:1px dashed var(--border-color, #eee); padding-top:4px; margin-top:4px;">
                       <span>${ev.date}</span>
                       <span>Operator: ${ev.user}</span>
                   </div>
