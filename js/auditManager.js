@@ -1078,9 +1078,9 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     // 2. Inject Data and Bind Buttons
     document.getElementById('reportItemRowsContainer').innerHTML = rowsHtml.length > 0 ? rowsHtml : '<div style="text-align:center; padding:10px; color:#777;">No items currently available in stock.</div>';
     
-    // ✨ FIX: Pointed to AuditManager instead of ReportsManager
-    document.getElementById('btnExportStockReportPdf').onclick = () => AuditManager.exportCustomerStockReportPDF(cust);
-    document.getElementById('btnExportStockReportEmail').onclick = () => AuditManager.draftEmailFlyer(cust);
+    // ✨ FIX: Pointed back to ReportsManager where the functions actually live
+    document.getElementById('btnExportStockReportPdf').onclick = () => ReportsManager.exportCustomerStockReportPDF(cust);
+    document.getElementById('btnExportStockReportEmail').onclick = () => ReportsManager.draftEmailFlyer(cust);
 
     // 3. Show Modal
     document.getElementById('stockReportEditorModal').style.display = 'flex';
