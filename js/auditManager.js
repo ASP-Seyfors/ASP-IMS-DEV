@@ -2691,11 +2691,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let html = `<div style="margin-top:10px; padding:10px; background:#e8f5e9; border:1px solid #4caf50; border-radius:4px;">
                     <h4 style="margin:0 0 8px 0; color:#2e7d32;">🔍 Trace Results for Lot: ${targetLot} (${foundEvents.length} events found)</h4>`;
       foundEvents.forEach(ev => {
-        // ✨ FIX: Hardcoded colors to guarantee contrast on the white card background
-        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #0277bd; font-size:0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                  <div><strong style="color:#0277bd;">REF:</strong> ${ev.ref} | <strong style="color:#0277bd;">Qty:</strong> ${ev.qty} | <strong style="color:#0277bd;">Action:</strong> ${ev.actionTag}</div>
+        // ✨ FIX: Injected CSS variables so the cards perfectly adapt to Dark Mode while keeping the blue borders
+        html += `<div style="background:var(--input-bg, #fff); color:var(--text-main, #333); padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid var(--heading-color, #0277bd); font-size:0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <div><strong style="color:var(--heading-color, #0277bd);">REF:</strong> ${ev.ref} | <strong style="color:var(--heading-color, #0277bd);">Qty:</strong> ${ev.qty} | <strong style="color:var(--heading-color, #0277bd);">Action:</strong> ${ev.actionTag}</div>
                   <div style="margin: 4px 0;"><strong>Session:</strong> ${ev.sessionName} (${ev.workflow})</div>
-                  <div style="color:#555;">Date: ${ev.date} | Operator: ${ev.user}</div>
+                  <div style="color:var(--text-main, #555);">Date: ${ev.date} | Operator: ${ev.user}</div>
                 </div>`;
       });
       html += `</div>`;
@@ -2737,11 +2737,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let html = `<div style="margin-top:10px; padding:10px; background:#f3e5f5; border:1px solid #ce93d8; border-radius:4px;">
                     <h4 style="margin:0 0 8px 0; color:#7b1fa2;">🗄️ Deep Archive Results for Lot: ${targetLot} (${foundEvents.length} events found)</h4>`;
       foundEvents.forEach(ev => {
-        // ✨ FIX: Hardcoded colors to guarantee contrast on the white card background
-        html += `<div style="background:#fff; color:#333; padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #7b1fa2; font-size:0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        // ✨ FIX: Injected CSS variables so the cards perfectly adapt to Dark Mode while keeping the purple borders
+        html += `<div style="background:var(--input-bg, #fff); color:var(--text-main, #333); padding:8px; margin-bottom:6px; border-radius:3px; border-left:4px solid #7b1fa2; font-size:0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                   <div><strong style="color:#7b1fa2;">REF:</strong> ${ev.ref} | <strong style="color:#7b1fa2;">Qty:</strong> ${ev.qty} | <strong style="color:#7b1fa2;">Action:</strong> ${ev.actionTag}</div>
                   <div style="margin: 4px 0;"><strong>Session:</strong> ${ev.sessionName} (${ev.workflow})</div>
-                  <div style="color:#555;">Date: ${ev.date} | Operator: ${ev.user}</div>
+                  <div style="color:var(--text-main, #555);">Date: ${ev.date} | Operator: ${ev.user}</div>
                 </div>`;
       });
       html += `</div>`;

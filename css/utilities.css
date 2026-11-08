@@ -411,10 +411,13 @@ body.theme-slate #modalBundleRow label, body.theme-sage #modalBundleRow label {
 
 /* ✨ FIXES: Dark Mode Readability Overrides for Audit Hub, Ledger Search, and Sync Modals */
 body.theme-slate #screenAuditHub p, body.theme-sage #screenAuditHub p,
+body.theme-slate #screenAuditHub h4, body.theme-sage #screenAuditHub h4,
 body.theme-slate #screenAuditHub div[style*="color:#555"], body.theme-sage #screenAuditHub div[style*="color:#555"],
 body.theme-slate #screenAuditHub div[style*="color: #555"], body.theme-sage #screenAuditHub div[style*="color: #555"],
 body.theme-slate #screenAuditHub div[style*="color:#333"], body.theme-sage #screenAuditHub div[style*="color:#333"],
 body.theme-slate #screenAuditHub div[style*="color:#777"], body.theme-sage #screenAuditHub div[style*="color:#777"],
+body.theme-slate #screenAuditHub span[style*="color:#555"], body.theme-sage #screenAuditHub span[style*="color:#555"],
+body.theme-slate #screenAuditHub span[style*="color:#777"], body.theme-sage #screenAuditHub span[style*="color:#777"],
 body.theme-slate #panelArchiveExport p, body.theme-sage #panelArchiveExport p,
 body.theme-slate #syncProgressModal p, body.theme-sage #syncProgressModal p,
 body.theme-slate #syncProgressModal div[style*="color:#555"], body.theme-sage #syncProgressModal div[style*="color:#555"] {

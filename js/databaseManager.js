@@ -983,7 +983,7 @@ const DatabaseManager = {
 
     UIManager.showCustomConfirm(
         "Review Pending Upload", 
-        `You have <b>${newItemsCount}</b> new items and <b>${updatesCount}</b> field edits pending.\n\nDo you want to push these changes to the master Google Sheet now?`, 
+        `You have <b>${newItemsCount}</b> new items and <b>${updatesCount}</b> existing items with pending field edits.\n\nDo you want to push these changes to the master Google Sheet now?`, 
         confirmUpload
     );
   },
