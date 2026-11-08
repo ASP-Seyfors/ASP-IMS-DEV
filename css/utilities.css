@@ -327,3 +327,35 @@ body.theme-slate #itemKnownOrdersSelect, body.theme-sage #itemKnownOrdersSelect 
     color: var(--text-main) !important;
     border-color: var(--border-color) !important;
 }
+
+/* =========================================================
+   ADDITIONAL CONTRAST FIXES (FLYER, LOOKUP, VERIFY)
+========================================================= */
+
+/* 1. Custom Promotional Flyer Modal (Labels & Header) */
+body.theme-slate #stockReportEditorModal label[style*="color:#333"], 
+body.theme-sage #stockReportEditorModal label[style*="color:#333"],
+body.theme-slate #stockReportItemCount, 
+body.theme-sage #stockReportItemCount {
+    color: var(--text-main) !important;
+}
+
+/* 2. Scanning Screen: "REF / SKU Lookup" Label */
+body.theme-slate #screenScanning .form-label[style*="color: #000000"], 
+body.theme-sage #screenScanning .form-label[style*="color: #000000"] {
+    color: var(--heading-color) !important;
+}
+
+/* 3. Verify Item Details: MFR, GTIN, Shelf, Desc */
+/* Targets the parent wrapper to turn the bold labels white */
+body.theme-slate #screenReview div[style*="color: #555"], 
+body.theme-sage #screenReview div[style*="color: #555"] {
+    color: var(--text-main) !important;
+}
+/* Targets the specific injected span values to turn them yellow/blue */
+body.theme-slate #revMfr, body.theme-sage #revMfr,
+body.theme-slate #revGtin, body.theme-sage #revGtin,
+body.theme-slate #revShelf, body.theme-sage #revShelf,
+body.theme-slate #revDesc, body.theme-sage #revDesc {
+    color: var(--heading-color) !important;
+}
