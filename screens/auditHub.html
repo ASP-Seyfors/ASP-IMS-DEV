@@ -29,7 +29,7 @@
   </p>
 
   <!-- LOT TRACEABILITY TOOL -->
-  <div style="background: #e3f2fd; border: 1px solid #0277bd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+  <div style="background: var(--raw-bg, #e3f2fd); border: 1px solid #0277bd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #0277bd;"><i data-lucide="search" style="width:18px; height:18px; vertical-align:middle; margin-right:4px;"></i>Active Recall & Lot Traceability</h4>
     <div style="display: flex; gap: 8px; margin-bottom: 10px;">
       <input type="text" id="lotSearchInput" placeholder="Scan or type Lot Number..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" oninput="this.value = this.value.toUpperCase();" onkeypress="if(event.key==='Enter') { AuditManager.traceLotNumber(); }">
@@ -39,7 +39,7 @@
   </div>
 
   <!-- ✨ NEW: HISTORICAL LEDGER SEARCH -->
-  <div style="background: #f3e5f5; border: 1px solid #7b1fa2; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+  <div style="background: var(--raw-bg, #f3e5f5); border: 1px solid #7b1fa2; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #7b1fa2;"><i data-lucide="database" style="width:18px; height:18px; vertical-align:middle; margin-right:4px;"></i>Historical Ledger Search</h4>
     <p style="font-size: 0.8rem; color: var(--text-main, #555); margin-top: 0; margin-bottom: 10px;">Search the cloud audit log for specific REFs, POs, or Partners to analyze historical volume.</p>
     
@@ -84,7 +84,7 @@
   </div>
 
   <!-- DAMAGED INVENTORY HUB -->
-  <div class="card" style="background-color: #ffebee; border: 1px solid #c62828; padding: 15px; margin-top: 20px; text-align: center;">
+  <div class="card" style="background-color: var(--raw-bg, #ffebee); border: 1px solid #c62828; padding: 15px; margin-top: 20px; text-align: center;">
     <h4 style="margin: 0 0 10px 0; color: #c62828;"><i data-lucide="triangle-alert" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Damaged Inventory Hub</h4>
     <p style="font-size: 0.8rem; color: var(--text-main, #555); margin-top: 0; margin-bottom: 10px;">View, manage, and export items currently quarantined as damaged.</p>
     <button class="btn-action btn-auto" style="background-color: #c62828; color: #fff; width: 100%; max-width: 350px; padding: 10px;" onclick="UIManager.openDamagedBinViewerModal()"><i data-lucide="package" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>Damaged Items Bin</button>
