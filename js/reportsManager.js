@@ -1124,7 +1124,7 @@ async function runEthiconUiScan(mode) {
             tableHtml += `<tr style="border-bottom:1px solid #ccc;">
                 <td style="padding:6px; font-weight:bold; color:#d32f2f;">${hit.ref}</td>
                 <td style="padding:6px; font-weight:bold; color:#2e7d32;">${alts}</td>
-                <td style="padding:6px; font-size:0.8rem; color:#555;">${cleanDate}</td>
+                <td style="padding:6px; font-size:0.8rem; color:var(--text-main, #555);">${cleanDate}</td>
             </tr>`;
         });
         tableHtml += `</table>`;
@@ -1193,7 +1193,7 @@ function openEthiconMonitorModal() {
               tableHtml += `<tr style="border-bottom:1px solid #ccc;">
                   <td style="padding:6px; font-weight:bold; color:#d32f2f;">${hit.ref}</td>
                   <td style="padding:6px; font-weight:bold; color:#2e7d32;">${hit.alts}</td>
-                  <td style="padding:6px; font-size:0.8rem; color:#555;">${cleanDate}</td>
+                  <td style="padding:6px; font-size:0.8rem; color:var(--text-main, #555);">${cleanDate}</td>
               </tr>`;
           });
           tableHtml += `</table>`;

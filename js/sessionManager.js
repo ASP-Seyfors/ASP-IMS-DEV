@@ -644,7 +644,8 @@ const SessionManager = {
       this.pendingUpdates['gtin'] = gtin;
       if (btnGtin) btnGtin.style.display = 'inline-block';
       if (diffBanner) {
-        diffBanner.textContent = this.currentMatchedItem.gtin ? `⚠️ Replace Saved GTIN (${this.currentMatchedItem.gtin})?` : `[Link New GTIN]`;
+        let oldGtin = this.currentMatchedItem.gtin ? this.currentMatchedItem.gtin : 'None';
+        diffBanner.textContent = this.currentMatchedItem.gtin ? `⚠️ Replace Saved GTIN (${this.currentMatchedItem.gtin})?` : `[Link New GTIN: ${gtin} replacing ${oldGtin}]`;
         diffBanner.style.display = 'block';
       }
     } else {
