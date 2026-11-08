@@ -952,7 +952,8 @@ const ReportsManager = {
           
           if (data.status === "success" && data.subs && data.subs.length > 0) {
               let html = '<table style="width:100%; border-collapse:collapse; text-align:left;">';
-              html += '<tr style="background:#f0f0f0; border-bottom:1px solid #ccc;"><th style="padding:4px;">Name</th><th style="padding:4px;">Email</th><th style="padding:4px;">Freq</th><th style="padding:4px;">Status</th><th style="padding:4px;"></th></tr>';
+              // ✨ FIX: Swapped hardcoded hex colors for your Light/Dark Mode CSS variables
+              html += '<tr style="background:var(--raw-bg, #f0f0f0); border-bottom:1px solid var(--border-color, #ccc);"><th style="padding:4px; color:var(--text-main, #333);">Name</th><th style="padding:4px; color:var(--text-main, #333);">Email</th><th style="padding:4px; color:var(--text-main, #333);">Freq</th><th style="padding:4px; color:var(--text-main, #333);">Status</th><th style="padding:4px;"></th></tr>';
               
               data.subs.forEach(sub => {
                   // Pass the new variables safely to the edit button

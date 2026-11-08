@@ -848,35 +848,36 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
     document.getElementById('internalReportCustomerName').textContent = cust;
     document.getElementById('btnExportInternalReport').onclick = () => {
-      // ✨ FIX: Changed from ReportsManager to AuditManager
-      AuditManager.generateInternalSalesReport(cust, limit);
-      document.getElementById('internalReportOptionsModal').style.display = 'none';
+      AuditManager.generateInternalSalesReport(cust);
     };
 
     document.getElementById('internalReportOptionsModal').style.display = 'flex';
   },
 
-  generateInternalSalesReport(cust) {
+  async generateInternalSalesReport(cust) {
     if (!cust) return;
     
-    // Read the limit selection from the main reports screen
-    let limitRadio = document.querySelector('#screenReports input[name="internalReportScope"]:checked');
-    let limit = limitRadio ? limitRadio.value : '10';
+    let btn = document.getElementById('btnExportInternalReport');
+    let origText = btn ? btn.textContent : "🖨️ Export PDF";
+    if (btn) { btn.textContent = "⏳ Fetching History..."; btn.disabled = true; }
 
-    let incDesc = document.getElementById('chkIntDesc') ? document.getElementById('chkIntDesc').checked : true;
-    let incHist = document.getElementById('chkIntHist') ? document.getElementById('chkIntHist').checked : true;
-    let incOnHand = document.getElementById('chkIntOnHand') ? document.getElementById('chkIntOnHand').checked : true;
-    let incPrice = document.getElementById('chkIntPrice') ? document.getElementById('chkIntPrice').checked : true;
-    let incCost = document.getElementById('chkIntCost') ? document.getElementById('chkIntCost').checked : true;
+    try {
+        let limitRadio = document.querySelector('#screenReports input[name="internalReportScope"]:checked');
+        let limit = limitRadio ? limitRadio.value : '10';
 
-    let scopeTitle = limit === 'all' ? 'All Historical Items' : 'Top 10 Items';
-    // Remove the .pdf here
-    let filename = `Internal_Sales_Report_${cust}_${SessionManager.sessionDateStr}`;
+        let incDesc = document.getElementById('chkIntDesc') ? document.getElementById('chkIntDesc').checked : true;
+        let incHist = document.getElementById('chkIntHist') ? document.getElementById('chkIntHist').checked : true;
+        let incOnHand = document.getElementById('chkIntOnHand') ? document.getElementById('chkIntOnHand').checked : true;
+        let incPrice = document.getElementById('chkIntPrice') ? document.getElementById('chkIntPrice').checked : true;
+        let incCost = document.getElementById('chkIntCost') ? document.getElementById('chkIntCost').checked : true;
 
-    // Pass the limit parameter here!
-    let skuMap = this.getHistoricalCustomerData(cust, limit); 
-    
-    let html = `<!DOCTYPE html><html><head><title>${filename}</title>
+        let scopeTitle = limit === 'all' ? 'All Historical Items' : 'Top 10 Items';
+        let filename = `Internal_Sales_Report_${cust}_${SessionManager.sessionDateStr}`;
+
+        // ✨ Await the fetch!
+        let skuMap = await this.getHistoricalCustomerData(cust, limit); 
+        
+        let html = `<!DOCTYPE html><html><head><title>${filename}</title>
     <style>
       body { font-family: 'Helvetica Neue', Arial, sans-serif; margin:30px; color:#333; font-size:12px; }
       .header { border-bottom:3px solid #0277bd; padding-bottom:10px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; }
@@ -940,35 +941,49 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     html += `</tbody></table></body></html>`;
 
     let win = window.open('', '_blank');
-    if (win) { 
-      win.document.write(html); 
-      let safeTitle = filename.replace(/\./g, '\u2024');
-      win.document.title = safeTitle; 
-      win.focus(); 
-      setTimeout(() => win.print(), UIManager.printTimeout);
+        if (win) { 
+          win.document.write(html); 
+          let safeTitle = filename.replace(/\./g, '\u2024');
+          win.document.title = safeTitle; 
+          win.focus(); 
+          setTimeout(() => win.print(), UIManager.printTimeout);
+        }
+        
+        let modal = document.getElementById('internalReportOptionsModal');
+        if (modal) modal.style.display = 'none';
+
+    } catch(err) {
+        alert("Report Error: " + err.message);
+    } finally {
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
     }
-    
-    let modal = document.getElementById('internalReportOptionsModal');
-    if (modal) modal.style.display = 'none'; // Changed from modal.remove()
   },
 
   // ==========================================================================
   // CUSTOMER INVENTORY STOCK REPORT EDITOR (CUSTOMER-FACING)
   // ==========================================================================
-  openCustomerStockReportEditor() {
+  async openCustomerStockReportEditor() {
     let cust = document.getElementById('customerReportSelect').value;
     if (!cust) { alert("Please select a customer first."); return; }
+    
+    // Find the triggering button to show a loading state
+    let btn = Array.from(document.querySelectorAll('#customerReportControls button')).find(b => b.textContent.includes('On-Hand Stock Flyer'));
+    let origText = btn ? btn.innerHTML : `<i data-lucide="file-text" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i>On-Hand Stock Flyer`;
+    if (btn) { btn.innerHTML = "⏳ Loading Data..."; btn.disabled = true; }
 
-    // Read the scope selected in screens/reports.html
-    let scopeRadio = document.querySelector('input[name="internalReportScope"]:checked');
-    let limit = scopeRadio ? scopeRadio.value : '10';
+    try {
+        // Read the scope selected in screens/reports.html
+        let scopeRadio = document.querySelector('input[name="internalReportScope"]:checked');
+        let limit = scopeRadio ? scopeRadio.value : '10';
 
-    let items = this.getHistoricalCustomerData(cust, limit).filter(i => {
-      let numPrice = parseFloat(String(i.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-      return numPrice > 0;
-    });
+        // ✨ Await the fetch!
+        let historicalData = await this.getHistoricalCustomerData(cust, limit);
+        let items = historicalData.filter(i => {
+          let numPrice = parseFloat(String(i.price || '').replace(/[^0-9.-]+/g, '')) || 0;
+          return numPrice > 0;
+        });
 
-    let rowsHtml = '';
+        let rowsHtml = '';
     items.forEach((it, idx) => {
       let safeDesc = (it.desc || '').replace(/"/g, '&quot;');
       let safeRef = (it.ref || '').replace(/"/g, '&quot;');
@@ -1002,7 +1017,12 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     document.getElementById('btnExportStockReportEmail').onclick = () => ReportsManager.draftEmailFlyer(cust);
 
     // 3. Show Modal
-    document.getElementById('stockReportEditorModal').style.display = 'flex';
+        document.getElementById('stockReportEditorModal').style.display = 'flex';
+    } catch (err) {
+        alert("Error loading customer data: " + err.message);
+    } finally {
+        if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+    }
   },
 
   openCustomSalesFlyer() {
@@ -1247,7 +1267,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
     document.getElementById('stockReportEditorModal').style.display = 'none';
   },
 
-  getHistoricalCustomerData(cust, limit = '10') {
+  async getHistoricalCustomerData(cust, limit = '10') {
     let cleanCust = cust.toUpperCase().trim();
     let skuVolumeMap = {};
 
@@ -1279,7 +1299,35 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       }
     });
 
-    // 3. Layer in remote analytics if present (for historical context)
+    // 3. ✨ NEW: Fetch Live Cloud Ledger to guarantee absolute historical accuracy!
+    try {
+        let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+        let text = await res.text();
+        let responseData = JSON.parse(text);
+        if (responseData.status === "success" && responseData.data) {
+            let auditLog = responseData.data;
+            auditLog.forEach(row => {
+                let workflow = String(row['Workflow'] || '').toUpperCase();
+                if (workflow.includes('PACK') || workflow.includes('SHIP')) {
+                    let sName = String(row['Session / Reason'] || '').toUpperCase();
+                    let dest = String(row['Destination / Action'] || '').toUpperCase();
+                    let nameMatch = sName.includes(cleanCust);
+                    let tagMatch = dest.includes(cleanCust);
+                    if (nameMatch || tagMatch) {
+                        let ref = row['REF / SKU'];
+                        let qty = Math.abs(parseInt(row['Qty Moved'], 10) || 0);
+                        if (ref && qty > 0) {
+                            skuVolumeMap[ref] = (skuVolumeMap[ref] || 0) + qty;
+                        }
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.warn("Could not fetch live ledger for historical data:", e);
+    }
+
+    // 4. Layer in remote analytics if present (for historical context)
     let analytics = JSON.parse(localStorage.getItem('asp_remote_analytics')) || {};
     let remoteSkuCounts = analytics[cleanCust] || {};
     Object.keys(remoteSkuCounts).forEach(ref => {
