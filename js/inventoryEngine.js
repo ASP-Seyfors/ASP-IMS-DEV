@@ -65,7 +65,7 @@ const InventoryEngine = {
             throw new Error(`There are currently ${available} units available.`);
         } 
         else if (!ignoreOverpack) {
-            throw new Error(`OVERPACK WARNING: You are packing ${requestedQty}, but this customer only has ${allocatedToCust} reserved. This will pull ${extraNeeded} unit(s) from available inventory. Proceed?`);
+            throw new Error(`OVERPACK_WARNING: You are packing ${requestedQty}, but this customer only has ${allocatedToCust} reserved. This will pull ${extraNeeded} unit(s) from available inventory. Proceed?`);
         }
       }
     }
