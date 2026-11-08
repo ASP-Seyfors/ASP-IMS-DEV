@@ -509,12 +509,18 @@ const DatabaseManager = {
     statusEl.value = dbItem.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
     statusEl.style.color = dbItem.status === 'ACTIVE' ? '#2e7d32' : '#c62828';
 
-    // ✨ THE FIX: Show the checkbox for BOTH Individual Items and Bundles
+    // ✨ THE FIX: Only show the "Box Only" checkbox if the item is ACTUALLY a Box/Bundle variant!
     let bundleRow = document.getElementById('modalBundleRow');
     let sellAsBoxOnlyChk = document.getElementById('modalSellAsBoxOnly');
+    let uomMultNum = parseInt(dbItem.uomMult, 10) || 1;
+    
     if (bundleRow && sellAsBoxOnlyChk) {
-        bundleRow.style.display = 'block';
-        sellAsBoxOnlyChk.checked = this.isBoxOnly(dbItem);
+        if (uomMultNum > 1) {
+            bundleRow.style.display = 'block';
+            sellAsBoxOnlyChk.checked = this.isBoxOnly(dbItem);
+        } else {
+            bundleRow.style.display = 'none';
+        }
     }
 
     // ✨ NEW: Override the container to display as a 2x2 Grid instead of a single row
