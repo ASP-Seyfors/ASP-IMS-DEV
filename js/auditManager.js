@@ -976,11 +976,10 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         let scopeRadio = document.querySelector('input[name="internalReportScope"]:checked');
         let limit = scopeRadio ? scopeRadio.value : '10';
 
-        // ✨ Await the fetch!
         let historicalData = await this.getHistoricalCustomerData(cust, limit);
         let items = historicalData.filter(i => {
           let numPrice = parseFloat(String(i.price || '').replace(/[^0-9.-]+/g, '')) || 0;
-          return numPrice > 0;
+          return numPrice > 0 && i.onHand > 0;
         });
 
         let rowsHtml = '';
@@ -1137,10 +1136,8 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let qty = r.querySelector('.rep-qty').value.trim(); 
       let price = r.querySelector('.rep-price').value.trim();
       
-      // ✨ NEW: Lookup the UOM and apply the Box Math formatter
-      let dbItem = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase()) : null;
-      let uom = dbItem ? (parseInt(dbItem.uomMult, 10) || 1) : 1;
-      let displayQty = DatabaseManager.formatPackaging(qty, uom);
+      // Use the raw numerical quantity provided in the modal
+      let displayQty = qty;
       
       let formattedPrice = '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>';
       if (price) {
@@ -1237,16 +1234,14 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
       let qty = r.querySelector('.rep-qty').value.trim(); 
       let price = r.querySelector('.rep-price').value.trim();
 
-      // ✨ NEW: Lookup the UOM and apply the Box Math formatter
-      let dbItem = (typeof DatabaseManager !== 'undefined' && DatabaseManager.db) ? DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase()) : null;
-      let uom = dbItem ? (parseInt(dbItem.uomMult, 10) || 1) : 1;
-      let displayQty = DatabaseManager.formatPackaging(qty, uom);
+      // Use the raw numerical quantity provided in the modal
+      let displayQty = qty;
 
       let numPrice = parseFloat(String(price).replace(/[^0-9.-]+/g, ""));
       let formattedPrice = (numPrice === 0 || !price) ? '<span style="color:#d32f2f; font-weight:bold;">Contact Us</span>' : (price.startsWith('$') ? price : '$' + price);
 
       if (ref) {
-        html += `<tr><td class="ref-col">${ref}</td>${includeDesc ? `<td class="desc-col">${desc || 'Surgical Products Item'}</td>` : ''}${includeQty ? `<td style="text-align:center;"><span class="qty-badge">${displayQty}</span></td>` : ''}${includePrice ? `<td style="text-align:right; font-weight:bold; color:#2e7d32;">${formattedPrice}</td>` : ''}</tr>`;
+        html += `<tr><td class="ref-col">${ref}</td>${includeDesc ? `<td class="desc-col">${desc || 'Surgical Products Item'}</td>` : ''}${includeQty ? `<td style="text-align:center;"><strong style="font-size:13px; color:#333;">${displayQty}</strong></td>` : ''}${includePrice ? `<td style="text-align:right; font-weight:bold; color:#2e7d32;">${formattedPrice}</td>` : ''}</tr>`;
       }
     });
 
