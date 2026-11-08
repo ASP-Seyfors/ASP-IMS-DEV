@@ -205,3 +205,56 @@ body.theme-slate #shipmentManagerModal div[style*="background"] a, body.theme-sa
 body.theme-slate #shipmentTrackingModal div[style*="background"] a, body.theme-sage #shipmentTrackingModal div[style*="background"] a {
     color: #0277bd !important;
 }
+
+/* =========================================================
+   REPORT MODALS & UI OVERRIDES FOR DARK MODE
+========================================================= */
+body.theme-slate #reportOptionsModal > div, body.theme-sage #reportOptionsModal > div,
+body.theme-slate #internalReportOptionsModal > div, body.theme-sage #internalReportOptionsModal > div,
+body.theme-slate #stockReportEditorModal > div, body.theme-sage #stockReportEditorModal > div,
+body.theme-slate #binViewerModal > div, body.theme-sage #binViewerModal > div,
+body.theme-slate #damagedBinViewerModal > div, body.theme-sage #damagedBinViewerModal > div,
+body.theme-slate #quickLookupModal > div, body.theme-sage #quickLookupModal > div,
+body.theme-slate #modalUnreserve > div, body.theme-sage #modalUnreserve > div, 
+body.theme-slate #shipmentManagerModal > div, body.theme-sage #shipmentManagerModal > div,
+body.theme-slate #addressBookModal > div, body.theme-sage #addressBookModal > div,
+body.theme-slate #shipmentEditModal > div, body.theme-sage #shipmentEditModal > div,
+body.theme-slate #itemEditModal > div, body.theme-sage #itemEditModal > div {
+    background-color: var(--card-bg) !important;
+    color: var(--text-main) !important;
+}
+
+body.theme-slate #shipmentManagerModal h2, body.theme-sage #shipmentManagerModal h2,
+body.theme-slate #reportOptionsModal h3, body.theme-sage #reportOptionsModal h3,
+body.theme-slate #internalReportOptionsModal h3, body.theme-sage #internalReportOptionsModal h3,
+body.theme-slate #stockReportEditorModal h3, body.theme-sage #stockReportEditorModal h3,
+body.theme-slate #binViewerModal h3, body.theme-sage #binViewerModal h3,
+body.theme-slate #damagedBinViewerModal h3, body.theme-sage #damagedBinViewerModal h3,
+body.theme-slate #quickLookupModal h3, body.theme-sage #quickLookupModal h3,
+body.theme-slate #modalUnreserve h3, body.theme-sage #modalUnreserve h3,
+body.theme-slate #addressBookModal h2, body.theme-sage #addressBookModal h2,
+body.theme-slate #addressBookModal h4, body.theme-sage #addressBookModal h4,
+body.theme-slate #shipmentEditModal h2, body.theme-sage #shipmentEditModal h2,
+body.theme-slate #itemEditModal h3, body.theme-sage #itemEditModal h3 {
+    color: var(--heading-color) !important;
+}
+
+/* 1. Edit Item Details Modal Inputs */
+body.theme-slate #itemEditModal input[type="text"], body.theme-sage #itemEditModal input[type="text"],
+body.theme-slate #itemEditModal input[type="number"], body.theme-sage #itemEditModal input[type="number"],
+body.theme-slate #itemEditModal select, body.theme-sage #itemEditModal select,
+body.theme-slate #itemEditModal textarea, body.theme-sage #itemEditModal textarea {
+    background-color: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+body.theme-slate #itemEditModal input[type="text"][readonly], body.theme-sage #itemEditModal input[type="text"][readonly] {
+    background-color: var(--raw-bg) !important;
+    color: #888 !important;
+}
+
+/* Force the Pricing Block to obey Dark Mode */
+body.theme-slate #modalPricingBlock, body.theme-sage #modalPricingBlock {
+    background-color: var(--raw-bg) !important;
+    border-color: var(--border-color) !important;
+}
