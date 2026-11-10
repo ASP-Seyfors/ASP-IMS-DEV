@@ -460,10 +460,14 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     // ✨ NEW: Fetch Lot Data for each member of the family
     uniqueFamily.forEach(famItem => {
        let ref = DatabaseManager.getItemSku(famItem);
+       let isBundle = famItem.parentRef && parseInt(famItem.uomMult, 10) > 1;
+       let trueAvail = typeof DatabaseManager !== 'undefined' ? DatabaseManager.getTrueAvailability(famItem) : 0;
+       
+       // ✨ FIX: Allow Box variants to pass if they have true mathematical availability!
        let dbOnHand = parseInt(famItem.onHand || famItem.TotalQty, 10) || 0;
        let dbReserved = parseInt(famItem.reservedQty, 10) || 0;
 
-       if (dbOnHand > 0 || dbReserved > 0) {
+       if (dbOnHand > 0 || dbReserved > 0 || trueAvail > 0) {
          fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_EXP_TRACK&t=${Date.now()}`)
            .then(res => res.text())
            .then(text => {
@@ -473,29 +477,35 @@ const UIManager = {// GLOBAL CONFIGURATIONS
              let lotRows = '';
              let shelf = famItem.shelf ? famItem.shelf : '--';
              
+             // ✨ NEW LOGIC: If this is a Box Variant, we need to fetch the PARENT's lots and do math on them!
+             let targetRefForLots = isBundle ? DatabaseManager.getCleanParentRef(famItem).toUpperCase() : String(ref).trim().toUpperCase();
+             let uomMult = parseInt(famItem.uomMult, 10) || 1;
+             
              // ✨ FIX: Bulletproof filter to drop 0, null, blank, and NaN quantities
              let activeLots = responseData.data.filter(row => {
                  let rRef = String(row['REF / SKU'] || "").trim().toUpperCase();
-                 let targetRef = String(ref).trim().toUpperCase();
                  
-                 // If the REF doesn't match perfectly, drop it
-                 if (rRef !== targetRef) return false;
+                 // Compare against the target (the child if normal, the parent if it's a Box)
+                 if (rRef !== targetRefForLots) return false;
                  
-                 // Safely parse the quantity
                  let qVal = parseInt(row['QTY'], 10);
-                 
-                 // If it's not a valid number, or if it's 0 or less, drop it!
                  if (isNaN(qVal) || qVal <= 0) return false;
+                 
+                 // If it is a Box variant, verify this specific lot actually has enough quantity to form a full Box!
+                 if (isBundle && qVal < uomMult) return false;
                  
                  return true;
              });
 
              activeLots.sort((a,b) => new Date(a['EXP DATE']) - new Date(b['EXP DATE'])).forEach(l => {
+               // ✨ If it's a Box, display the quantity mathematically translated into full boxes
+               let displayQty = isBundle ? Math.floor(parseInt(l['QTY'], 10) / uomMult) : l['QTY'];
+               
                lotRows += `
                  <tr style="border-bottom:1px solid var(--border-color, #eee);">
                    <td style="padding:4px; color:var(--text-main, #333);"><strong>${l['LOT']}</strong></td>
                    <td style="padding:4px; color:var(--text-main, #333);">${l['EXP DATE']}</td>
-                   <td style="padding:4px; text-align:center; font-weight:bold; color:var(--heading-color, #0277bd);">${l['QTY']}</td>
+                   <td style="padding:4px; text-align:center; font-weight:bold; color:var(--heading-color, #0277bd);">${displayQty}</td>
                    <td style="padding:4px; text-align:right; font-size:0.75rem; color:var(--text-main, #555); font-weight:bold;">${shelf}</td>
                  </tr>`;
              });
@@ -512,7 +522,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
                       </tr>
                       ${lotRows}
                     </table>`
-                 : `<div style="font-size:0.8rem; color:var(--text-main, #777); font-style:italic; padding:10px;">Physical inventory exists, but no lot tracking data was found.</div>`;
+                 : `<div style="font-size:0.8rem; color:var(--text-main, #777); font-style:italic; padding:10px;">Physical inventory exists, but no complete box lots were found.</div>`;
                box.style.textAlign = 'left';
                box.style.padding = '0';
              }
