@@ -464,7 +464,12 @@ const UIManager = {// GLOBAL CONFIGURATIONS
 
              let lotRows = '';
              let shelf = famItem.shelf ? famItem.shelf : '--';
-             let activeLots = responseData.data.filter(row => String(row['REF / SKU']).trim().toUpperCase() === String(ref).trim().toUpperCase() && parseInt(row['QTY'], 10) > 0);
+             
+             // ✨ FIX: Strictly filter out any ghost lots that have 0 or negative quantities
+             let activeLots = responseData.data.filter(row => 
+                 String(row['REF / SKU']).trim().toUpperCase() === String(ref).trim().toUpperCase() && 
+                 (parseInt(row['QTY'], 10) || 0) > 0
+             );
 
              activeLots.sort((a,b) => new Date(a['EXP DATE']) - new Date(b['EXP DATE'])).forEach(l => {
                lotRows += `
