@@ -372,11 +372,19 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         uniqueFamily = uniqueFamily.filter(f => parseInt(f.uomMult, 10) > 1);
     }
 
-    // ✨ FIX 1: Filter out items that have absolutely zero physical or reserved stock
+    // ✨ FIX 1: Filter out items that have absolutely zero physical or reserved stock,
+    // BUT allow Box/Bundle variants to pass through if they have calculated true availability!
     uniqueFamily = uniqueFamily.filter(f => {
         let oh = parseInt(f.onHand || f.TotalQty, 10) || 0;
         let res = parseInt(f.reservedQty, 10) || 0;
-        return (oh > 0 || res > 0);
+        
+        let isBundle = f.parentRef && parseInt(f.uomMult, 10) > 1;
+        let trueAvail = 0;
+        if (isBundle && typeof DatabaseManager !== 'undefined') {
+            trueAvail = DatabaseManager.getTrueAvailability(f);
+        }
+        
+        return (oh > 0 || res > 0 || trueAvail > 0);
     });
 
     if (uniqueFamily.length === 0) {
