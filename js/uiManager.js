@@ -465,11 +465,22 @@ const UIManager = {// GLOBAL CONFIGURATIONS
              let lotRows = '';
              let shelf = famItem.shelf ? famItem.shelf : '--';
              
-             // ✨ FIX: Strictly filter out any ghost lots that have 0 or negative quantities
-             let activeLots = responseData.data.filter(row => 
-                 String(row['REF / SKU']).trim().toUpperCase() === String(ref).trim().toUpperCase() && 
-                 (parseInt(row['QTY'], 10) || 0) > 0
-             );
+             // ✨ FIX: Bulletproof filter to drop 0, null, blank, and NaN quantities
+             let activeLots = responseData.data.filter(row => {
+                 let rRef = String(row['REF / SKU'] || "").trim().toUpperCase();
+                 let targetRef = String(ref).trim().toUpperCase();
+                 
+                 // If the REF doesn't match perfectly, drop it
+                 if (rRef !== targetRef) return false;
+                 
+                 // Safely parse the quantity
+                 let qVal = parseInt(row['QTY'], 10);
+                 
+                 // If it's not a valid number, or if it's 0 or less, drop it!
+                 if (isNaN(qVal) || qVal <= 0) return false;
+                 
+                 return true;
+             });
 
              activeLots.sort((a,b) => new Date(a['EXP DATE']) - new Date(b['EXP DATE'])).forEach(l => {
                lotRows += `
