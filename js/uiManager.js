@@ -458,14 +458,24 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     resContainer.innerHTML = htmlOutput;
     
     // ✨ NEW: Fetch Lot Data for each member of the family
-    uniqueFamily.forEach(famItem => {
+    uniqueFamily.forEach((famItem, index) => {
        let ref = DatabaseManager.getItemSku(famItem);
        let isBundle = famItem.parentRef && parseInt(famItem.uomMult, 10) > 1;
+       
+       let uomMult = parseInt(famItem.uomMult, 10) || 1;
        let trueAvail = typeof DatabaseManager !== 'undefined' ? DatabaseManager.getTrueAvailability(famItem) : 0;
        
-       // ✨ FIX: Allow Box variants to pass if they have true mathematical availability!
        let dbOnHand = parseInt(famItem.onHand || famItem.TotalQty, 10) || 0;
        let dbReserved = parseInt(famItem.reservedQty, 10) || 0;
+
+       // ✨ NEW: If there is a Box variant below this Each variant, print an "OR" divider above it
+       if (index > 0) {
+           let dividerHtml = `<div style="text-align:center; padding:10px 0; margin-bottom:12px; position:relative;">
+               <hr style="border:0; border-top:1px dashed #7b1fa2; position:absolute; top:50%; width:100%; z-index:1;">
+               <span style="background:var(--raw-bg, #f9f9f9); padding:0 15px; color:#7b1fa2; font-weight:bold; position:relative; z-index:2; text-transform:uppercase; font-size:14px;">OR</span>
+           </div>`;
+           document.getElementById(`quickLookupLotBox_${DatabaseManager.getItemSku(uniqueFamily[index-1])}`).insertAdjacentHTML('afterend', dividerHtml);
+       }
 
        if (dbOnHand > 0 || dbReserved > 0 || trueAvail > 0) {
          fetch(`${SessionManager.getActiveArchiveUrl()}?action=GET_EXP_TRACK&t=${Date.now()}`)
@@ -477,43 +487,63 @@ const UIManager = {// GLOBAL CONFIGURATIONS
              let lotRows = '';
              let shelf = famItem.shelf ? famItem.shelf : '--';
              
-             // ✨ NEW LOGIC: If this is a Box Variant, we need to fetch the PARENT's lots and do math on them!
              let targetRefForLots = isBundle ? DatabaseManager.getCleanParentRef(famItem).toUpperCase() : String(ref).trim().toUpperCase();
-             let uomMult = parseInt(famItem.uomMult, 10) || 1;
              
              // ✨ FIX: Bulletproof filter to drop 0, null, blank, and NaN quantities
              let activeLots = responseData.data.filter(row => {
                  let rRef = String(row['REF / SKU'] || "").trim().toUpperCase();
-                 
-                 // Compare against the target (the child if normal, the parent if it's a Box)
                  if (rRef !== targetRefForLots) return false;
                  
                  let qVal = parseInt(row['QTY'], 10);
                  if (isNaN(qVal) || qVal <= 0) return false;
                  
-                 // If it is a Box variant, verify this specific lot actually has enough quantity to form a full Box!
+                 // For bundles, ensure this specific lot has enough to build at least 1 box
                  if (isBundle && qVal < uomMult) return false;
                  
                  return true;
              });
+             
+             let totalBoxesBuilt = 0;
 
              activeLots.sort((a,b) => new Date(a['EXP DATE']) - new Date(b['EXP DATE'])).forEach(l => {
-               // ✨ If it's a Box, display the quantity mathematically translated into full boxes
-               let displayQty = isBundle ? Math.floor(parseInt(l['QTY'], 10) / uomMult) : l['QTY'];
+               let originalQty = parseInt(l['QTY'], 10);
+               let displayQty = originalQty;
                
-               lotRows += `
-                 <tr style="border-bottom:1px solid var(--border-color, #eee);">
-                   <td style="padding:4px; color:var(--text-main, #333);"><strong>${l['LOT']}</strong></td>
-                   <td style="padding:4px; color:var(--text-main, #333);">${l['EXP DATE']}</td>
-                   <td style="padding:4px; text-align:center; font-weight:bold; color:var(--heading-color, #0277bd);">${displayQty}</td>
-                   <td style="padding:4px; text-align:right; font-size:0.75rem; color:var(--text-main, #555); font-weight:bold;">${shelf}</td>
-                 </tr>`;
+               if (isBundle) {
+                   displayQty = Math.floor(originalQty / uomMult);
+                   totalBoxesBuilt += displayQty;
+               } else {
+                   // If this is the "Eaches" parent, check if it has a Box child
+                   let hasBoxChild = uniqueFamily.some(child => child.parentRef && DatabaseManager.getCleanParentRef(child).toUpperCase() === targetRefForLots);
+                   if (hasBoxChild) {
+                       let boxChild = uniqueFamily.find(child => child.parentRef && DatabaseManager.getCleanParentRef(child).toUpperCase() === targetRefForLots);
+                       let childUom = parseInt(boxChild.uomMult, 10) || 1;
+                       
+                       // Deduct the eaches that will be used to build full boxes below
+                       let boxesItCanBuild = Math.floor(originalQty / childUom);
+                       displayQty = originalQty - (boxesItCanBuild * childUom);
+                   }
+               }
+               
+               // Only print the lot row if there is still quantity left after the math!
+               if (displayQty > 0) {
+                   lotRows += `
+                     <tr style="border-bottom:1px solid var(--border-color, #eee);">
+                       <td style="padding:4px; color:var(--text-main, #333);"><strong>${l['LOT']}</strong></td>
+                       <td style="padding:4px; color:var(--text-main, #333);">${l['EXP DATE']}</td>
+                       <td style="padding:4px; text-align:center; font-weight:bold; color:var(--heading-color, #0277bd);">${displayQty}</td>
+                       <td style="padding:4px; text-align:right; font-size:0.75rem; color:var(--text-main, #555); font-weight:bold;">${shelf}</td>
+                     </tr>`;
+               }
              });
 
              let box = document.getElementById(`quickLookupLotBox_${ref}`);
              if (box) {
+               // Inject the Box disclaimer if it's a bundle
+               let disclaimerHtml = isBundle ? `<div style="font-size:0.75rem; color:#d84315; font-style:italic; padding:6px 0; text-align:center;">*Note: Sets displayed below may be hand-packed in loose packaging.</div>` : '';
+               
                box.innerHTML = lotRows 
-                 ? `<table style="width:100%; border-collapse:collapse; font-size:0.8rem; background:var(--card-bg, #fff); border:1px solid var(--border-color, #ddd); margin-top:8px;">
+                 ? `${disclaimerHtml}<table style="width:100%; border-collapse:collapse; font-size:0.8rem; background:var(--card-bg, #fff); border:1px solid var(--border-color, #ddd); margin-top:8px;">
                       <tr style="background:var(--raw-bg, #eee); text-align:left;">
                         <th style="padding:4px; color:var(--text-main, #333);">Lot</th>
                         <th style="padding:4px; color:var(--text-main, #333);">Exp</th>
@@ -522,9 +552,38 @@ const UIManager = {// GLOBAL CONFIGURATIONS
                       </tr>
                       ${lotRows}
                     </table>`
-                 : `<div style="font-size:0.8rem; color:var(--text-main, #777); font-style:italic; padding:10px;">Physical inventory exists, but no complete box lots were found.</div>`;
+                 : `<div style="font-size:0.8rem; color:var(--text-main, #777); font-style:italic; padding:10px;">Physical inventory exists, but no complete lot sets were found.</div>`;
+               
                box.style.textAlign = 'left';
                box.style.padding = '0';
+               
+               // ✨ NEW: Dynamically update the Top Headers so they reflect the true math!
+               let headerBlock = box.previousElementSibling;
+               if (headerBlock) {
+                   if (isBundle) {
+                       headerBlock.innerHTML = `
+                         <span style="color:#0277bd;">Total On-Hand: ${totalBoxesBuilt}</span>
+                         <span style="color:${totalBoxesBuilt > 0 ? '#2e7d32' : '#c62828'};">Available to Sell: ${totalBoxesBuilt}</span>
+                       `;
+                   } else {
+                       let hasBoxChild = uniqueFamily.some(child => child.parentRef && DatabaseManager.getCleanParentRef(child).toUpperCase() === targetRefForLots);
+                       if (hasBoxChild) {
+                           let boxChild = uniqueFamily.find(child => child.parentRef && DatabaseManager.getCleanParentRef(child).toUpperCase() === targetRefForLots);
+                           let childUom = parseInt(boxChild.uomMult, 10) || 1;
+                           
+                           let rawTotal = parseInt(famItem.onHand || famItem.TotalQty, 10) || 0;
+                           let rawAvail = rawTotal - (parseInt(famItem.reservedQty, 10) || 0);
+                           
+                           let newTotal = rawTotal % childUom;
+                           let newAvail = rawAvail % childUom;
+                           
+                           headerBlock.innerHTML = `
+                             <span style="color:#0277bd;">Total On-Hand: ${newTotal}</span>
+                             <span style="color:${newAvail > 0 ? '#2e7d32' : '#c62828'};">Available to Sell: ${newAvail}</span>
+                           `;
+                       }
+                   }
+               }
              }
            }).catch(err => {
              let box = document.getElementById(`quickLookupLotBox_${ref}`);
