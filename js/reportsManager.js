@@ -997,12 +997,15 @@ const ReportsManager = {
                     <td style="padding:4px;">${sub.name}</td>
                     <td style="padding:4px; color:#0277bd; word-break:break-all;">${sub.email}</td>
                     <td style="padding:4px;">${sub.freq}</td>
-                    <td style="padding:4px; font-weight:bold; color:${sub.status === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
+                    <td style="padding:4px; font-weight:bold; color:${String(sub.status).toUpperCase() === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
                     <td style="padding:4px; text-align:right;">
                        <button class="btn-small" style="padding:4px 8px; font-size:0.75rem;" onclick="
                           document.getElementById('subName').value='${sub.name}'; 
                           document.getElementById('subEmail').value='${sub.email}'; 
-                          document.getElementById('subStatus').value='${sub.status === 'ACTIVE' ? 'Active' : 'Inactive'}'; 
+                          
+                          // ✨ FIX: Case-insensitive check prevents defaulting to Inactive
+                          document.getElementById('subStatus').value='${String(sub.status).toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive'}'; 
+                          
                           document.getElementById('subCategories').value='${safeCat}';
                           if(document.getElementById('subFormat')) document.getElementById('subFormat').value='${sub.format || 'SMART'}';
                           if(document.getElementById('subFallback')) document.getElementById('subFallback').value='${sub.fallback || 'SELLERS'}';
