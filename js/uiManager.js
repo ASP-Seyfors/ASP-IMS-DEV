@@ -370,10 +370,18 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     let showBoxOnly = document.getElementById('chkFilterBoxVariantsOnly') && document.getElementById('chkFilterBoxVariantsOnly').checked;
     if (showBoxOnly) {
         uniqueFamily = uniqueFamily.filter(f => parseInt(f.uomMult, 10) > 1);
-        if (uniqueFamily.length === 0) {
-             resContainer.innerHTML = `<div style="background:#ffebee; color:#c62828; padding:12px; border-radius:4px; text-align:center;"><strong>No Box Variants Found</strong><br>This item does not have any Box/Bundle variants configured.</div>`;
-             return;
-        }
+    }
+
+    // ✨ FIX 1: Filter out items that have absolutely zero physical or reserved stock
+    uniqueFamily = uniqueFamily.filter(f => {
+        let oh = parseInt(f.onHand || f.TotalQty, 10) || 0;
+        let res = parseInt(f.reservedQty, 10) || 0;
+        return (oh > 0 || res > 0);
+    });
+
+    if (uniqueFamily.length === 0) {
+         resContainer.innerHTML = `<div style="background:#ffebee; color:#c62828; padding:12px; border-radius:4px; text-align:center;"><strong>Out of Stock</strong><br>We do not have any inventory or active reservations for this item.</div>`;
+         return;
     }
 
     // ✨ RESTORED: Restock Logic Check
@@ -498,9 +506,23 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     });
   },
 
-  requestItemRestock() {
-    let ref = document.getElementById('refInput').value.trim().toUpperCase();
-    if (!ref) return;
+  requestItemRestock(overrideRef = null) {
+    let ref = "";
+    
+    // ✨ FIX 2: Dynamically find the REF based on which modal is currently open
+    if (typeof overrideRef === 'string' && overrideRef.trim() !== '') {
+        ref = overrideRef.trim().toUpperCase();
+    } else if (document.getElementById('itemEditModal') && document.getElementById('itemEditModal').style.display === 'flex') {
+        ref = document.getElementById('modalRef').value.trim().toUpperCase();
+    } else {
+        let refInp = document.getElementById('refInput');
+        if (refInp) ref = refInp.value.trim().toUpperCase();
+    }
+
+    if (!ref) {
+        this.showCustomAlert("Notice", "Could not identify which item to restock.");
+        return;
+    }
 
     let localRequests = JSON.parse(localStorage.getItem('asp_restock_requests')) || { date: new Date().toLocaleDateString(), refs: [] };
     
