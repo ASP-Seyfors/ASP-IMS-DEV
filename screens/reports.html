@@ -108,6 +108,16 @@
       
       <!-- ✨ NEW: Custom Message Override -->
       <textarea id="subCustomMessage" placeholder="Custom Message Override (Leave blank to use default system message)" style="padding:6px; font-size:0.85rem; border:1px solid var(--input-border); border-radius:3px; background:var(--input-bg); color:var(--text-main); resize:vertical; min-height:50px; font-family:inherit;" title="Replace the standard intro paragraph for this specific customer."></textarea>
+
+      <!-- ✨ NEW: Advanced Fallback Toggles -->
+      <div style="display:flex; gap:15px; margin-top:6px; font-size:0.85rem; color:#555; align-items:center;">
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+          <input type="checkbox" id="subIgnoreHistory"> Force Fallback (Ignore History)
+        </label>
+        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+          <input type="checkbox" id="subIncludeBoth"> Include Both (History & Fallback)
+        </label>
+      </div>
       
       <input type="text" id="subCategories" placeholder="Categories (Default: All)" readonly onclick="ReportsManager.openCategoryModal()" style="padding:6px; font-size:0.85rem; cursor:pointer; background-color:var(--input-bg); color: var(--text-main) !important; border:1px solid var(--border-color); border-radius:3px;" title="Click to select specific categories" />
       

@@ -985,17 +985,12 @@ const ReportsManager = {
           let data = await res.json();
           
           if (data.status === "success" && data.subs && data.subs.length > 0) {
+              this.currentSubs = data.subs; // ✨ FIX: Save data to memory to prevent quote-escaping bugs!
+              
               let html = '<table style="width:100%; border-collapse:collapse; text-align:left;">';
               html += '<tr style="background:var(--raw-bg, #f0f0f0); border-bottom:1px solid var(--border-color, #ccc);"><th style="padding:4px; color:var(--text-main, #333);">Name</th><th style="padding:4px; color:var(--text-main, #333);">Email</th><th style="padding:4px; color:var(--text-main, #333);">Freq</th><th style="padding:4px; color:var(--text-main, #333);">Status</th><th style="padding:4px;"></th></tr>';
               
               data.subs.forEach(sub => {
-                  // ✨ FIX: We must escape DOUBLE QUOTES (") so they don't break the HTML onclick attribute!
-                  let safeCat = (sub.categories || '').replace(/'/g, "\\'").replace(/"/g, '"');
-                  let safePromo = (sub.promoRefs || '').replace(/'/g, "\\'").replace(/"/g, '"');
-                  let safeDay = (sub.sendDay || '').replace(/'/g, "\\'");
-                  let safeMsg = (sub.customMessage || '').replace(/'/g, "\\'").replace(/"/g, '"').replace(/\n/g, "\\n");
-                  let safeName = (sub.name || '').replace(/'/g, "\\'").replace(/"/g, '"');
-                  
                   html += `<tr style="border-bottom:1px solid #eee;">
                     <td style="padding:4px;">${sub.name}</td>
                     <td style="padding:4px; color:#0277bd; word-break:break-all;">${sub.email}</td>
@@ -1003,23 +998,8 @@ const ReportsManager = {
                     <td style="padding:4px; font-weight:bold; color:${String(sub.status).toUpperCase() === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
                     <td style="padding:4px; text-align:right;">
                        <button class="btn-small" style="padding:4px 8px; font-size:0.75rem; margin-right:4px; background:#f57f17; border:none; color:#fff; cursor:pointer;" onclick="ReportsManager.previewSubscriberEmail('${sub.email}')">👁️ Preview</button>
-                       
-                       <button class="btn-small" style="padding:4px 8px; font-size:0.75rem;" onclick="
-                          document.getElementById('subName').value='${safeName}'; 
-                          document.getElementById('subEmail').value='${sub.email}'; 
-                          document.getElementById('subStatus').value='${String(sub.status).toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive'}'; 
-                          document.getElementById('subCategories').value='${safeCat}';
-                          if(document.getElementById('subFormat')) document.getElementById('subFormat').value='${sub.format || 'SMART'}';
-                          if(document.getElementById('subFallback')) document.getElementById('subFallback').value='${sub.fallback || 'SELLERS'}';
-                          if(document.getElementById('subCustomerId')) document.getElementById('subCustomerId').value='${sub.customerId || ''}';
-                          if(document.getElementById('subPromoRefs')) document.getElementById('subPromoRefs').value='${safePromo}';
-                          if(document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value='${safeMsg}';
-                          
-                          let fSel = document.getElementById('subFreq');
-                          if(fSel) { fSel.value='${sub.freq}'; if(typeof ReportsManager.toggleSubSendDay === 'function') ReportsManager.toggleSubSendDay(); }
-                          let dSel = document.getElementById('subSendDay');
-                          if(dSel && '${safeDay}') dSel.value='${safeDay}';
-                       ">Edit</button>
+                       <!-- ✨ FIX: Clean, safe function call -->
+                       <button class="btn-small" style="padding:4px 8px; font-size:0.75rem;" onclick="ReportsManager.editSubscriber('${sub.email}')">Edit</button>
                     </td>
                   </tr>`;
               });
@@ -1031,6 +1011,38 @@ const ReportsManager = {
       } catch (err) {
           container.innerHTML = '<p style="text-align:center; color:#c62828;">Failed to load subscribers.</p>';
       }
+  },
+
+  // ✨ NEW: Clean edit function that pulls directly from memory
+  editSubscriber(email) {
+      if (!this.currentSubs) return;
+      let sub = this.currentSubs.find(s => s.email === email);
+      if (!sub) return;
+
+      document.getElementById('subName').value = sub.name || "";
+      document.getElementById('subEmail').value = sub.email || "";
+      document.getElementById('subStatus').value = String(sub.status).toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive';
+      document.getElementById('subCategories').value = sub.categories || "";
+      
+      if(document.getElementById('subFormat')) document.getElementById('subFormat').value = sub.format || "SMART";
+      if(document.getElementById('subFallback')) document.getElementById('subFallback').value = sub.fallback || "SELLERS";
+      if(document.getElementById('subCustomerId')) document.getElementById('subCustomerId').value = sub.customerId || "";
+      if(document.getElementById('subPromoRefs')) document.getElementById('subPromoRefs').value = sub.promoRefs || "";
+      if(document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value = sub.customMessage || "";
+      
+      // Load the new toggle checkboxes
+      if(document.getElementById('subIgnoreHistory')) document.getElementById('subIgnoreHistory').checked = (sub.ignoreHistory === true || String(sub.ignoreHistory).toUpperCase() === "TRUE");
+      if(document.getElementById('subIncludeBoth')) document.getElementById('subIncludeBoth').checked = (sub.includeBoth === true || String(sub.includeBoth).toUpperCase() === "TRUE");
+
+      let fSel = document.getElementById('subFreq');
+      if(fSel) { 
+          fSel.value = sub.freq || "Daily"; 
+          if(typeof this.toggleSubSendDay === 'function') this.toggleSubSendDay(); 
+      }
+      let dSel = document.getElementById('subSendDay');
+      if(dSel && sub.sendDay) dSel.value = sub.sendDay;
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to the form
   },
 
   saveSubscriber(event) {
@@ -1047,10 +1059,11 @@ const ReportsManager = {
       let categoryPref = document.getElementById('subCategories').value.trim();
       let customerId = document.getElementById('subCustomerId') ? document.getElementById('subCustomerId').value : ""; 
       let promoRefs = document.getElementById('subPromoRefs') ? document.getElementById('subPromoRefs').value.trim() : "";
-      
-      // ✨ FIX: Capture the custom message text
       let customMessage = document.getElementById('subCustomMessage') ? document.getElementById('subCustomMessage').value.trim() : "";
       
+      let ignoreHistory = document.getElementById('subIgnoreHistory') ? document.getElementById('subIgnoreHistory').checked : false;
+      let includeBoth = document.getElementById('subIncludeBoth') ? document.getElementById('subIncludeBoth').checked : false;
+
       let sendDay = "";
       if (freq === 'Weekly' || freq === 'Monthly') {
           let dSel = document.getElementById('subSendDay');
@@ -1066,7 +1079,8 @@ const ReportsManager = {
       let payload = { 
           name: name, email: email, freq: freq, status: status, 
           categories: categoryPref, format: format, fallback: fallback, customerId: customerId,
-          promoRefs: promoRefs, sendDay: sendDay, customMessage: customMessage // ✨ FIX: Added to payload
+          promoRefs: promoRefs, sendDay: sendDay, customMessage: customMessage,
+          ignoreHistory: ignoreHistory, includeBoth: includeBoth // ✨ Map the new toggles
       };
 
       fetch(ApiManager.getActiveArchiveUrl(), {
@@ -1076,8 +1090,10 @@ const ReportsManager = {
           UIManager.showCustomAlert("Success", `${name} has been updated in the cloud!`);
           document.getElementById('subName').value = "";
           document.getElementById('subEmail').value = "";
-          if (document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value = ""; // Reset box
-          this.loadSubscribers(); // Auto-refresh the list
+          if (document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value = "";
+          if (document.getElementById('subIgnoreHistory')) document.getElementById('subIgnoreHistory').checked = false;
+          if (document.getElementById('subIncludeBoth')) document.getElementById('subIncludeBoth').checked = false;
+          this.loadSubscribers(); 
       }).catch(err => {
           UIManager.showCustomAlert("Error", "Failed to save subscriber.");
       }).finally(() => {
