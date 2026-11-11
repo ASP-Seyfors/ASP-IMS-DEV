@@ -989,11 +989,12 @@ const ReportsManager = {
               html += '<tr style="background:var(--raw-bg, #f0f0f0); border-bottom:1px solid var(--border-color, #ccc);"><th style="padding:4px; color:var(--text-main, #333);">Name</th><th style="padding:4px; color:var(--text-main, #333);">Email</th><th style="padding:4px; color:var(--text-main, #333);">Freq</th><th style="padding:4px; color:var(--text-main, #333);">Status</th><th style="padding:4px;"></th></tr>';
               
               data.subs.forEach(sub => {
-                  let safeCat = (sub.categories || '').replace(/'/g, "\\'");
-                  let safePromo = (sub.promoRefs || '').replace(/'/g, "\\'");
+                  // ✨ FIX: We must escape DOUBLE QUOTES (") so they don't break the HTML onclick attribute!
+                  let safeCat = (sub.categories || '').replace(/'/g, "\\'").replace(/"/g, '"');
+                  let safePromo = (sub.promoRefs || '').replace(/'/g, "\\'").replace(/"/g, '"');
                   let safeDay = (sub.sendDay || '').replace(/'/g, "\\'");
-                  // ✨ FIX: Safely parse the custom message and escape newlines
-                  let safeMsg = (sub.customMessage || '').replace(/'/g, "\\'").replace(/\n/g, "\\n");
+                  let safeMsg = (sub.customMessage || '').replace(/'/g, "\\'").replace(/"/g, '"').replace(/\n/g, "\\n");
+                  let safeName = (sub.name || '').replace(/'/g, "\\'").replace(/"/g, '"');
                   
                   html += `<tr style="border-bottom:1px solid #eee;">
                     <td style="padding:4px;">${sub.name}</td>
@@ -1001,23 +1002,17 @@ const ReportsManager = {
                     <td style="padding:4px;">${sub.freq}</td>
                     <td style="padding:4px; font-weight:bold; color:${String(sub.status).toUpperCase() === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
                     <td style="padding:4px; text-align:right;">
-                       <!-- ✨ NEW: Live Preview Button -->
                        <button class="btn-small" style="padding:4px 8px; font-size:0.75rem; margin-right:4px; background:#f57f17; border:none; color:#fff; cursor:pointer;" onclick="ReportsManager.previewSubscriberEmail('${sub.email}')">👁️ Preview</button>
                        
                        <button class="btn-small" style="padding:4px 8px; font-size:0.75rem;" onclick="
-                          document.getElementById('subName').value='${sub.name}'; 
+                          document.getElementById('subName').value='${safeName}'; 
                           document.getElementById('subEmail').value='${sub.email}'; 
-                          
-                          // ✨ FIX: Case-insensitive check prevents defaulting to Inactive
                           document.getElementById('subStatus').value='${String(sub.status).toUpperCase() === 'ACTIVE' ? 'Active' : 'Inactive'}'; 
-                          
                           document.getElementById('subCategories').value='${safeCat}';
                           if(document.getElementById('subFormat')) document.getElementById('subFormat').value='${sub.format || 'SMART'}';
                           if(document.getElementById('subFallback')) document.getElementById('subFallback').value='${sub.fallback || 'SELLERS'}';
                           if(document.getElementById('subCustomerId')) document.getElementById('subCustomerId').value='${sub.customerId || ''}';
                           if(document.getElementById('subPromoRefs')) document.getElementById('subPromoRefs').value='${safePromo}';
-                          
-                          // ✨ FIX: Load the custom message into the textarea
                           if(document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value='${safeMsg}';
                           
                           let fSel = document.getElementById('subFreq');
