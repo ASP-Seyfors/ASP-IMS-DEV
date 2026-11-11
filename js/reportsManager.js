@@ -1173,7 +1173,7 @@ const ReportsManager = {
                           html += `
                           <div style="background:#fff; border:1px solid #ccc; border-radius:6px; padding:10px; display:flex; justify-content:space-between; align-items:center;">
                               <div>
-                                  <strong style="color:#8e24aa; font-size:1rem;">${list.name}</strong>
+                                  <strong style="color:#0277bd; font-size:1rem;">${list.name}</strong>
                                   <div style="font-size:0.75rem; color:#555; margin-top:4px; word-break:break-all;">${list.refs}</div>
                               </div>
                               <button class="btn-small" style="background:#d32f2f; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; margin-left:10px;" onclick="ReportsManager.deleteCustomList('${list.name}')">🗑️</button>

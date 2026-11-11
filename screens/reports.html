@@ -102,7 +102,7 @@
             <option value="NONE">Fallback: None (PDF Only)</option>
             <!-- Custom lists will be injected here automatically by JS -->
           </select>
-          <button class="btn-small" style="background:#8e24aa; color:#fff; padding:0 10px; border:none; border-radius:3px; cursor:pointer;" onclick="ReportsManager.openCustomListsModal()" title="Manage Custom Lists">📝</button>
+          <button class="btn-small" style="background:#0277bd; color:#fff; padding:0 10px; border:none; border-radius:3px; cursor:pointer;" onclick="ReportsManager.openCustomListsModal()" title="Manage Custom Lists">📝</button>
         </div>
       </div>
       
@@ -165,16 +165,16 @@
   <!-- ✨ NEW: Custom Lists Manager Modal -->
   <div id="customListsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; justify-content:center; align-items:center;">
     <div style="background:#fff; padding:20px; border-radius:8px; width:90%; max-width:500px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #8e24aa; padding-bottom:8px; margin-bottom:15px;">
-        <h3 style="margin:0; color:#8e24aa;">📝 Manage Custom Lists</h3>
-        <button onclick="document.getElementById('customListsModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">×</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0277bd; padding-bottom:8px; margin-bottom:15px;">
+        <h3 style="margin:0; color:#0277bd;">📝 Manage Custom Lists</h3>
+        <button onclick="document.getElementById('customListsModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#333;">×</button>
       </div>
       
-      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; background:#f3e5f5; padding:12px; border-radius:4px; border:1px solid #ce93d8;">
-        <strong style="color:#4a148c; font-size:0.9rem;">Create New List</strong>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:15px; background:var(--raw-bg, #f4f4f4); padding:12px; border-radius:4px; border:1px solid var(--border-color, #ccc);">
+        <strong style="color:#0277bd; font-size:0.9rem;">Create New List</strong>
         <input type="text" id="listNameInput" placeholder="List Name (e.g., Popular Sutures)" style="padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px;" />
         <input type="text" id="listRefsInput" placeholder="Comma-separated REFs (e.g., VCP316H, 4350, DNX12)" style="padding:6px; font-size:0.85rem; border:1px solid #ccc; border-radius:3px;" />
-        <button id="btnSaveCustomList" class="btn-small" style="background:#8e24aa; color:#fff; padding:8px; border:none; border-radius:3px; cursor:pointer; font-weight:bold;" onclick="ReportsManager.saveCustomList()">Save to Cloud</button>
+        <button id="btnSaveCustomList" class="btn-small" style="background:#00796b; color:#fff; padding:8px; border:none; border-radius:3px; cursor:pointer; font-weight:bold;" onclick="ReportsManager.saveCustomList()">Save to Cloud</button>
       </div>
 
       <div id="customListsGrid" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:4px;">
