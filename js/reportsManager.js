@@ -992,6 +992,8 @@ const ReportsManager = {
                   let safeCat = (sub.categories || '').replace(/'/g, "\\'");
                   let safePromo = (sub.promoRefs || '').replace(/'/g, "\\'");
                   let safeDay = (sub.sendDay || '').replace(/'/g, "\\'");
+                  // ✨ FIX: Safely parse the custom message and escape newlines
+                  let safeMsg = (sub.customMessage || '').replace(/'/g, "\\'").replace(/\n/g, "\\n");
                   
                   html += `<tr style="border-bottom:1px solid #eee;">
                     <td style="padding:4px;">${sub.name}</td>
@@ -999,6 +1001,9 @@ const ReportsManager = {
                     <td style="padding:4px;">${sub.freq}</td>
                     <td style="padding:4px; font-weight:bold; color:${String(sub.status).toUpperCase() === 'ACTIVE' ? '#2e7d32' : '#c62828'};">${sub.status}</td>
                     <td style="padding:4px; text-align:right;">
+                       <!-- ✨ NEW: Live Preview Button -->
+                       <button class="btn-small" style="padding:4px 8px; font-size:0.75rem; margin-right:4px; background:#f57f17; border:none; color:#fff; cursor:pointer;" onclick="ReportsManager.previewSubscriberEmail('${sub.email}')">👁️ Preview</button>
+                       
                        <button class="btn-small" style="padding:4px 8px; font-size:0.75rem;" onclick="
                           document.getElementById('subName').value='${sub.name}'; 
                           document.getElementById('subEmail').value='${sub.email}'; 
@@ -1011,6 +1016,10 @@ const ReportsManager = {
                           if(document.getElementById('subFallback')) document.getElementById('subFallback').value='${sub.fallback || 'SELLERS'}';
                           if(document.getElementById('subCustomerId')) document.getElementById('subCustomerId').value='${sub.customerId || ''}';
                           if(document.getElementById('subPromoRefs')) document.getElementById('subPromoRefs').value='${safePromo}';
+                          
+                          // ✨ FIX: Load the custom message into the textarea
+                          if(document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value='${safeMsg}';
+                          
                           let fSel = document.getElementById('subFreq');
                           if(fSel) { fSel.value='${sub.freq}'; if(typeof ReportsManager.toggleSubSendDay === 'function') ReportsManager.toggleSubSendDay(); }
                           let dSel = document.getElementById('subSendDay');
@@ -1044,6 +1053,9 @@ const ReportsManager = {
       let customerId = document.getElementById('subCustomerId') ? document.getElementById('subCustomerId').value : ""; 
       let promoRefs = document.getElementById('subPromoRefs') ? document.getElementById('subPromoRefs').value.trim() : "";
       
+      // ✨ FIX: Capture the custom message text
+      let customMessage = document.getElementById('subCustomMessage') ? document.getElementById('subCustomMessage').value.trim() : "";
+      
       let sendDay = "";
       if (freq === 'Weekly' || freq === 'Monthly') {
           let dSel = document.getElementById('subSendDay');
@@ -1059,7 +1071,7 @@ const ReportsManager = {
       let payload = { 
           name: name, email: email, freq: freq, status: status, 
           categories: categoryPref, format: format, fallback: fallback, customerId: customerId,
-          promoRefs: promoRefs, sendDay: sendDay
+          promoRefs: promoRefs, sendDay: sendDay, customMessage: customMessage // ✨ FIX: Added to payload
       };
 
       fetch(ApiManager.getActiveArchiveUrl(), {
@@ -1069,6 +1081,7 @@ const ReportsManager = {
           UIManager.showCustomAlert("Success", `${name} has been updated in the cloud!`);
           document.getElementById('subName').value = "";
           document.getElementById('subEmail').value = "";
+          if (document.getElementById('subCustomMessage')) document.getElementById('subCustomMessage').value = ""; // Reset box
           this.loadSubscribers(); // Auto-refresh the list
       }).catch(err => {
           UIManager.showCustomAlert("Error", "Failed to save subscriber.");
@@ -1128,6 +1141,162 @@ const ReportsManager = {
     `;
     
     container.insertAdjacentHTML('afterbegin', html); 
+  },
+
+  // ==========================================
+  // ✨ NEW: CUSTOM LISTS ENGINE
+  // ==========================================
+  async openCustomListsModal() {
+      document.getElementById('listNameInput').value = '';
+      document.getElementById('listRefsInput').value = '';
+      document.getElementById('customListsModal').style.display = 'flex';
+      this.refreshCustomListsUI();
+  },
+
+  async refreshCustomListsUI() {
+      let grid = document.getElementById('customListsGrid');
+      let dropdown = document.getElementById('subFallback');
+      if (grid) grid.innerHTML = '<div style="text-align:center; padding:20px; color:#777;">Loading...</div>';
+
+      try {
+          let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_CUSTOM_LISTS&t=${Date.now()}`);
+          let data = await res.json();
+          
+          if (data.status === "success") {
+              // 1. Rebuild the Grid
+              if (grid) {
+                  if (data.lists.length === 0) {
+                      grid.innerHTML = '<div style="text-align:center; padding:20px; color:#777; font-style:italic; border:1px solid #ccc; border-radius:4px;">No custom lists saved yet.</div>';
+                  } else {
+                      let html = '';
+                      data.lists.forEach(list => {
+                          html += `
+                          <div style="background:#fff; border:1px solid #ccc; border-radius:6px; padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                              <div>
+                                  <strong style="color:#8e24aa; font-size:1rem;">${list.name}</strong>
+                                  <div style="font-size:0.75rem; color:#555; margin-top:4px; word-break:break-all;">${list.refs}</div>
+                              </div>
+                              <button class="btn-small" style="background:#d32f2f; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; margin-left:10px;" onclick="ReportsManager.deleteCustomList('${list.name}')">🗑️</button>
+                          </div>`;
+                      });
+                      grid.innerHTML = html;
+                  }
+              }
+              
+              // 2. Rebuild the Dropdown Options
+              if (dropdown) {
+                  // Keep the current selection if possible
+                  let currentVal = dropdown.value; 
+                  
+                  let optsHtml = `
+                    <option value="SELLERS">Fallback: Top Sellers</option>
+                    <option value="VALUE">Fallback: High Value</option>
+                    <option value="NONE">Fallback: None (PDF Only)</option>
+                  `;
+                  
+                  if (data.lists.length > 0) {
+                      optsHtml += `<optgroup label="--- Custom Shared Lists ---">`;
+                      data.lists.forEach(list => {
+                          optsHtml += `<option value="LIST_${list.name}">${list.name}</option>`;
+                      });
+                      optsHtml += `</optgroup>`;
+                  }
+                  
+                  dropdown.innerHTML = optsHtml;
+                  // Try to restore selection
+                  if (Array.from(dropdown.options).some(o => o.value === currentVal)) {
+                      dropdown.value = currentVal;
+                  }
+              }
+          }
+      } catch (err) {
+          if (grid) grid.innerHTML = '<div style="text-align:center; padding:20px; color:#c62828;">Failed to load lists.</div>';
+      }
+  },
+
+  async saveCustomList() {
+      let name = document.getElementById('listNameInput').value.trim();
+      let refs = document.getElementById('listRefsInput').value.trim();
+      let btn = document.getElementById('btnSaveCustomList');
+
+      if (!name || !refs) {
+          alert("Please provide both a List Name and at least one REF.");
+          return;
+      }
+      
+      // Ensure the name doesn't conflict with our base logic tags
+      if (name.toUpperCase() === "SELLERS" || name.toUpperCase() === "VALUE" || name.toUpperCase() === "NONE") {
+          alert("Reserved name. Please choose a different list name.");
+          return;
+      }
+
+      let origText = btn.innerText;
+      btn.innerText = "⏳ Saving..."; btn.disabled = true;
+
+      let userName = (typeof AuthManager !== 'undefined' && AuthManager.currentUser) ? AuthManager.currentUser.name : "Unknown";
+
+      try {
+          let res = await fetch(ApiManager.getActiveArchiveUrl(), {
+              method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                  action: "SAVE_CUSTOM_LIST",
+                  payload: { name: name, refs: refs, author: userName }
+              })
+          });
+          let result = await res.json();
+          
+          if (result.status === "success") {
+              document.getElementById('listNameInput').value = '';
+              document.getElementById('listRefsInput').value = '';
+              this.refreshCustomListsUI();
+          } else {
+              alert("Error: " + result.message);
+          }
+      } catch(err) {
+          alert("Network Error: " + err.message);
+      } finally {
+          btn.innerText = origText; btn.disabled = false;
+      }
+  },
+
+  async deleteCustomList(listName) {
+      if (!confirm(`Are you sure you want to delete the list "${listName}"?`)) return;
+
+      try {
+          let res = await fetch(ApiManager.getActiveArchiveUrl(), {
+              method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: "DELETE_CUSTOM_LIST", payload: { name: listName } })
+          });
+          let result = await res.json();
+          
+          if (result.status === "success") {
+              this.refreshCustomListsUI();
+          } else {
+              alert("Error: " + result.message);
+          }
+      } catch(err) {
+          alert("Network Error: " + err.message);
+      }
+  },
+
+  async previewSubscriberEmail(email) {
+      let contentDiv = document.getElementById('emailPreviewContent');
+      contentDiv.innerHTML = '<div style="text-align:center; padding:40px; color:#555; font-weight:bold;">⏳ Generating Live Preview from Cloud Ledger...<br><span style="font-weight:normal; font-size:0.85rem;">This may take a moment while we calculate the inventory math.</span></div>';
+      document.getElementById('emailPreviewModal').style.display = 'flex';
+
+      try {
+          // Fire a GET request to the cloud specifically for this email
+          let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=PREVIEW_EMAIL&email=${encodeURIComponent(email)}&t=${Date.now()}`);
+          let data = await res.json();
+          
+          if (data.status === "success") {
+              contentDiv.innerHTML = data.html;
+          } else {
+              contentDiv.innerHTML = `<div style="color:#c62828; text-align:center; padding:20px;">Error generating preview: ${data.message}</div>`;
+          }
+      } catch (err) {
+          contentDiv.innerHTML = `<div style="color:#c62828; text-align:center; padding:20px;">Network Error: ${err.message}</div>`;
+      }
   }
 };
 
