@@ -1227,7 +1227,7 @@ const ReportsManager = {
                   if (data.lists.length > 0) {
                       optsHtml += `<optgroup label="--- Custom Shared Lists ---">`;
                       data.lists.forEach(list => {
-                          optsHtml += `<option value="LIST_${list.name}">${list.name}</option>`;
+                          optsHtml += `<option value="LIST_${list.name.toUpperCase()}">${list.name}</option>`;
                       });
                       optsHtml += `</optgroup>`;
                   }

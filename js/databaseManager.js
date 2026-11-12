@@ -106,7 +106,6 @@ const DatabaseManager = {
       
       if (isBundle) {
           let pSku = this.getCleanParentRef(item).toUpperCase();
-          // ✨ FIX: All flyers and lookups now mathematically enforce strict Box Lots!
           let strictMath = this.getStrictBoxInventory(pSku, parseInt(item.uomMult, 10));
           return strictMath.totalBoxes;
       } else {
@@ -115,8 +114,13 @@ const DatabaseManager = {
           if (children.length > 0) {
               let hasBoxOnly = children.some(c => this.isBoxOnly(c));
               if (hasBoxOnly) return 0; // Completely hide the 'Each' remainder if flagged as Box Only!
+              
               let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
-              if (largestBundle > 1) avail = avail % largestBundle;
+              if (largestBundle > 1) {
+                  // ✨ FIX: Properly subtract STRICT boxes from the Eaches total, instead of old fuzzy modulo math
+                  let strictMath = this.getStrictBoxInventory(this.getItemSku(item).toUpperCase(), largestBundle);
+                  avail = avail - (strictMath.totalBoxes * largestBundle);
+              }
           }
           return avail;
       }
