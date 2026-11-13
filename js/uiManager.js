@@ -518,7 +518,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
              let lotRows = '';
              let shelf = famItem.shelf ? famItem.shelf : '--';
              
+             // ✨ FIX: Strip (EACH) from the search target so it perfectly matches the EXP_TRACK log!
              let targetRefForLots = isBundle ? DatabaseManager.getCleanParentRef(famItem).toUpperCase() : String(ref).trim().toUpperCase();
+             targetRefForLots = targetRefForLots.replace(/\(EACH\)/i, '').split('(')[0].trim();
              
              // ✨ FIX: Bulletproof filter to drop 0, null, blank, and NaN quantities
              let activeLots = responseData.data.filter(row => {
