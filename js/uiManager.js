@@ -386,16 +386,27 @@ const UIManager = {// GLOBAL CONFIGURATIONS
         uniqueFamily = uniqueFamily.filter(f => parseInt(f.uomMult, 10) > 1);
     }
 
-    // ✨ FIX 1: Filter out items that have absolutely zero physical or reserved stock,
-    // BUT allow Box/Bundle variants to pass through if they have calculated true availability!
+    // ✨ FIX: Filter out items that have absolutely zero physical or reserved stock,
+    // BUT intelligently guarantee Box/Bundle variants pass through if their Parent has ANY stock available!
     uniqueFamily = uniqueFamily.filter(f => {
         let oh = parseInt(f.onHand || f.TotalQty, 10) || 0;
         let res = parseInt(f.reservedQty, 10) || 0;
         
         let isBundle = f.parentRef && parseInt(f.uomMult, 10) > 1;
         let trueAvail = 0;
+        
         if (isBundle && typeof DatabaseManager !== 'undefined') {
             trueAvail = DatabaseManager.getTrueAvailability(f);
+            
+            // Safety Net: If the strict math temporarily evaluates to 0 due to unmatched Lot/Exp buckets, 
+            // still show the Bundle on screen IF the parent has physical on-hand inventory!
+            if (trueAvail === 0) {
+                let parentItem = uniqueFamily.find(p => DatabaseManager.getItemSku(p) === DatabaseManager.getCleanParentRef(f).toUpperCase());
+                if (parentItem) {
+                    let pOh = parseInt(parentItem.onHand || parentItem.TotalQty, 10) || 0;
+                    if (pOh > 0) trueAvail = 1; // Force visibility so the UI can display the "Insufficient matching Lot/Exp" warning message
+                }
+            }
         }
         
         return (oh > 0 || res > 0 || trueAvail > 0);
