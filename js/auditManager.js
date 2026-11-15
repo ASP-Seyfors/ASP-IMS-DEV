@@ -229,7 +229,8 @@ const AuditManager = {
     document.getElementById('auditPreviewContent').innerHTML = '<div style="text-align:center; padding:20px; color:#0277bd; font-weight:bold;">⏳ Processing live ledger from the cloud... Please wait.</div>';
     
     try {
-      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+      let needCold = (timeframe === '90d' || timeframe === 'all') ? '&includeCold=true' : '';
+      let res = await fetch(`${ApiManager.cloudArchiveUrl}?action=GET_AUDIT_LOG${needCold}&t=${Date.now()}`);
       let text = await res.text();
       let responseData = JSON.parse(text);
       if (responseData.status !== "success" || !responseData.data) throw new Error("Failed to load audit log.");
@@ -1296,7 +1297,7 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
 
     // 3. ✨ NEW: Fetch Live Cloud Ledger to guarantee absolute historical accuracy!
     try {
-        let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+        let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&includeCold=true&t=${Date.now()}`);
         let text = await res.text();
         let responseData = JSON.parse(text);
         if (responseData.status === "success" && responseData.data) {
@@ -2693,7 +2694,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
                   <div style="color:var(--text-main, #555);">Date: ${ev.date} | Operator: ${ev.user} | Ver: <strong>${ev.version || 'N/A'}</strong></div>
                 </div>`;
       });
-      html += `</div>`;
+      html += `<div style="text-align:center; margin-top:10px; padding-top:8px; border-top:1px dashed #a5d6a7;">
+                 <button class="btn-small" style="background:#7b1fa2; color:#fff; padding:6px 14px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="AuditManager.traceDeepArchiveLotNumber('${targetLot}')">
+                   🗄️ Also Search Deep Cold Storage Archive
+                 </button>
+               </div></div>`;
 
       resultsContainer.innerHTML = html;
     } catch(err) {
@@ -2762,10 +2767,11 @@ body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333;
         return; 
     }
 
-    resultsContainer.innerHTML = '<div style="padding:15px; color:#7b1fa2; text-align:center; font-weight:bold;">⏳ Querying live cloud ledger...</div>';
+    resultsContainer.innerHTML = '<div style="padding:15px; color:#7b1fa2; text-align:center; font-weight:bold;">⏳ Querying cloud ledger...</div>';
 
     try {
-      let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG&t=${Date.now()}`);
+      let needCold = (timeframe !== '30d') ? '&includeCold=true' : '';
+      let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_AUDIT_LOG${needCold}&t=${Date.now()}`);
       let text = await res.text();
       let responseData = JSON.parse(text);
       
