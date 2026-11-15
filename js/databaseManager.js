@@ -540,7 +540,7 @@ const DatabaseManager = {
       html += `
         <tr style="border-bottom: 1px solid var(--border-color, #eee); background-color: ${idx % 2 === 0 ? 'var(--input-bg, #fff)' : 'var(--raw-bg, #f9f9f9)'};">
           <td style="padding:10px; color:var(--text-main, #555);">${item.mfr || '--'}</td>
-          <td style="padding:10px; font-weight:bold; color:var(--heading-color, #00796b);">${item.ref || item.sku} ${isBoxOnlyLabel}</td>
+          <td style="padding:10px; font-weight:bold; color:var(--heading-color, #00796b);">${item.ref || item.sku}${item.displayAlias ? ` <span style="color:#0277bd; font-size:0.8rem;">[${item.displayAlias}]</span>` : ''} ${isBoxOnlyLabel}</td>
           <td style="padding:10px; font-size:0.85rem; color:var(--text-main, #333);">${item.desc || '--'}</td>
           <td style="padding:10px; text-align:center; font-weight:bold; color:${avail > 0 ? '#2e7d32' : '#c62828'};">${avail}</td>
           <td style="padding:10px; text-align:center;">
@@ -579,6 +579,13 @@ const DatabaseManager = {
       : `<input type="text" id="modalDmPrice" value="${dbItem.dotMedPrice || ''}" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background-color:#f5f5f5; color:#777;" readonly title="Admin approval required.">`;
 
     document.getElementById('modalRef').value = dbItem.ref || dbItem.sku;
+    
+    // ✨ NEW: Populate Alias and Show Admin Rename Button
+    let aliasEl = document.getElementById('modalDisplayAlias');
+    if (aliasEl) aliasEl.value = dbItem.displayAlias || '';
+    
+    let renameBtn = document.getElementById('btnAdminRenameRef');
+    if (renameBtn) renameBtn.style.display = (AuthManager.currentUser && AuthManager.currentUser.isAdmin) ? 'block' : 'none';
     document.getElementById('modalMfr').value = dbItem.mfr || '';
     document.getElementById('modalDesc').value = dbItem.desc || '';
     document.getElementById('modalCat').value = dbItem.category || '';
@@ -625,7 +632,8 @@ const DatabaseManager = {
     let desc = document.getElementById('modalDesc').value.trim();
     let cat = document.getElementById('modalCat').value.trim();
     let shelf = document.getElementById('modalShelf').value.trim().toUpperCase();
-    let minStock = parseInt(document.getElementById('modalMinStock').value, 10) || 0; // ✨ NEW
+    let minStock = parseInt(document.getElementById('modalMinStock').value, 10) || 0;
+    let displayAlias = document.getElementById('modalDisplayAlias') ? document.getElementById('modalDisplayAlias').value.trim() : ""; // ✨ NEW
     let status = document.getElementById('modalStatus').value;
     
     let price = document.getElementById('modalPrice').value.trim();
@@ -656,6 +664,7 @@ const DatabaseManager = {
       let changed = (
       dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || 
       (parseInt(dbItem.minStock, 10) || 0) !== minStock || 
+      (dbItem.displayAlias || '') !== displayAlias ||
       (dbItem.parentRef && uomMultNum > 1 && isBoxOnly !== currentIsBoxOnly) ||
       (isAdmin && dbItem.price !== price) || 
       (isAdmin && cost !== null && dbItem.cost !== cost) ||
@@ -684,7 +693,10 @@ const DatabaseManager = {
         if (isAdmin && rmPrice !== null && (dbItem.revMedPrice || '') !== rmPrice) changeNotes.push(`RM Price Updated`);
         if (isAdmin && dmPrice !== null && (dbItem.dotMedPrice || '') !== dmPrice) changeNotes.push(`DM Price Updated`);
 
+        if (dbItem.displayAlias !== displayAlias) changeNotes.push(`Alias Updated`);
+        
         dbItem.mfr = mfr;
+        dbItem.displayAlias = displayAlias; // ✨ NEW
         dbItem.desc = desc;
         dbItem.category = cat;
         dbItem.shelf = shelf;
@@ -746,6 +758,39 @@ const DatabaseManager = {
       }
     }
     document.getElementById('itemEditModal').style.display = 'none';
+  },
+
+  // ✨ PHASE 3: Admin Global Rename Tool
+  promptRenameRef() {
+    let oldRef = document.getElementById('modalRef').value.trim();
+    if (!oldRef) return;
+    
+    let newRef = prompt(`⚠️ ADMIN RENAME TOOL ⚠️\n\nYou are about to rename "${oldRef}" everywhere in the database (Items, Bundles, EXP_TRACK, Allocations, Damaged, Audit Log, Subscriptions).\n\nThis action cannot be undone.\n\nEnter the NEW REF / SKU:`);
+    
+    if (!newRef || newRef.trim() === "" || newRef.trim().toUpperCase() === oldRef.toUpperCase()) return;
+    newRef = newRef.trim().toUpperCase();
+    
+    if (this.db.find(i => (i.sku || i.ref || '').toUpperCase() === newRef)) {
+        UIManager.showCustomAlert("Error", `The REF "${newRef}" already exists in the database.`, true);
+        return;
+    }
+
+    UIManager.showCustomConfirm("Confirm Global Rename", `Are you absolutely sure you want to rename "${oldRef}" to "${newRef}" across the entire system?`, async () => {
+        try {
+            let btn = document.getElementById('btnAdminRenameRef');
+            if(btn) btn.textContent = "Renaming...";
+            
+            await fetch(ApiManager.getActiveArchiveUrl(), {
+                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: "RENAME_REF", payload: { oldRef: oldRef, newRef: newRef } })
+            });
+            
+            UIManager.showCustomAlert("Success", `✅ "${oldRef}" has been successfully renamed to "${newRef}" across all ledgers.\n\nPlease click "Sync System" to download the updated database.`);
+            document.getElementById('itemEditModal').style.display = 'none';
+        } catch (err) {
+            UIManager.showCustomAlert("Error", "Network error during rename: " + err.message, true);
+        }
+    });
   },
 
   backupFullDatabase() {
@@ -917,7 +962,8 @@ const DatabaseManager = {
             onRevMed: row[21], 
             onDotMed: row[22], 
             shopifyCategory: row[23] || "Medical Supplies",
-            minStock: parseInt(row[24], 10) || 0 // ✨ NEW: Captures Column Y
+            minStock: parseInt(row[24], 10) || 0, // ✨ NEW: Captures Column Y
+            displayAlias: String(row[25] || "").trim() // ✨ PHASE 3: Captures Column Z
           }));
           
           fullDb.items = fullDb.items.concat(mappedItems);

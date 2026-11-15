@@ -36,6 +36,38 @@ const InventoryEngine = {
     return { trueRef: finalRef, trueQty: finalQty };
   },
 
+  // ✨ PHASE 3: Universal Packaging Display Helper
+  getPackagingDisplay(item, currentDb, availableEaches) {
+    let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
+    let uom = parseInt(item.uomMult, 10) || 1;
+    
+    let children = currentDb.filter(c => 
+        (c.parentRef || '').replace(/^\*/, '').toUpperCase() === (item.sku || item.ref || '').toUpperCase() 
+        && parseInt(c.uomMult, 10) > 1
+    );
+    
+    let isBoxOnly = children.some(c => String(c.parentRef).startsWith('*'));
+    let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
+
+    // If item has a Display Alias, we return it here to be used universally!
+    let printRef = item.displayAlias ? item.displayAlias : (item.sku || item.ref);
+
+    if (isBundle) {
+        let boxes = Math.floor(availableEaches / uom);
+        return { 
+            printRef: printRef, totalUnits: availableEaches, displayQty: String(boxes), 
+            displayString: `${boxes} Box(es) of ${uom}`, isBoxOnly: false, shouldHide: (boxes === 0) 
+        };
+    } else {
+        if (isBoxOnly) return { printRef: printRef, totalUnits: availableEaches, displayQty: "0", displayString: "Hidden (Box Only)", isBoxOnly: true, shouldHide: true };
+        if (largestBundle > 1) {
+            let eaches = availableEaches % largestBundle;
+            return { printRef: printRef, totalUnits: availableEaches, displayQty: String(eaches), displayString: `${eaches} Eaches`, isBoxOnly: false, shouldHide: (eaches === 0) };
+        }
+        return { printRef: printRef, totalUnits: availableEaches, displayQty: String(availableEaches), displayString: `${availableEaches} Eaches`, isBoxOnly: false, shouldHide: (availableEaches === 0) };
+    }
+  },
+
   validateAvailability(trueRef, requestedQty, action, currentDb, customerTag, currentAllocations, ignoreOverpack = false, workflowType = '') {
     if (workflowType.toUpperCase().includes('RECEIVING') || workflowType.toUpperCase().includes('STOCKTAKE')) {
         return true;
