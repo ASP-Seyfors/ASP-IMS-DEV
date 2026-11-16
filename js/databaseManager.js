@@ -106,10 +106,13 @@ const DatabaseManager = {
       
       if (isBundle) {
           let pSku = this.getCleanParentRef(item).toUpperCase();
-          let strictMath = this.getStrictBoxInventory(pSku, parseInt(item.uomMult, 10));
-          return strictMath.totalBoxes;
+          let uom = parseInt(item.uomMult, 10) || 1;
+          let parentItem = this.db.find(p => this.getItemSku(p) === pSku);
+          let pAvail = parentItem ? Math.max(0, (parseInt(parentItem.onHand, 10) || 0) - (parseInt(parentItem.reservedQty, 10) || 0)) : 0;
+          let strictMath = this.getStrictBoxInventory(pSku, uom);
+          return Math.min(strictMath.totalBoxes, Math.floor(pAvail / uom));
       } else {
-          let avail = (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0);
+          let avail = Math.max(0, (parseInt(item.onHand, 10) || 0) - (parseInt(item.reservedQty, 10) || 0));
           let children = this.db.filter(c => this.getCleanParentRef(c).toUpperCase() === this.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
           if (children.length > 0) {
               let hasBoxOnly = children.some(c => this.isBoxOnly(c));
@@ -117,9 +120,10 @@ const DatabaseManager = {
               
               let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
               if (largestBundle > 1) {
-                  // ✨ FIX: Properly subtract STRICT boxes from the Eaches total, instead of old fuzzy modulo math
+                  // ✨ FIX: Cap strictBoxes at Math.floor(avail / largestBundle) so reserved stock never makes Each avail negative!
                   let strictMath = this.getStrictBoxInventory(this.getItemSku(item).toUpperCase(), largestBundle);
-                  avail = avail - (strictMath.totalBoxes * largestBundle);
+                  let sellableBoxes = Math.min(strictMath.totalBoxes, Math.floor(avail / largestBundle));
+                  avail = avail - (sellableBoxes * largestBundle);
               }
           }
           return avail;
@@ -517,7 +521,7 @@ const DatabaseManager = {
               let pTotal = parseInt(parentItem.onHand, 10) || 0;
               let pRes = parseInt(parentItem.reservedQty, 10) || 0;
               let pAvail = pTotal - pRes;
-              avail = Math.floor(pAvail / parseInt(item.uomMult, 10)); // Total full boxes available
+              avail = this.getTrueAvailability(item); // Strict Lot/Exp full boxes available
           }
           if (this.isBoxOnly(item)) {
               isBoxOnlyLabel = `<span style="background-color:#e65100; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; margin-left:8px;" title="This variant is hidden from customer reports">BOX ONLY</span>`;
@@ -533,7 +537,7 @@ const DatabaseManager = {
           let children = this.db.filter(c => this.getCleanParentRef(c) === this.getItemSku(item) && parseInt(c.uomMult, 10) > 1);
           if (children.length > 0) {
               let largestBundle = children.reduce((max, c) => Math.max(max, parseInt(c.uomMult, 10)), 1);
-              if (largestBundle > 1) avail = avail % largestBundle;
+              if (largestBundle > 1) avail = this.getTrueAvailability(item);
           }
       }
       
