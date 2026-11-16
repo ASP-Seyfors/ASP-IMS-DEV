@@ -69,13 +69,15 @@
   </div>
 
   <!-- ✨ DYNAMIC INBOUND TASK LIST (Visible only when Shipment Incoming is selected) -->
-<div id="inboundTaskHub" style="background:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:12px; margin-bottom:15px; display:block;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #ffcc80; padding-bottom:4px;">
-    <span style="font-size:0.85rem; font-weight:bold; color:#e65100;"><i data-lucide="truck" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i> Expected Inbound Shipments (Click to Select PO)</span>
-    <button class="btn-small btn-auto" style="background:#e65100; color:#fff; padding:2px 6px; font-size:0.75rem;" onclick="ShippingManager.loadInboundTaskList()">🔄 Refresh</button>
+<div id="inboundTaskHub" style="background: var(--input-bg, #fcf8f5); border: 1px solid #ffe0b2; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:block;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #ffe0b2; padding-bottom:4px;">
+    <span style="font-size:0.8rem; font-weight:bold; color:#e65100;">
+      <i data-lucide="truck" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> Expected Inbound Shipments (Click PO to Load)
+    </span>
+    <button class="btn-small btn-auto" style="background:#e65100; color:#fff; padding:2px 6px; font-size:0.7rem; border-radius:3px;" onclick="ShippingManager.loadInboundTaskList()">🔄 Refresh</button>
   </div>
-  <div id="inboundTaskCardsContainer" style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; font-size:0.85rem;">
-    <div style="text-align:center; color:#777; font-style:italic; padding:10px;">Loading expected inbound shipments...</div>
+  <div id="inboundTaskCardsContainer" style="max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; font-size:0.8rem;">
+    <div style="text-align:center; color:#777; font-style:italic; padding:8px;">Loading expected inbound shipments...</div>
   </div>
 </div>
 

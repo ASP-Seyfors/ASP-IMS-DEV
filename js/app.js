@@ -361,6 +361,24 @@ window.masterSystemSync = async (event) => {
   }
 };
 
+window.ReportsManager = {
+    triggerVetcoveVariance() {
+        window.open('?action=EXPORT_VETCOVE_VARIANCE', '_blank');
+    },
+    triggerVetcoveFull() {
+        window.open('?action=EXPORT_VETCOVE_FULL', '_blank');
+    },
+    triggerDotMedVariance() {
+        window.open('?action=EXPORT_DOTMED_VARIANCE', '_blank');
+    },
+    triggerDotMedFull() {
+        window.open('?action=EXPORT_DOTMED_FULL', '_blank');
+    },
+    triggerRevMedExport() {
+        window.open('?action=EXPORT_REVMED', '_blank');
+    }
+};
+
 window.changeAppTheme = (val) => UIManager.changeAppTheme(val);
 window.toggleSessionType = () => UIManager.toggleSessionType();
 window.togglePreloadFeed = () => UIManager.togglePreloadFeed();
