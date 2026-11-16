@@ -68,6 +68,17 @@
     </div>
   </div>
 
+  <!-- ✨ DYNAMIC INBOUND TASK LIST (Visible only when Shipment Incoming is selected) -->
+<div id="inboundTaskHub" style="background:#fff3e0; border:1px solid #ffcc80; border-radius:6px; padding:12px; margin-bottom:15px; display:block;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #ffcc80; padding-bottom:4px;">
+    <span style="font-size:0.85rem; font-weight:bold; color:#e65100;"><i data-lucide="truck" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;"></i> Expected Inbound Shipments (Click to Select PO)</span>
+    <button class="btn-small btn-auto" style="background:#e65100; color:#fff; padding:2px 6px; font-size:0.75rem;" onclick="ShippingManager.loadInboundTaskList()">🔄 Refresh</button>
+  </div>
+  <div id="inboundTaskCardsContainer" style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; font-size:0.85rem;">
+    <div style="text-align:center; color:#777; font-style:italic; padding:10px;">Loading expected inbound shipments...</div>
+  </div>
+</div>
+
   <div class="form-row" id="rowSupplier">
     <div class="form-label">Supplier / Vendor:</div>
     <div class="input-wrapper">

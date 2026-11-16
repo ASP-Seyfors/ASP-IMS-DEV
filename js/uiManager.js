@@ -761,6 +761,9 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     document.getElementById('rowSupplier').style.display = type === 'Shipment' ? 'flex' : 'none';
     document.getElementById('rowCustomer').style.display = type === 'Order' ? 'flex' : 'none';
     document.getElementById('rowProcess').style.display = type === 'Order' ? 'flex' : 'none';
+    if (typeof ShippingManager !== 'undefined' && typeof ShippingManager.toggleInboundTaskHub === 'function') {
+    ShippingManager.toggleInboundTaskHub(type);
+}
   },
 
   formatExpDate(inputEl) {

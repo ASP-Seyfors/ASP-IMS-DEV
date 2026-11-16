@@ -36,6 +36,25 @@
     </div>
   </div>
 
+  <!-- ✨ EXTERNAL STOREFRONT & MARKETPLACE EXPORTS SECTION -->
+<div class="report-section-card" style="background:var(--input-bg); border:1px solid var(--border-color); padding:15px; border-radius:6px; margin-bottom:20px;">
+  <h3 style="margin-top:0; color:var(--heading-color, #0277bd); font-size:1rem;">🛒 External Storefront & Marketplace Exports</h3>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-top:10px;">
+    
+    <!-- Vetcove -->
+    <button class="btn-action" style="background:#2e7d32; color:#fff;" onclick="ReportsManager.triggerVetcoveVariance()">📦 Export Vetcove Variance CSV</button>
+    <button class="btn-action" style="background:#1b5e20; color:#fff;" onclick="ReportsManager.triggerVetcoveFull()">📦 Export Vetcove Full CSV</button>
+    
+    <!-- DotMed -->
+    <button class="btn-action" style="background:#0277bd; color:#fff;" onclick="ReportsManager.triggerDotMedVariance()">🏥 Export DotMed Variance CSV</button>
+    <button class="btn-action" style="background:#01579b; color:#fff;" onclick="ReportsManager.triggerDotMedFull()">🏥 Export DotMed Full CSV</button>
+    
+    <!-- RevMed -->
+    <button class="btn-action" style="background:#f57f17; color:#fff;" onclick="ReportsManager.triggerRevMedExport()">💊 Export RevMed CSV</button>
+    
+  </div>
+</div>
+
   <!-- Customer Specific Reports -->
   <div id="panelCustomerReports" style="background: #fafafa; border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
     <h4 style="margin: 0 0 10px 0; color: #333;">Customer-Specific Reports</h4>

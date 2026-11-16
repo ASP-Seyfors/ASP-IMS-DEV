@@ -959,5 +959,84 @@ const ShippingManager = {
         if (stateMap[s]) {
             el.value = stateMap[s];
         }
+    },
+
+    async loadInboundTaskList() {
+        let container = document.getElementById('inboundTaskCardsContainer');
+        if (!container) return;
+
+        container.innerHTML = "<div style='text-align:center; color:#e65100; padding:6px;'>⏳ Loading expected shipments...</div>";
+
+        try {
+            let res = await fetch(`${ApiManager.getActiveArchiveUrl()}?action=GET_PENDING_SHIPMENTS`);
+            let data = await res.json();
+            
+            if (!data.incoming || data.incoming.length === 0) {
+                container.innerHTML = "<div style='color:#777; font-style:italic; text-align:center; padding:6px;'>No pending incoming shipments found.</div>";
+                return;
+            }
+
+            // Filter for pending or in-transit incoming shipments
+            let pending = data.incoming.filter(s => String(s.status).toLowerCase() !== 'delivered');
+            if (pending.length === 0) {
+                container.innerHTML = "<div style='color:#777; font-style:italic; text-align:center; padding:6px;'>All incoming shipments have been delivered.</div>";
+                return;
+            }
+
+            let html = pending.map(s => {
+                let dStr = s.eta ? new Date(s.eta).toLocaleDateString() : (s.date ? new Date(s.date).toLocaleDateString() : 'TBD');
+                let safePartner = String(s.partner || '').replace(/'/g, "\\'");
+                let safePo = String(s.po || '').replace(/'/g, "\\'");
+                
+                return `
+                <div onclick="ShippingManager.selectInboundTask('${safePartner}', '${safePo}')" style="background:#fff; border:1px solid #ffcc80; padding:8px 10px; border-radius:4px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:background 0.2s;" title="Click to auto-fill supplier and PO">
+                    <div>
+                        <strong style="color:#e65100;">${s.partner}</strong> | <span style="color:#333; font-weight:bold;">PO: ${s.po || 'N/A'}</span>
+                        <div style="font-size:0.75rem; color:#666;">Carrier: ${s.carrier || 'N/A'} | Tracking: ${s.tracking || 'None'}</div>
+                    </div>
+                    <span class="badge-info" style="background:#e65100; color:#fff; font-size:0.75rem; padding:2px 6px;">ETA: ${dStr}</span>
+                </div>`;
+            }).join('');
+
+            container.innerHTML = html;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (err) {
+            container.innerHTML = "<div style='color:red; text-align:center; padding:6px;'>Failed to load inbound task list.</div>";
+        }
+    },
+
+    selectInboundTask(partnerName, poNumber) {
+        // Auto-fill Supplier Dropdown
+        let supSel = document.getElementById('supplierSelect');
+        if (supSel) {
+            let opt = Array.from(supSel.options).find(o => o.value.toUpperCase().trim() === partnerName.toUpperCase().trim());
+            if (opt) {
+                supSel.value = opt.value;
+            } else {
+                // If not in dropdown, select it or add it
+                supSel.value = partnerName;
+            }
+        }
+
+        // Auto-fill Order Details / PO Input
+        let orderInput = document.getElementById('orderDetailsInput');
+        if (orderInput) {
+            orderInput.value = poNumber;
+        }
+
+        // Visual feedback
+        if (typeof UIManager !== 'undefined') {
+            UIManager.showCustomAlert("Shipment Selected", `✅ Auto-filled Supplier <b>${partnerName}</b> and PO <b>${poNumber}</b>.`);
+        }
+    },
+
+    toggleInboundTaskHub(sessionType) {
+        let hub = document.getElementById('inboundTaskHub');
+        if (hub) {
+            hub.style.display = (sessionType === 'Shipment') ? 'block' : 'none';
+            if (sessionType === 'Shipment') {
+                this.loadInboundTaskList();
+            }
+        }
     }
 };
