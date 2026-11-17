@@ -36,6 +36,10 @@ const ReportsManager = {
       await this._fetchAndDownloadCsv('EXPORT_REVMED', 'RevMed_Catalog_Export.csv');
   },
 
+  async triggerOnHandCsv() {
+    await this._fetchAndDownloadCsv('EXPORT_ON_HAND_CSV', 'ASP_OnHand_Stock_Export.csv');
+  },
+
   async _fetchAndDownloadCsv(actionName, defaultFilename) {
       try {
           let baseUrl = ApiManager.getActiveArchiveUrl();
