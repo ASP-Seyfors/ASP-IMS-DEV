@@ -132,8 +132,13 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     let elHub = document.getElementById('panelEnterpriseHub');
     if (elHub) elHub.style.display = isAdv ? 'block' : 'none';
     
-    let elDamaged = document.getElementById('panelDamagedHub');
-    if (elDamaged) elDamaged.style.display = isAdv ? 'block' : 'none';
+    // ✨ Control Inbound Task Hub visibility with Advanced Mode
+    let elInboundHub = document.getElementById('inboundTaskHub');
+    let typeRadio = document.querySelector('input[name="sessionType"]:checked');
+    let isShipment = typeRadio ? typeRadio.value === 'Shipment' : true;
+    if (elInboundHub) {
+        elInboundHub.style.display = (isAdv && isShipment) ? 'block' : 'none';
+    }
     
     this.togglePreloadFeed();
   },
