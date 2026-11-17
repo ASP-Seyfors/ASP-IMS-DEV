@@ -864,3 +864,456 @@ h2 {
   overflow-y: auto;
   font-size: 0.82rem;
 }
+
+/* ✨ Automatic Segmented Control Highlight (Works via both CSS :has and .active class) */
+.segment-option.active,
+.segment-option:has(input[type="radio"]:checked) {
+  background-color: var(--card-bg);
+  color: var(--heading-color);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  font-weight: 700;
+  border: 1px solid var(--heading-color);
+}
+
+.segment-option:not(:has(input[type="radio"]:checked)):not(.active) {
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+/* ✨ Compact & Centered Expected Inbound Shipments Hub */
+.inbound-task-hub {
+  background-color: var(--raw-bg);
+  border: 1px solid #ffe0b2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 auto 16px auto;
+  max-width: 540px;
+}
+
+.inbound-cards-scroll {
+  max-height: 135px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+/* ✨ Paired Field Grid Inside Single-Column Scanning Card */
+.saas-field-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+  align-items: start;
+}
+
+.saas-field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .saas-field-grid-2col,
+  .saas-field-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ✨ Prevent Chrome Autofill from turning dark-mode inputs bright white */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--input-color) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* =========================================================
+   BATCH 1: VERIFY & SUMMARY SaaS COMPONENT STYLES
+========================================================= */
+.verify-hero-tile {
+  border: 2px solid var(--heading-color) !important;
+  background-color: var(--input-bg) !important;
+}
+
+.saas-callout-row {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.saas-callout-row.info {
+  background-color: rgba(2, 119, 189, 0.12);
+  border: 1px dashed var(--heading-color, #0277bd);
+  color: var(--text-main);
+}
+
+.saas-callout-row.danger {
+  background-color: rgba(211, 47, 47, 0.12);
+  border: 1px dashed #ef5350;
+  color: #ef5350;
+}
+
+.saas-callout-row.teal {
+  background-color: rgba(0, 121, 107, 0.12);
+  border: 1px dashed #26a69a;
+}
+
+.saas-meta-well {
+  background-color: var(--raw-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.saas-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .saas-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.saas-meta-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-main);
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+.saas-meta-value {
+  font-size: 0.92rem;
+  color: var(--heading-color);
+  word-break: break-word;
+}
+
+/* Summary KPI Pills & Alert Cards */
+.saas-kpi-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.saas-kpi-pill {
+  background-color: var(--raw-bg);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-main);
+}
+
+.saas-kpi-pill strong {
+  color: var(--heading-color);
+  margin-left: 4px;
+}
+
+.saas-alert-card.warning {
+  border-left: 4px solid #f57f17;
+  background-color: var(--card-bg);
+}
+
+.saas-alert-card.info {
+  border-left: 4px solid #0277bd;
+  background-color: var(--card-bg);
+}
+
+/* Theme-Safe Overrides for Dynamically Injected Summary Rows */
+#manifestReconcileList .manifest-rec-row,
+#advancedItemsList > div,
+#advancedItemsList > div > div:last-child {
+  background-color: var(--raw-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main) !important;
+}
+
+#manifestReconcileList .manifest-rec-row span,
+#advancedItemsList span {
+  color: var(--text-main) !important;
+}
+
+details.summary-item-card {
+  background-color: var(--raw-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s ease;
+}
+
+details.summary-item-card[open] {
+  border-color: var(--heading-color);
+  background-color: var(--card-bg);
+}
+
+/* =========================================================
+   BATCH 2: ENTERPRISE DATA HUB SCREENS (REPORTS, AUDIT, DB, ARCHIVE)
+========================================================= */
+.saas-hub-section {
+  margin-bottom: 16px;
+}
+.saas-hub-section.accent-blue { border-left: 4px solid #0277bd; }
+.saas-hub-section.accent-purple { border-left: 4px solid #7b1fa2; }
+.saas-hub-section.accent-green { border-left: 4px solid #2e7d32; }
+.saas-hub-section.accent-indigo { border-left: 4px solid #3f51b5; }
+.saas-hub-section.accent-red { border-left: 4px solid #c62828; }
+
+.saas-subpanel {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.saas-radio-pill-group {
+  display: flex;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  padding: 4px;
+  gap: 6px;
+}
+
+.saas-radio-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.saas-btn-row-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.saas-ledger-search-bar {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 650px) {
+  .saas-btn-row-3col {
+    grid-template-columns: 1fr;
+  }
+  .saas-ledger-search-bar {
+    flex-direction: column;
+  }
+}
+
+.saas-checkbox-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  padding-top: 4px;
+}
+
+.saas-checkbox-bar label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Enterprise Data Tables (Database Editor & Subscribers) */
+.saas-table-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+}
+
+.saas-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  background-color: var(--card-bg);
+  color: var(--text-main);
+}
+
+.saas-data-table thead {
+  position: sticky;
+  top: 0;
+  background-color: var(--raw-bg);
+  color: var(--heading-color);
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.saas-data-table th {
+  padding: 12px 10px;
+  border-bottom: 2px solid var(--border-color);
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Session Archive Cards & Tabs (Theme-Safe Overrides for JS-Injected Markup) */
+#tabLocalArchive[style*="#f5f5f5"],
+#tabCloudArchive[style*="#f5f5f5"] {
+  background-color: var(--raw-bg) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.audit-card {
+  background-color: var(--raw-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.audit-card strong[style*="#0277bd"] {
+  color: var(--heading-color) !important;
+}
+
+.audit-card details,
+.audit-card details summary {
+  color: var(--text-main) !important;
+}
+
+#ledgerSearchResults > div[style*="#f3e5f5"] {
+  background-color: var(--raw-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+#ledgerSearchResults h4[style*="#7b1fa2"] {
+  color: var(--heading-color) !important;
+}
+
+#customListsGrid > div {
+  background-color: var(--raw-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main) !important;
+}
+
+#customListsGrid > div div {
+  color: var(--text-main) !important;
+}
+
+/* =========================================================
+   BATCH 3: LOGIN, MANIFEST, SETTINGS, HELP & DEVTOOLS STYLES
+========================================================= */
+.saas-login-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  padding: 32px 26px;
+  border-top: 4px solid var(--heading-color);
+}
+
+.login-brand-well {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Pre-Load Manifest Dynamic Rows & Review Cards */
+.manifest-row {
+  background-color: var(--raw-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.saas-manifest-review-list > div[style*="#ffffff"] {
+  background-color: var(--raw-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-left: 4px solid var(--heading-color) !important;
+  border-radius: 8px !important;
+  color: var(--text-main) !important;
+}
+
+.saas-manifest-review-list > div div[style*="#0277bd"] {
+  color: var(--heading-color) !important;
+}
+
+.saas-manifest-review-list > div div[style*="#555"],
+.saas-manifest-review-list > div div[style*="#757575"] {
+  color: var(--text-main) !important;
+  opacity: 0.85;
+}
+
+/* Operations Guide Markdown Reader */
+.saas-help-reader {
+  background-color: var(--raw-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 18px 20px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-main) !important;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.saas-help-reader h1,
+.saas-help-reader h2,
+.saas-help-reader h3,
+.saas-help-reader h4 {
+  color: var(--heading-color);
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+}
+
+.saas-help-reader code,
+.saas-help-reader pre {
+  background-color: var(--card-bg);
+  color: var(--heading-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.saas-help-reader pre {
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.saas-help-reader table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.saas-help-reader th,
+.saas-help-reader td {
+  border: 1px solid var(--border-color);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.saas-help-reader th {
+  background-color: var(--card-bg);
+  color: var(--heading-color);
+}

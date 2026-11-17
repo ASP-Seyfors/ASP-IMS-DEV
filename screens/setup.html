@@ -1,27 +1,3 @@
-<!-- =======================================================================
- * Allied Surgical Products - Inventory Management System
- * File: screens/setup.html
- * Author: Thomas Seyfors
- * Date Created: August 2026
- * 
- * Description: 
- *   User interface component for the Home Screen. The main control panel 
- *   for launching sessions, checking updates, and accessing enterprise tools.
- *
- * Affected Features:
- *   - Master System Sync
- *   - Session Setup (Shipments vs Orders)
- *   - QuickBooks Online Feed Integration
- *   - Quick Item Lookup Modal
- *   - Advanced Mode Enterprise Tools Access
- *
- * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
- * All Rights Reserved.
- * ======================================================================= -->
-<!-- =======================================================================
- * Allied Surgical Products - Inventory Management System
- * File: screens/setup.html (Modern SaaS Redesign)
- * ======================================================================= -->
 <div id="screenSetup" class="saas-dashboard-container">
   
   <!-- 1. Command Center Header -->
@@ -71,27 +47,27 @@
     <!-- Segmented Control Tabs -->
     <div class="session-type-segmented-control">
       <label class="segment-option active" id="segShipment">
-        <input type="radio" name="sessionType" value="Shipment" checked onchange="toggleSessionType(); updateSegmentUI();">
+        <input type="radio" name="sessionType" value="Shipment" checked onchange="toggleSessionType()">
         <i data-lucide="package" style="width:18px; height:18px;"></i>
         <span>Shipment (Incoming)</span>
       </label>
       <label class="segment-option" id="segOrder">
-        <input type="radio" name="sessionType" value="Order" onchange="toggleSessionType(); updateSegmentUI();">
+        <input type="radio" name="sessionType" value="Order" onchange="toggleSessionType()">
         <i data-lucide="shopping-cart" style="width:18px; height:18px;"></i>
         <span>Order (Outgoing)</span>
       </label>
     </div>
 
     <!-- Expected Inbound Shipments Hub (Dynamic) -->
-    <div id="inboundTaskHub" class="inbound-task-hub" style="display:block;">
-      <div class="flex-between" style="margin-bottom: 8px; border-bottom: 1px solid rgba(230, 81, 0, 0.2); padding-bottom: 6px;">
-        <span class="hub-title">
-          <i data-lucide="truck" style="width:15px; height:15px; vertical-align:middle; margin-right:6px;"></i> Expected Inbound Shipments (Click PO to Load)
+    <div id="inboundTaskHub" class="inbound-task-hub" style="display:none;">
+      <div class="flex-between" style="margin-bottom: 6px; border-bottom: 1px solid rgba(230, 81, 0, 0.25); padding-bottom: 6px;">
+        <span class="hub-title" style="font-size:0.8rem; font-weight:700; color:#ff9800;">
+          <i data-lucide="truck" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> Expected Inbound Shipments (Click PO to Load)
         </span>
         <button class="btn-saas-sub-orange" onclick="ShippingManager.loadInboundTaskList()">🔄 Refresh</button>
       </div>
       <div id="inboundTaskCardsContainer" class="inbound-cards-scroll">
-        <div style="text-align:center; color:#777; font-style:italic; padding:10px;">Loading expected inbound shipments...</div>
+        <div style="text-align:center; color:#777; font-style:italic; padding:8px;">Loading expected inbound shipments...</div>
       </div>
     </div>
 
@@ -133,10 +109,9 @@
     </div>
 
     <!-- Prominent SaaS Start CTA Button -->
-    <button class="btn-saas-primary" onclick="startSession()">
+    <button class="btn-saas-primary btn-start" onclick="startSession()">
       <i data-lucide="play-circle" style="width:20px; height:20px; vertical-align:middle; margin-right:8px;"></i> Start Scanning Session
     </button>
-  </div>
 
   <!-- 4. Enterprise Data Hub Widget -->
   <div id="panelEnterpriseHub" class="saas-card enterprise-hub-card" style="display: none;">
@@ -228,3 +203,27 @@
     }
   }
 </script>
+<!-- =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: screens/setup.html
+ * Author: Thomas Seyfors
+ * Date Created: August 2026
+ * 
+ * Description: 
+ *   User interface component for the Home Screen. The main control panel 
+ *   for launching sessions, checking updates, and accessing enterprise tools.
+ *
+ * Affected Features:
+ *   - Master System Sync
+ *   - Session Setup (Shipments vs Orders)
+ *   - QuickBooks Online Feed Integration
+ *   - Quick Item Lookup Modal
+ *   - Advanced Mode Enterprise Tools Access
+ *
+ * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
+ * All Rights Reserved.
+ * ======================================================================= -->
+<!-- =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: screens/setup.html (Modern SaaS Redesign)
+ * ======================================================================= -->
