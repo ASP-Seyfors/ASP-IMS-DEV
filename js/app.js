@@ -376,6 +376,11 @@ window.ReportsManager = {
     },
     triggerRevMedExport() {
         window.open('?action=EXPORT_REVMED', '_blank');
+    },
+    generateRevMedPDF(mode) {
+        if (typeof window.generateRevMedPDF === 'function') {
+            window.generateRevMedPDF(mode);
+        }
     }
 };
 

@@ -761,9 +761,20 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     document.getElementById('rowSupplier').style.display = type === 'Shipment' ? 'flex' : 'none';
     document.getElementById('rowCustomer').style.display = type === 'Order' ? 'flex' : 'none';
     document.getElementById('rowProcess').style.display = type === 'Order' ? 'flex' : 'none';
+    
+    // Reset order details and partner fields when switching modes
+    let orderInput = document.getElementById('orderDetailsInput');
+    if (orderInput) orderInput.value = "";
+    
+    let supSelect = document.getElementById('supplierSelect');
+    if (supSelect) supSelect.value = "";
+    
+    let custSelect = document.getElementById('customerSelect');
+    if (custSelect) custSelect.value = "";
+
     if (typeof ShippingManager !== 'undefined' && typeof ShippingManager.toggleInboundTaskHub === 'function') {
-    ShippingManager.toggleInboundTaskHub(type);
-}
+      ShippingManager.toggleInboundTaskHub(type);
+    }
   },
 
   formatExpDate(inputEl) {

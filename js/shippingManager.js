@@ -1006,27 +1006,30 @@ const ShippingManager = {
     },
 
     selectInboundTask(partnerName, poNumber) {
-        // Auto-fill Supplier Dropdown
+        // 1. Auto-fill and resolve Supplier Dropdown using alias mapping
         let supSel = document.getElementById('supplierSelect');
         if (supSel) {
-            let opt = Array.from(supSel.options).find(o => o.value.toUpperCase().trim() === partnerName.toUpperCase().trim());
-            if (opt) {
-                supSel.value = opt.value;
-            } else {
-                // If not in dropdown, select it or add it
-                supSel.value = partnerName;
-            }
+            let resolvedSupplier = (typeof DatabaseManager !== 'undefined' && DatabaseManager.resolveAlias) 
+                ? DatabaseManager.resolveAlias(partnerName, 'supplier') 
+                : partnerName;
+            supSel.value = resolvedSupplier;
+            supSel.dispatchEvent(new Event('change'));
         }
 
-        // Auto-fill Order Details / PO Input
+        // 2. Format PO with clean "Order# " prefix (stripping duplicates if clicked repeatedly)
+        let cleanPo = String(poNumber || '').replace(/^Order#\s*/i, '').trim();
+        let formattedPo = cleanPo ? "Order# " + cleanPo : "";
+
+        // 3. Auto-fill Order Details / PO input
         let orderInput = document.getElementById('orderDetailsInput');
         if (orderInput) {
-            orderInput.value = poNumber;
+            orderInput.value = formattedPo;
+            orderInput.dispatchEvent(new Event('input'));
         }
 
-        // Visual feedback
+        // 4. Subtle visual confirmation alert
         if (typeof UIManager !== 'undefined') {
-            UIManager.showCustomAlert("Shipment Selected", `✅ Auto-filled Supplier <b>${partnerName}</b> and PO <b>${poNumber}</b>.`);
+            UIManager.showCustomAlert("Shipment Selected", `✅ Auto-filled Supplier <b>${partnerName}</b> and PO <b>${formattedPo}</b>.`);
         }
     },
 

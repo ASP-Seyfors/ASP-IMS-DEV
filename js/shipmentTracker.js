@@ -156,16 +156,25 @@ async function saveShipmentEdit() {
     }
 }
 
-function clickInboundTask(partner, po) {
-    let supSelect = document.getElementById('supplierSelect');
+function clickInboundTask(partner, po, eta) {
+    // 1. Resolve supplier using DatabaseManager alias mapping so variations match correctly
+    let supSelect = document.getElementById('supplierSelect') || document.getElementById('vendorSelect');
     if (supSelect) {
-        supSelect.value = partner;
-        if (typeof DatabaseManager !== 'undefined' && typeof DatabaseManager.handleVendorSelect === 'function') {
-            DatabaseManager.handleVendorSelect(partner);
-        }
+        let resolvedSupplier = (typeof DatabaseManager !== 'undefined' && DatabaseManager.resolveAlias) 
+            ? DatabaseManager.resolveAlias(partner, 'supplier') 
+            : partner;
+        supSelect.value = resolvedSupplier;
+        supSelect.dispatchEvent(new Event('change'));
     }
+
+    // 2. Format PO with clean "Order# " prefix (stripping duplicates if clicked repeatedly)
+    let cleanPo = String(po || '').replace(/^Order#\s*/i, '').trim();
+    let formattedPo = cleanPo ? "Order# " + cleanPo : "";
+
+    // 3. Populate Order Details / PO input
     let orderInput = document.getElementById('orderNumberInput') || document.getElementById('shipEditPo');
     if (orderInput) {
-        orderInput.value = po;
+        orderInput.value = formattedPo;
+        orderInput.dispatchEvent(new Event('input'));
     }
 }
