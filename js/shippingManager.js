@@ -734,15 +734,22 @@ const ShippingManager = {
     },
     
     skipAndComplete(isLoggedElsewhere = false) {
-        // ✨ NEW: If clicked via the UI "Skip" button, auto-log it to Outgoing with blank tracking fields!
         if (isLoggedElsewhere !== true) {
+            // ✨ FIX: Robust customer resolution fallback using SessionManager.currentSessionName
+            let rawComp = document.getElementById('shipAddressCompany') ? document.getElementById('shipAddressCompany').value.trim() : "";
+            let rawCustInput = document.getElementById('shipCustName') ? document.getElementById('shipCustName').value.trim() : "";
+            let sessionFallback = (typeof SessionManager !== 'undefined' && SessionManager.currentSessionName) ? SessionManager.currentSessionName.split('(')[0].split('-')[0].trim() : "";
+            
+            let finalCustomerName = (rawComp && rawComp !== "Unknown Customer") ? rawComp : (rawCustInput && rawCustInput !== "Unknown Customer" ? rawCustInput : sessionFallback);
+            if (!finalCustomerName) finalCustomerName = "UNKNOWN";
+
             let payload = {
                 action: "LOG_MANUAL_TRACKING",
                 payload: {
-                    customerName: document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim(),
+                    customerName: finalCustomerName,
                     orderNum: SessionManager.currentOrderNum || "",
                     carrier: document.getElementById('shipCarrier') ? document.getElementById('shipCarrier').value : "Manual",
-                    trackingNumber: "", // ✨ Left deliberately blank so you can fill it in on the Google Sheet later
+                    trackingNumber: "", 
                     totalWeight: document.getElementById('shipWeight').value || "",
                     dimL: document.getElementById('shipDimL').value || "",
                     dimW: document.getElementById('shipDimW').value || "",
@@ -750,7 +757,6 @@ const ShippingManager = {
                 }
             };
             try {
-                // Fire without awaiting so it doesn't freeze or slow down the skip UI
                 fetch(ApiManager.getActiveArchiveUrl(), {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -773,18 +779,23 @@ const ShippingManager = {
 
     async logManualTracking() {
         let trackingNum = prompt("Please paste the pre-provided tracking number:");
-        
-        // ✨ THE FIX: Explicitly catch the Cancel button (null) and Empty strings
         if (trackingNum === null || trackingNum.trim() === "") return;
 
         let btn = document.getElementById('btnLogTrackingOnly');
         let origText = btn.innerText;
         if (btn) { btn.innerText = "⏳ Logging..."; btn.disabled = true; }
 
+        let rawComp = document.getElementById('shipAddressCompany') ? document.getElementById('shipAddressCompany').value.trim() : "";
+        let rawCustInput = document.getElementById('shipCustName') ? document.getElementById('shipCustName').value.trim() : "";
+        let sessionFallback = (typeof SessionManager !== 'undefined' && SessionManager.currentSessionName) ? SessionManager.currentSessionName.split('(')[0].split('-')[0].trim() : "";
+        
+        let finalCustomerName = (rawComp && rawComp !== "Unknown Customer") ? rawComp : (rawCustInput && rawCustInput !== "Unknown Customer" ? rawCustInput : sessionFallback);
+        if (!finalCustomerName) finalCustomerName = "UNKNOWN";
+
         let payload = {
             action: "LOG_MANUAL_TRACKING",
             payload: {
-                customerName: document.getElementById('shipAddressCompany').value.trim() || document.getElementById('shipCustName').value.trim(),
+                customerName: finalCustomerName,
                 orderNum: SessionManager.currentOrderNum || "",
                 carrier: document.getElementById('shipCarrier').value,
                 trackingNumber: trackingNum.trim(),
