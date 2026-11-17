@@ -19,6 +19,23 @@
  * ======================================================================= */
 const ReportsManager = {
 
+  // ✨ EXTERNAL STOREFRONT & MARKETPLACE EXPORT TRIGGERS
+  triggerVetcoveVariance() {
+      window.open('?action=EXPORT_VETCOVE_VARIANCE', '_blank');
+  },
+  triggerVetcoveFull() {
+      window.open('?action=EXPORT_VETCOVE_FULL', '_blank');
+  },
+  triggerDotMedVariance() {
+      window.open('?action=EXPORT_DOTMED_VARIANCE', '_blank');
+  },
+  triggerDotMedFull() {
+      window.open('?action=EXPORT_DOTMED_FULL', '_blank');
+  },
+  triggerRevMedExport() {
+      window.open('?action=EXPORT_REVMED', '_blank');
+  },
+
   openCategoryModal() {
     let container = document.getElementById('subCategoryChecklist');
     container.innerHTML = '';
