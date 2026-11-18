@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asp-ims-dev-v7.1.9';
+const CACHE_NAME = 'asp-ims-dev-v7.2.0';
 
 
 const ASSETS_TO_CACHE = [
