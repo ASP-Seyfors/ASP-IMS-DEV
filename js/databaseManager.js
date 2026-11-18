@@ -634,7 +634,7 @@ const DatabaseManager = {
 
       let changed = (
       dbItem.mfr !== mfr || dbItem.desc !== desc || dbItem.category !== cat || dbItem.status !== status || 
-      String(dbItem.minStock ?? "") !== String(minStock)
+      String(dbItem.minStock ?? "") !== String(minStock) ||
       (dbItem.displayAlias || '') !== displayAlias ||
       (dbItem.parentRef && uomMultNum > 1 && isBoxOnly !== currentIsBoxOnly) ||
       (isAdmin && dbItem.price !== price) || 

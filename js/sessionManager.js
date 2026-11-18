@@ -318,6 +318,8 @@ const SessionManager = {
 
     let destRow = document.getElementById('rowItemDestination');
     if (destRow) destRow.style.display = 'flex';
+    let chkBundle = document.getElementById('chkIsBundle');
+    if (chkBundle && chkBundle.parentElement) chkBundle.parentElement.style.display = 'block';
     this.currentItemAction = 'Inventory';
     ScannerManager.resetScanLinesAndFields();
   },
@@ -811,7 +813,7 @@ const SessionManager = {
     let finalCustomerTag = cTag;
     let finalOrderNum = itemOrder;
 
-    // ✨ FIX: Do not overwrite blank customer/order tags with "Full Stocktake" / "FULL-INV" during a Stocktake!
+    // Do not overwrite blank customer/order tags with "Full Stocktake" / "FULL-INV" during a Stocktake!
     if (!this.currentWorkflowType.includes('Receiving & Reserving') && !this.currentWorkflowType.includes('Stocktake')) {
       let baseCustomer = this.currentSessionName.split('(')[0].trim();
       if (!finalCustomerTag) finalCustomerTag = baseCustomer;
@@ -860,7 +862,7 @@ const SessionManager = {
       if (dbMatch) dbMatch.gtin = rawGtin;
       localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
       
-      // ✨ THE FIX: We must queue this GTIN to be uploaded!
+      // We must queue this GTIN to be uploaded!
       this.pendingFieldUpdates.push({
         ref: ref,
         field: 'GTIN',
@@ -870,12 +872,32 @@ const SessionManager = {
       localStorage.setItem('asp_pending_updates', JSON.stringify(this.pendingFieldUpdates));
     }
 
+    // ✨ AUTO-SAVE SHELF LOCATION if item had no shelf in DB (or if entered during Stocktake/Receiving)
+    let enteredShelf = document.getElementById('shelfInput') ? document.getElementById('shelfInput').value.trim().toUpperCase() : '';
+    if (this.currentMatchedItem && enteredShelf && String(this.currentMatchedItem.shelf || '').toUpperCase().trim() !== enteredShelf) {
+      this.currentMatchedItem.shelf = enteredShelf;
+      let dbMatch = DatabaseManager.db.find(i => (i.sku || i.ref || '').toUpperCase() === ref.toUpperCase());
+      if (dbMatch) dbMatch.shelf = enteredShelf;
+      localStorage.setItem('asp_wh_db', JSON.stringify(DatabaseManager.db));
+      
+      let alreadyQueued = this.pendingFieldUpdates.some(u => u.ref === ref && u.field === 'Shelf Location');
+      if (!alreadyQueued) {
+        this.pendingFieldUpdates.push({
+          ref: ref,
+          field: 'Shelf Location',
+          newValue: enteredShelf,
+          timestamp: new Date().toLocaleString()
+        });
+        localStorage.setItem('asp_pending_updates', JSON.stringify(this.pendingFieldUpdates));
+      }
+    }
+
     this.scannedObjects.push({
       actionTag: effectiveTag,
       gtin: rawGtin || (this.currentMatchedItem ? this.currentMatchedItem.gtin : ''),
       ref: ref,
       lot: lot || 'NO_LOT',
-      // ✨ NEW: Tell the app to grab the version box data and save it!
+      // Tell the app to grab the version box data and save it!
       version: document.getElementById('verInput') ? document.getElementById('verInput').value.trim() : "",
       exp: exp || 'NO_EXP',
       mfr: vendor,

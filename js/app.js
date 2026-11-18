@@ -222,14 +222,17 @@ async function exportAppsScriptFiles(event) {
 }
 
 window.onload = async () => { 
-  // 1. Fetch and inject all HTML components FIRST
+  // Fetch and inject all HTML components FIRST
   if (typeof ComponentManager !== 'undefined') {
     await ComponentManager.loadAllScreens();
   }
 
-  // 2. Now it is safe to interact with the DOM elements
+  // Now it is safe to interact with the DOM elements
   let loginLogo = document.getElementById('loginLogo');
-  if (loginLogo) loginLogo.src = ENV_CONFIG.MEDALLION_URL || ENV_CONFIG.LOGO_URL; loginLogo.className = 'medallion-login-hero';
+  if (loginLogo) {
+    loginLogo.src = ENV_CONFIG.MEDALLION_URL || ENV_CONFIG.LOGO_URL;
+    loginLogo.className = 'medallion-login-hero';
+  }
 
   let versionDisplay = document.getElementById('appVersionDisplay');
   if (versionDisplay) versionDisplay.textContent = "App Version: " + ENV_CONFIG.APP_VERSION;
@@ -239,7 +242,7 @@ window.onload = async () => {
       blastNew.value = ENV_CONFIG.APP_VERSION;
   }
 
-  // 3. Initialize remaining systems
+  // Initialize remaining systems
   UIManager.loadSavedTheme(); 
   DatabaseManager.init(); 
   SessionManager.init();

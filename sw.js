@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asp-ims-dev-v7.1.6';
+const CACHE_NAME = 'asp-ims-dev-v7.1.7';
 
 
 const ASSETS_TO_CACHE = [
@@ -8,7 +8,7 @@ const ASSETS_TO_CACHE = [
   './ASP_Box_Web_RGB_DEV.png',
   './ASP_Icon_192_DEV.png',
   './ASP_Icon_512_DEV.png',
-  './Gemini_3D_ASP_Logo.jpg',
+  './Gemini_3D_ASP_Logo.png',
   './Gemini_3D_ASP_Logo_DEV.png',
   './ASP_Signature_Logo_DEV.png',
   
@@ -19,9 +19,9 @@ const ASSETS_TO_CACHE = [
   
   // JavaScript
   './js/config.js',
-  './js/apiManager.js',       // ✨ ADD THIS
-  './js/manifestManager.js',  // ✨ ADD THIS
-  './js/qboManager.js',       // ✨ ADD THIS
+  './js/apiManager.js',       
+  './js/manifestManager.js',  
+  './js/qboManager.js',       
   './js/componentManager.js',
   './js/app.js',
   './js/auditManager.js',
