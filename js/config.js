@@ -21,7 +21,7 @@ else if (currentUrl.includes("ASP-IMS-DEV")) {
     ENV_CONFIG = {
         CLOUD_ARCHIVE_URL: "https://script.google.com/macros/s/AKfycby-jGbxOlkmMDQwDN5x1FHae6OTNlVD4ZsBDWiLzotdp2ALs0JGYe_RYvSoXMDD7EqQeg/exec",
         GOOGLE_FEEDER_URL: "https://script.google.com/macros/s/AKfycbzm9u8lHnJEgDyG8rJk5YaXs8VY_jzyganveRP8UwkgLlMtZxhLjWIZ4iu545H07ogFRw/exec",
-        APP_VERSION: "7.1.7 (DEV)",
+        APP_VERSION: "7.1.8 (DEV)",
         ENVIRONMENT_NAME: "ASP DEV",
         THEME_COLOR: "#cf0452"
     };
@@ -38,4 +38,4 @@ else {
 }
 
 ENV_CONFIG.LOGO_URL = `ASP_Box_Web_RGB${envSuffix}.png`;
-ENV_CONFIG.MEDALLION_URL = ENV_CONFIG.SMALL_ICON_URL = ENV_CONFIG.LARGE_ICON_URL = "Gemini_3D_ASP_Logo.png";
+ENV_CONFIG.MEDALLION_URL = ENV_CONFIG.SMALL_ICON_URL = ENV_CONFIG.LARGE_ICON_URL = "3D_ASP_Logo_DEV.png";
