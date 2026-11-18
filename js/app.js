@@ -230,7 +230,7 @@ window.onload = async () => {
   // Now it is safe to interact with the DOM elements
   let loginLogo = document.getElementById('loginLogo');
   if (loginLogo) {
-    loginLogo.src = ENV_CONFIG.MEDALLION_URL || ENV_CONFIG.LOGO_URL;
+    loginLogo.src = `3D_ASP_Logo${typeof envSuffix !== 'undefined' ? envSuffix : ''}.png`;
     loginLogo.className = 'medallion-login-hero';
   }
 

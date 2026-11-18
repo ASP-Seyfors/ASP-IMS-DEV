@@ -67,7 +67,7 @@ const AuthManager = {
         return;
     }
 
-    let medallionSrc = (typeof ENV_CONFIG !== 'undefined' && ENV_CONFIG.MEDALLION_URL) ? ENV_CONFIG.MEDALLION_URL : 'Gemini_3D_ASP_Logo.png';
+    let medallionSrc = `3D_ASP_Logo${typeof envSuffix !== 'undefined' ? envSuffix : ''}.png`;
     let overlay = document.createElement('div');
     overlay.id = 'authOverlay';
     overlay.className = 'saas-auth-medallion-overlay';
