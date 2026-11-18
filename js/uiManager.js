@@ -1,25 +1,3 @@
-/* =======================================================================
- * Allied Surgical Products - Inventory Management System
- * File: js/uiManager.js
- * Author: Thomas Seyfors
- * Date Created: August 2026
- * 
- * Description:
- *   User interface interaction manager handling theme toggling, dynamic font 
- *   scaling, field validation highlighting, dynamic modals, and native 
- *   file download triggers.
- *
- * Affected Features:
- *   - Customer Bin & Damaged Bin Viewers
- *   - Quick Item Lookup Modal
- *   - Alert & Confirmation Modals
- *   - Sandbox Environment Toggles
- *   - Live Debug Console Floating UI
- *   - Native Blob / PDF File Downloader
- *
- * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
- * All Rights Reserved.
- * ======================================================================= */
 const UIManager = {// GLOBAL CONFIGURATIONS
   printTimeout: 1600,
 
@@ -735,7 +713,7 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     this.transmitUserPrefsToCloud(); // ✨ NEW
   },
 
-  // ✨ NEW: Silently syncs preferences to the DB without interrupting the user
+  // Silently syncs preferences to the DB without interrupting the user
   transmitUserPrefsToCloud() {
     let email = (typeof AuthManager !== 'undefined' && AuthManager.currentUser) ? AuthManager.currentUser.email : null;
     if (!email) return;
@@ -1300,3 +1278,25 @@ const UIManager = {// GLOBAL CONFIGURATIONS
     }
   }
 };
+/* =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: js/uiManager.js
+ * Author: Thomas Seyfors
+ * Date Created: August 2026
+ * 
+ * Description:
+ *   User interface interaction manager handling theme toggling, dynamic font 
+ *   scaling, field validation highlighting, dynamic modals, and native 
+ *   file download triggers.
+ *
+ * Affected Features:
+ *   - Customer Bin & Damaged Bin Viewers
+ *   - Quick Item Lookup Modal
+ *   - Alert & Confirmation Modals
+ *   - Sandbox Environment Toggles
+ *   - Live Debug Console Floating UI
+ *   - Native Blob / PDF File Downloader
+ *
+ * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
+ * All Rights Reserved.
+ * ======================================================================= */

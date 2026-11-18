@@ -1,25 +1,6 @@
-/* =======================================================================
- * Allied Surgical Products - Inventory Management System
- * File: js/reportsManager.js
- * Author: Thomas Seyfors
- * Date Created: August 2026
- * 
- * Description:
- *   Enterprise analytics and reporting generator. Compiles live data into 
- *   standalone business intelligence reports without requiring Excel.
- *
- * Affected Features:
- *   - Full On-Hand Stock Reports
- *   - Expiration Warning Reports
- *   - Stocktake Variance & Financial Impact Reports
- *   - End of Week Shipping & Revenue Summaries
- *
- * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
- * All Rights Reserved.
- * ======================================================================= */
 const ReportsManager = {
 
-  // ✨ EXTERNAL STOREFRONT & MARKETPLACE EXPORT TRIGGERS
+  // EXTERNAL STOREFRONT & MARKETPLACE EXPORT TRIGGERS
   async triggerVetcoveVariance() {
       await this._fetchAndDownloadCsv('EXPORT_VETCOVE_VARIANCE', 'Vetcove_Variance_Export.csv');
   },
@@ -115,7 +96,7 @@ const ReportsManager = {
     document.getElementById('modalSubCategories').style.display = 'none';
   },
 
-  // ✨ NEW: Centralized Report Math Engine
+  // Centralized Report Math Engine
   getTrueAvailability(item) {
       if (!item) return 0;
       let isBundle = item.parentRef && parseInt(item.uomMult, 10) > 1;
@@ -1001,7 +982,7 @@ const ReportsManager = {
     }
   },
 
-  // ✨ NEW: Toggle Day Selector based on Frequency
+  // Toggle Day Selector based on Frequency
   toggleSubSendDay() {
       let freq = document.getElementById('subFreq').value;
       let daySel = document.getElementById('subSendDay');
@@ -1057,7 +1038,7 @@ const ReportsManager = {
       }
   },
 
-  // ✨ NEW: Clean edit function that pulls directly from memory
+  // Clean edit function that pulls directly from memory
   editSubscriber(email) {
       if (!this.currentSubs) return;
       let sub = this.currentSubs.find(s => s.email === email);
@@ -1090,7 +1071,7 @@ const ReportsManager = {
       window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to the form
   },
 
-  // ✨ NEW: Master reset for the Subscriber entry form
+  // Master reset for the Subscriber entry form
   clearSubscriberFields() {
       if (document.getElementById('subName')) document.getElementById('subName').value = "";
       if (document.getElementById('subEmail')) document.getElementById('subEmail').value = "";
@@ -1222,7 +1203,7 @@ const ReportsManager = {
   },
 
   // ==========================================
-  // ✨ NEW: CUSTOM LISTS ENGINE
+  // CUSTOM LISTS ENGINE
   // ==========================================
   async openCustomListsModal() {
       document.getElementById('listNameInput').value = '';
@@ -1535,3 +1516,22 @@ async function subscribeToEthiconMonitor() {
         btn.innerText = orig; btn.disabled = false;
     }
 }
+/* =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: js/reportsManager.js
+ * Author: Thomas Seyfors
+ * Date Created: August 2026
+ * 
+ * Description:
+ *   Enterprise analytics and reporting generator. Compiles live data into 
+ *   standalone business intelligence reports without requiring Excel.
+ *
+ * Affected Features:
+ *   - Full On-Hand Stock Reports
+ *   - Expiration Warning Reports
+ *   - Stocktake Variance & Financial Impact Reports
+ *   - End of Week Shipping & Revenue Summaries
+ *
+ * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
+ * All Rights Reserved.
+ * ======================================================================= */

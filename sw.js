@@ -1,23 +1,4 @@
-/* =======================================================================
- * Allied Surgical Products - Inventory Management System
- * File: sw.js
- * Author: Thomas Seyfors
- * Date Created: August 2026
- * 
- * Description:
- *   The Service Worker file responsible for Progressive Web App (PWA) 
- *   offline capabilities. Intercepts network requests and caches core 
- *   assets for disconnected warehouse use.
- *
- * Affected Features:
- *   - Offline App Loading
- *   - Cache Management & Versioning
- *   - Network-First vs Cache-First Routing Policies
- *
- * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
- * All Rights Reserved.
- * ======================================================================= */
-const CACHE_NAME = 'asp-ims-dev-v7.1.5';
+const CACHE_NAME = 'asp-ims-dev-v7.1.6';
 
 
 const ASSETS_TO_CACHE = [
@@ -27,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './ASP_Box_Web_RGB_DEV.png',
   './ASP_Icon_192_DEV.png',
   './ASP_Icon_512_DEV.png',
+  './Gemini_3D_ASP_Logo.jpg',
   './Gemini_3D_ASP_Logo_DEV.png',
   './ASP_Signature_Logo_DEV.png',
   
@@ -129,3 +111,22 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   }
 });
+/* =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: sw.js
+ * Author: Thomas Seyfors
+ * Date Created: August 2026
+ * 
+ * Description:
+ *   The Service Worker file responsible for Progressive Web App (PWA) 
+ *   offline capabilities. Intercepts network requests and caches core 
+ *   assets for disconnected warehouse use.
+ *
+ * Affected Features:
+ *   - Offline App Loading
+ *   - Cache Management & Versioning
+ *   - Network-First vs Cache-First Routing Policies
+ *
+ * Copyright (c) 2026 Thomas Seyfors / Allied Surgical Products.
+ * All Rights Reserved.
+ * ======================================================================= */

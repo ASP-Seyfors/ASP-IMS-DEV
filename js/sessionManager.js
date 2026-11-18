@@ -1,8 +1,3 @@
-/* =======================================================================
- * Allied Surgical Products - Inventory Management System
- * File: js/sessionManager.js
- * Description: Core session lifecycle orchestrator.
- * ======================================================================= */
 const SessionManager = {
   scannedObjects: JSON.parse(localStorage.getItem('asp_session_scanned_objects')) || [],
   pendingNewItems: JSON.parse(localStorage.getItem('asp_pending_new_items')) || [],
@@ -816,7 +811,8 @@ const SessionManager = {
     let finalCustomerTag = cTag;
     let finalOrderNum = itemOrder;
 
-    if (!this.currentWorkflowType.includes('Receiving & Reserving')) {
+    // ✨ FIX: Do not overwrite blank customer/order tags with "Full Stocktake" / "FULL-INV" during a Stocktake!
+    if (!this.currentWorkflowType.includes('Receiving & Reserving') && !this.currentWorkflowType.includes('Stocktake')) {
       let baseCustomer = this.currentSessionName.split('(')[0].trim();
       if (!finalCustomerTag) finalCustomerTag = baseCustomer;
       if (!finalOrderNum) finalOrderNum = this.currentOrderNum;
@@ -1193,9 +1189,13 @@ const SessionManager = {
             if (tagEl) {
               let newTag = tagEl.value.trim().toUpperCase();
               item.customerTag = newTag;
-              if (newTag && this.currentWorkflowType.includes('Receiving')) item.actionTag = 'Reserved';
+              if (newTag && (this.currentWorkflowType.includes('Receiving') || this.currentWorkflowType.includes('Stocktake'))) {
+                item.actionTag = 'Reserved';
+              } else if (!newTag && (this.currentWorkflowType.includes('Receiving') || this.currentWorkflowType.includes('Stocktake'))) {
+                item.actionTag = 'Inventory';
+              }
             }
-          }
+          } // ✨ Restored closing brace for if (qtyEl)
           if (this.currentWorkflowType.includes('Packing') && this.isManifestEnabled) {
              let manifestItem = this.expectedManifest.find(m => m.ref === item.ref.toUpperCase());
              if (manifestItem && manifestItem.allocations && manifestItem.allocations.length > 0) { 
@@ -1303,8 +1303,9 @@ const SessionManager = {
                       }
                       
                       try {
+                          // ✨ FIX: Await full server response per batch so 14 Stocktake batches never overlap in Apps Script
                           await fetch(ApiManager.getActiveArchiveUrl(), { 
-                              method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                              method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                               body: JSON.stringify({ action: "SYNC_SHOPIFY", payload: batch }) 
                           });
                       } catch(e) { console.warn("Shopify batch sync failed:", e); }
@@ -2080,3 +2081,8 @@ const SessionManager = {
       }
   }
 };
+/* =======================================================================
+ * Allied Surgical Products - Inventory Management System
+ * File: js/sessionManager.js
+ * Description: Core session lifecycle orchestrator.
+ * ======================================================================= */
