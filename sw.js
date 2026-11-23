@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asp-ims-dev-v7.2.7';
+const CACHE_NAME = 'asp-ims-dev-v7.2.8';
 
 
 const ASSETS_TO_CACHE = [
@@ -98,6 +98,9 @@ self.addEventListener('activate', event => {
 
 // Fetch Event: Serve from cache, fallback to network
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);
